@@ -1,0 +1,91 @@
+{% load static %}
+<header class="navbar">
+    <div class="navbar-left">
+        <a class="navbar-brand" href="{% if request.user.is_teacher %}{% url 'teacher_portal:dashboard' %}{% elif request.user.is_student %}{% url 'student_portal:dashboard' %}{% else %}{% url 'core:dashboard' %}{% endif %}">
+            <span class="brand-icon" aria-hidden="true">🎓</span>
+            <span class="brand-text">School Manager</span>
+        </a>
+        <nav class="nav-links">
+            {% if request.user.is_authenticated and request.user.is_teacher %}
+                <a href="{% url 'teacher_portal:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{% url 'teacher_portal:mark' %}" class="nav-link {% if request.resolver_match.url_name == 'mark' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">📝</span>
+                    <span>Mark Attendance</span>
+                </a>
+                <a href="{% url 'teacher_portal:history' %}" class="nav-link {% if request.resolver_match.url_name == 'history' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">📋</span>
+                    <span>Attendance History</span>
+                </a>
+            {% elif request.user.is_authenticated and request.user.is_student %}
+                <a href="{% url 'student_portal:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">👨‍🎓</span>
+                    <span>My Dashboard</span>
+                </a>
+                <a href="{% url 'student_portal:fees' %}" class="nav-link {% if request.resolver_match.url_name == 'fees' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">💰</span>
+                    <span>Fee Summary</span>
+                </a>
+                <a href="{% url 'student_portal:attendance' %}" class="nav-link {% if request.resolver_match.url_name == 'attendance' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">📋</span>
+                    <span>Attendance Summary</span>
+                </a>
+            {% else %}
+                <a href="{% url 'core:dashboard' %}" class="nav-link {% if request.resolver_match.app_name == 'core' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{% url 'classrooms:list' %}" class="nav-link {% if request.resolver_match.app_name == 'classrooms' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">🏫</span>
+                    <span>Classes</span>
+                </a>
+                <a href="{% url 'students:list' %}" class="nav-link {% if request.resolver_match.app_name == 'students' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">👨‍🎓</span>
+                    <span>Students</span>
+                </a>
+                <a href="{% url 'teachers:list' %}" class="nav-link {% if request.resolver_match.app_name == 'teachers' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">👨‍🏫</span>
+                    <span>Teachers</span>
+                </a>
+                <a href="{% url 'fees:list' %}" class="nav-link {% if request.resolver_match.app_name == 'fees' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">💰</span>
+                    <span>Fees</span>
+                </a>
+                <a href="{% url 'attendance:admin_attendance' %}" class="nav-link {% if request.resolver_match.app_name == 'attendance' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">📅</span>
+                    <span>Attendance</span>
+                </a>
+                <a href="{% url 'core:reports' %}" class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">📈</span>
+                    <span>Reports</span>
+                </a>
+                <a href="{% url 'accounts:account_list' %}" class="nav-link {% if request.resolver_match.url_name == 'account_list' or request.resolver_match.url_name|slice:':2' == 'id' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">🪪</span>
+                    <span>ID Mgmt</span>
+                </a>
+            {% endif %}
+        </nav>
+    </div>
+    <div class="navbar-right">
+        {% if request.user.is_authenticated %}
+            <span class="user-chip" title="Logged in as {{ request.user.username }}">
+                <span class="user-avatar" aria-hidden="true">{{ request.user.username|first|upper }}</span>
+                <span class="user-meta">
+                    <span class="user-name">{{ request.user.username }}</span>
+                    <span class="user-role">{{ request.user.get_role_display }}</span>
+                </span>
+            </span>
+            {% if request.user.is_admin %}
+                <a class="btn btn-ghost" href="{% url 'accounts:change_credentials' %}">Change Credentials</a>
+            {% endif %}
+            <form method="post" action="{% url 'accounts:logout' %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Logout</button>
+            </form>
+        {% else %}
+            <a class="btn btn-primary" href="{% url 'accounts:login' %}">Login</a>
+        {% endif %}
+    </div>
+</header>

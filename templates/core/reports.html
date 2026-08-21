@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Financial Reports & Analytics — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Action Bar & Header (Hidden on print) -->
+    <div class="dashboard-header no-print">
+        <div>
+            <h1 class="dashboard-title">Financial Reports & Analytics</h1>
+            <p class="dashboard-subtitle">
+                Tuition collections, teacher salary expenditures, class billing breakdowns, and annual profit & loss statements.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <button type="button" class="btn btn-primary" onclick="window.print()">
+                <span>🖨️</span> Print Audit Statement
+            </button>
+        </div>
+    </div>
+
+    <!-- Official Printable Report Header (Visible on print) -->
+    <div class="print-only" style="display: none; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 800;">SCHOOL MANAGEMENT SYSTEM</h1>
+                <p style="margin: 4px 0 0; color: #444; font-size: 13px;">Official Financial Audit & Accounts Statement &bull; Academic Year {{ selected_year }}</p>
+            </div>
+            <div style="text-align: right; font-size: 12px; color: #555;">
+                Generated on: <strong>{{ today_date|date:"F j, Y" }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Panel (Hidden on print) -->
+    <div class="panel no-print" style="padding: 18px 24px; margin-bottom: 24px;">
+        <form method="get" action="{% url 'core:reports' %}" class="filter-form">
+            <div class="filter-row">
+                <!-- Month -->
+                <div class="filter-col" style="min-width: 140px;">
+                    <label class="filter-lbl" for="rep-month">Target Month</label>
+                    <select name="month" id="rep-month" class="form-control">
+                        {% for m_num, m_name in months %}
+                            <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>
+                                {{ m_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Year -->
+                <div class="filter-col" style="min-width: 120px;">
+                    <label class="filter-lbl" for="rep-year">Target Year</label>
+                    <select name="year" id="rep-year" class="form-control">
+                        {% for y in available_years %}
+                            <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>
+                                {{ y }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Class -->
+                <div class="filter-col" style="min-width: 160px;">
+                    <label class="filter-lbl" for="rep-class">Filter by Class</label>
+                    <select name="class_id" id="rep-class" class="form-control">
+                        <option value="">All School Classes</option>
+                        {% for c in classes %}
+                            <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>
+                                {{ c.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Actions -->
+                <div class="filter-col filter-actions-col">
+                    <label class="filter-lbl">&nbsp;</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                        {% if selected_class_id or selected_year != today_date.year or selected_month != today_date.month %}
+                            <a href="{% url 'core:reports' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Core Financial KPI Metrics -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <!-- Today's Collection -->
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>💰</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Today's Fee Collection</span>
+                <span class="stat-value">Rs {{ today_fee_collection|floatformat:2 }}</span>
+                <span class="stat-hint">{{ today_date|date:"D, M j, Y" }}</span>
+            </div>
+        </div>
+
+        <!-- Selected Month Fee Income -->
+        <div class="stat-card">
+            <div class="stat-icon bg-blue-light">
+                <span>📥</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">{{ selected_month_name }} {{ selected_year }} Collections</span>
+                <span class="stat-value">Rs {{ month_fee_collection|floatformat:2 }}</span>
+                <span class="stat-hint">Expected: Rs {{ expected_monthly_billing|floatformat:0 }}</span>
+            </div>
+        </div>
+
+        <!-- Selected Year Fee Income -->
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>📈</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Annual {{ selected_year }} Collections</span>
+                <span class="stat-value">Rs {{ year_fee_collection|floatformat:2 }}</span>
+                <span class="stat-hint">Expected: Rs {{ expected_yearly_billing|floatformat:0 }}</span>
+            </div>
+        </div>
+
+        <!-- Pending Annual Dues -->
+        <div class="stat-card">
+            <div class="stat-icon bg-amber-light">
+                <span>⏳</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Annual {{ selected_year }} Dues</span>
+                <span class="stat-value text-warning">Rs {{ year_pending_fees|floatformat:2 }}</span>
+                <span class="stat-hint">Uncollected student dues</span>
+            </div>
+        </div>
+
+        <!-- Teacher Salaries Expense (Month) -->
+        <div class="stat-card">
+            <div class="stat-icon bg-purple-light">
+                <span>📤</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Teacher Salaries ({{ selected_month_name }})</span>
+                <span class="stat-value text-muted">Rs {{ month_salaries|floatformat:2 }}</span>
+                <span class="stat-hint">Year Total: Rs {{ year_salaries|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <!-- Net Profit / Loss -->
+        <div class="stat-card {% if month_net_income >= 0 %}stat-card-success{% else %}stat-card-danger{% endif %}">
+            <div class="stat-icon {% if month_net_income >= 0 %}bg-emerald-light{% else %}bg-rose-light{% endif %}">
+                <span>{% if month_net_income >= 0 %}💹{% else %}📉{% endif %}</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Net Profit / Balance ({{ selected_month_name }})</span>
+                <span class="stat-value {% if month_net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    Rs {{ month_net_income|floatformat:2 }}
+                </span>
+                <span class="stat-hint">Yearly Net: <strong>Rs {{ year_net_income|floatformat:2 }}</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 1: Month-by-Month Annual Financial Summary Table -->
+    <div class="panel" style="margin-bottom: 24px;">
+        <div class="panel-header">
+            <div>
+                <h3>📅 Month-by-Month Statement — Academic Year {{ selected_year }}</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Complete income vs expenditure breakdown and net margin by calendar month.
+                </p>
+            </div>
+            <span class="badge badge-primary">Year {{ selected_year }}</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Month</th>
+                        <th style="text-align: right;">Fee Collections (Income)</th>
+                        <th style="text-align: right;">Teacher Salaries (Expense)</th>
+                        <th style="text-align: right;">Net Profit / Loss</th>
+                        <th style="text-align: center; width: 140px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in monthly_breakdown %}
+                        <tr {% if m.month_num == selected_month %}style="background: var(--primary-50); font-weight: 600;"{% endif %}>
+                            <td>
+                                <strong>{{ m.month_name }} {{ selected_year }}</strong>
+                                {% if m.month_num == selected_month %}
+                                    <span class="badge badge-primary text-xs" style="margin-left: 6px;">Active Filter</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;" class="text-success">
+                                Rs {{ m.income|floatformat:2 }}
+                            </td>
+                            <td style="text-align: right;" class="text-muted">
+                                Rs {{ m.salaries|floatformat:2 }}
+                            </td>
+                            <td style="text-align: right;">
+                                <strong class="{% if m.is_profit %}text-success{% else %}text-danger{% endif %}">
+                                    Rs {{ m.net|floatformat:2 }}
+                                </strong>
+                            </td>
+                            <td style="text-align: center;">
+                                {% if m.is_profit %}
+                                    <span class="badge badge-success">Surplus</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Deficit</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background: var(--bg); font-weight: 700; font-size: 15px; border-top: 2px solid var(--border);">
+                        <td>Annual Grand Total:</td>
+                        <td style="text-align: right; color: var(--primary);">
+                            Rs {{ annual_total_income|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right; color: var(--text-muted);">
+                            Rs {{ annual_total_salaries|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right;">
+                            <strong class="{% if annual_net_profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                Rs {{ annual_net_profit_loss|floatformat:2 }}
+                            </strong>
+                        </td>
+                        <td style="text-align: center;">
+                            {% if annual_net_profit_loss >= 0 %}
+                                <span class="badge badge-success">Net Surplus</span>
+                            {% else %}
+                                <span class="badge badge-danger">Net Deficit</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section 2: Class-wise Revenue & Collection Rate Breakdown Table -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>🏫 Class-Wise Revenue & Recovery Rates</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Targeted tuition billing performance per class for {{ selected_month_name }} and Annual {{ selected_year }}.
+                </p>
+            </div>
+            <span class="badge badge-outline">{{ class_reports|length }} Class{% if class_reports|length != 1 %}es{% endif %} Analyzed</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Class Name</th>
+                        <th style="text-align: center;">Active Students</th>
+                        <th style="text-align: right;">{{ selected_month_name }} Expected</th>
+                        <th style="text-align: right;">{{ selected_month_name }} Collected</th>
+                        <th style="text-align: right;">{{ selected_month_name }} Dues</th>
+                        <th style="text-align: center;">Month Recovery</th>
+                        <th style="text-align: right;">Annual {{ selected_year }} Expected</th>
+                        <th style="text-align: right;">Annual {{ selected_year }} Collected</th>
+                        <th style="text-align: center;">Annual Recovery</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cr in class_reports %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'classrooms:detail' pk=cr.class.pk %}" class="table-link font-semibold">
+                                    <strong>{{ cr.class.name }}</strong>
+                                </a>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge badge-outline">{{ cr.student_count }}</span>
+                            </td>
+                            <td style="text-align: right;">Rs {{ cr.expected_monthly|floatformat:0 }}</td>
+                            <td style="text-align: right;" class="text-success"><strong>Rs {{ cr.collected_monthly|floatformat:0 }}</strong></td>
+                            <td style="text-align: right;" class="{% if cr.pending_monthly > 0 %}text-danger{% else %}text-muted{% endif %}">
+                                Rs {{ cr.pending_monthly|floatformat:0 }}
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge {% if cr.month_rate >= 80 %}badge-success{% elif cr.month_rate >= 50 %}badge-warning{% else %}badge-danger{% endif %}">
+                                    {{ cr.month_rate }}%
+                                </span>
+                            </td>
+                            <td style="text-align: right;">Rs {{ cr.expected_yearly|floatformat:0 }}</td>
+                            <td style="text-align: right;" class="text-primary"><strong>Rs {{ cr.collected_yearly|floatformat:0 }}</strong></td>
+                            <td style="text-align: center;">
+                                <span class="badge {% if cr.year_rate >= 80 %}badge-success{% elif cr.year_rate >= 50 %}badge-warning{% else %}badge-danger{% endif %}">
+                                    {{ cr.year_rate }}%
+                                </span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted" style="padding: 32px;">
+                                No class performance records found.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

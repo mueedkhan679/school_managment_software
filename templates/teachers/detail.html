@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ teacher.name }} ({{ teacher.teacher_id }}) — Teacher Profile — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Action Header (Hidden on print) -->
+    <div class="dashboard-header no-print">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <a href="{% url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Faculty</a>
+                {% if teacher.is_active %}
+                    <span class="badge badge-success">Active Faculty</span>
+                {% else %}
+                    <span class="badge badge-danger">Archived Staff</span>
+                {% endif %}
+            </div>
+            <h1 class="dashboard-title">{{ teacher.name }}</h1>
+            <p class="dashboard-subtitle">
+                Official Teacher ID: <code>{{ teacher.teacher_id }}</code> &bull; Joined on {{ teacher.date_joined|date:"F j, Y" }}
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <button type="button" class="btn btn-ghost" onclick="window.print()">
+                <span>🖨️</span> Print Profile
+            </button>
+            <a href="{% url 'teachers:salary_create' %}?teacher={{ teacher.id }}" class="btn btn-primary">
+                <span>💸</span> Pay Salary
+            </a>
+            <a href="{% url 'teachers:update' teacher_id=teacher.teacher_id %}" class="btn btn-ghost">
+                <span>✏️</span> Edit Profile
+            </a>
+            {% if teacher.is_active %}
+                <button type="button" class="btn btn-danger-ghost"
+                        onclick="confirmArchiveTeacher('{{ teacher.teacher_id }}', '{{ teacher.name|escapejs }}')">
+                    <span>📦</span> Archive
+                </button>
+            {% else %}
+                <form method="post" action="{% url 'teachers:restore' teacher_id=teacher.teacher_id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline text-success">
+                        <span>♻️</span> Restore Faculty
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Official Printable Header (Visible on print) -->
+    <div class="print-only" style="display: none; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px;">
+        <h2 style="margin: 0; font-size: 24px;">School Management System</h2>
+        <p style="margin: 4px 0 0; color: #555;">Official Faculty Record & Salary Ledger</p>
+    </div>
+
+    <!-- Teacher Bio Card -->
+    <div class="panel" style="margin-bottom: 24px;">
+        <div class="profile-hero-card">
+            <!-- Photo Column -->
+            <div class="profile-photo-wrap">
+                {% if teacher.picture %}
+                    <img src="{{ teacher.picture.url }}" alt="{{ teacher.name }}" class="profile-avatar-large">
+                {% else %}
+                    <div class="profile-avatar-large-placeholder" style="background: linear-gradient(135deg, #7c3aed, #4c1d95);">
+                        {{ teacher.name|first|upper }}
+                    </div>
+                {% endif %}
+                <span class="badge badge-primary" style="margin-top: 10px; width: 100%; text-align: center; justify-content: center;">
+                    {{ teacher.teacher_id }}
+                </span>
+            </div>
+
+            <!-- Details Grid Column -->
+            <div class="profile-details-main">
+                <div class="profile-section-title">
+                    <h3>Faculty Bio-Data & Assigned Classes</h3>
+                </div>
+                <div class="profile-info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Teacher Name</span>
+                        <strong class="info-value">{{ teacher.name }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Contact Phone</span>
+                        <strong class="info-value">{{ teacher.phone }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">CNIC Number</span>
+                        <strong class="info-value">{{ teacher.cnic|default:"Not Provided" }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Monthly Base Salary</span>
+                        <strong class="info-value text-primary">Rs {{ teacher.monthly_salary|floatformat:2 }}</strong>
+                    </div>
+                    <div class="info-item" style="grid-column: 1 / -1;">
+                        <span class="info-label">Assigned Classes</span>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+                            {% for c in assigned_classes %}
+                                <a href="{% url 'classrooms:detail' pk=c.pk %}" class="badge badge-outline" style="text-decoration: none;">
+                                    🏫 {{ c.name }}
+                                </a>
+                            {% empty %}
+                                <span class="text-muted text-sm">No classes assigned yet.</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="info-item" style="grid-column: 1 / -1;">
+                        <span class="info-label">Residential Address</span>
+                        <span class="info-value">{{ teacher.address|default:"No residential address specified." }}</span>
+                    </div>
+                </div>
+
+                <!-- CNIC Previews if uploaded -->
+                {% if teacher.cnic_front_pic or teacher.cnic_back_pic %}
+                    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
+                        <span class="info-label" style="margin-bottom: 8px; display: block;">CNIC Documents on File</span>
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            {% if teacher.cnic_front_pic %}
+                                <a href="{{ teacher.cnic_front_pic.url }}" target="_blank" title="View CNIC Front" style="text-decoration: none;">
+                                    <img src="{{ teacher.cnic_front_pic.url }}" alt="CNIC Front" style="width: 140px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border);">
+                                    <span style="display: block; font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 2px;">CNIC Front &nearr;</span>
+                                </a>
+                            {% endif %}
+                            {% if teacher.cnic_back_pic %}
+                                <a href="{{ teacher.cnic_back_pic.url }}" target="_blank" title="View CNIC Back" style="text-decoration: none;">
+                                    <img src="{{ teacher.cnic_back_pic.url }}" alt="CNIC Back" style="width: 140px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border);">
+                                    <span style="display: block; font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 2px;">CNIC Back &nearr;</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats (Salary) -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light">
+                <span>💵</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Monthly Base Salary</span>
+                <span class="stat-value">Rs {{ teacher.monthly_salary|floatformat:2 }}</span>
+                <span class="stat-hint">Monthly payroll rate</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-blue-light">
+                <span>📈</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Annual Expected Salary</span>
+                <span class="stat-value">Rs {{ yearly_expected_salary|floatformat:2 }}</span>
+                <span class="stat-hint">Monthly &times; 12</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>💸</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Paid in {{ current_year }}</span>
+                <span class="stat-value">Rs {{ curr_year_paid|floatformat:2 }}</span>
+                <span class="stat-hint">Disbursed this year</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>🏦</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">All-Time Disbursed</span>
+                <span class="stat-value">Rs {{ total_paid_all_time|floatformat:2 }}</span>
+                <span class="stat-hint">Total historical salary</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Salary History & Month-by-Month Schedule Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>💸 Salary Disbursements & Annual Status</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Annual salary status for {{ current_year }} and historical payment ledger.
+                </p>
+            </div>
+            <a href="{% url 'teachers:salary_create' %}?teacher={{ teacher.id }}" class="btn btn-primary btn-xs">
+                <span>➕</span> Disburse Salary
+            </a>
+        </div>
+
+        <!-- 12-Month Calendar Schedule for Current Year -->
+        <div style="margin-bottom: 24px;">
+            <span class="text-xs font-semibold text-muted" style="display: block; margin-bottom: 8px; text-transform: uppercase;">
+                Year {{ current_year }} Salary Disbursement Schedule
+            </span>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 6px;">
+                {% for m in salaries_schedule %}
+                    <div style="text-align: center; padding: 6px 4px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; {% if m.is_paid %}background: var(--success-50); border-color: var(--success); color: var(--success);{% else %}background: var(--bg); color: var(--text-muted);{% endif %}">
+                        <span style="display: block; font-weight: 700;">{{ m.month_name|slice:":3" }}</span>
+                        {% if m.is_paid %}
+                            <span style="font-size: 9.5px; font-weight: 600;">PAID</span>
+                        {% else %}
+                            <a href="{% url 'teachers:salary_create' %}?teacher={{ teacher.id }}&month={{ m.month_num }}&year={{ current_year }}" style="font-size: 9.5px; color: var(--primary); text-decoration: none; display: block; font-weight: 600;" title="Pay salary for {{ m.month_name }}">
+                                + Pay
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Receipt #</th>
+                        <th>Month / Year</th>
+                        <th>Amount Disbursed</th>
+                        <th>Payment Date</th>
+                        <th>Status</th>
+                        <th>Recorded By</th>
+                        <th style="text-align: right; width: 140px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in salaries %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'teachers:salary_voucher' pk=s.pk %}" class="table-link font-semibold">
+                                    <code>{{ s.reference|default:"View" }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <strong>{{ s.get_salary_month_display }} {{ s.salary_year }}</strong>
+                            </td>
+                            <td>
+                                <strong class="text-primary">Rs {{ s.amount|floatformat:2 }}</strong>
+                            </td>
+                            <td>{{ s.payment_date|date:"M j, Y" }}</td>
+                            <td>
+                                {% if s.status == "PAID" %}
+                                    <span class="badge badge-success">Paid</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ s.recorded_by.username|default:"Admin" }}</td>
+                            <td style="text-align: right;">
+                                <div class="action-btn-group">
+                                    <a href="{% url 'teachers:salary_voucher' pk=s.pk %}" class="btn btn-outline btn-xs" title="Print Payslip">
+                                        Payslip
+                                    </a>
+                                    <a href="{% url 'teachers:salary_update' pk=s.pk %}" class="btn btn-ghost btn-xs" title="Edit">
+                                        Edit
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted" style="padding: 28px;">
+                                No salary disbursement records found for this teacher yet.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Archive Confirmation Modal -->
+<div class="modal-overlay no-print" id="archive-teacher-modal" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="text-danger">Archive Teacher Record</h3>
+            <button type="button" class="modal-close" onclick="closeArchiveModal()">&times;</button>
+        </div>
+        <form id="archive-teacher-form" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p id="archive-modal-msg">Are you sure you want to archive this teacher?</p>
+                <div class="alert alert-info" style="margin-top: 12px; font-size: 13px;">
+                    ℹ️ Historical salary expenditures and attendance logs will remain preserved for school reporting.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeArchiveModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Yes, Archive Staff</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function confirmArchiveTeacher(teacherId, teacherName) {
+    const form = document.getElementById('archive-teacher-form');
+    form.action = `/teachers/${teacherId}/delete/`;
+    document.getElementById('archive-modal-msg').innerHTML = `Are you sure you want to deactivate and archive <strong>${teacherName} (${teacherId})</strong>?`;
+    document.getElementById('archive-teacher-modal').style.display = 'flex';
+}
+function closeArchiveModal() {
+    document.getElementById('archive-teacher-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

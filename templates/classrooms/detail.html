@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ school_class.name }} — Class Details — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <a href="{% url 'classrooms:list' %}" class="btn btn-ghost btn-xs">&larr; All Classes</a>
+                <span class="badge badge-outline">Order #{{ school_class.order }}</span>
+            </div>
+            <h1 class="dashboard-title">{{ school_class.name }}</h1>
+            <p class="dashboard-subtitle">
+                Class details, fee configuration, assigned faculty, and enrolled student roster.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'classrooms:update' pk=school_class.pk %}" class="btn btn-primary">
+                <span>✏️</span> Edit Class
+            </a>
+            <button type="button" class="btn btn-danger-ghost"
+                    onclick="confirmDeleteClass({{ school_class.pk }}, '{{ school_class.name|escapejs }}', {{ total_count }})">
+                <span>🗑️</span> Delete
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-blue-light">
+                <span>🎓</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Active Students</span>
+                <span class="stat-value">{{ active_count }}</span>
+                <span class="stat-hint">Total enrolled: {{ total_count }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light">
+                <span>💵</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Standard Monthly Fee</span>
+                <span class="stat-value">Rs {{ school_class.monthly_fee|floatformat:2 }}</span>
+                <span class="stat-hint">Per student / month</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>📥</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Expected Monthly Income</span>
+                <span class="stat-value">Rs {{ expected_monthly_income|floatformat:2 }}</span>
+                <span class="stat-hint">Sum of effective fees</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>📈</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Expected Yearly Income</span>
+                <span class="stat-value">Rs {{ expected_yearly_income|floatformat:2 }}</span>
+                <span class="stat-hint">Expected monthly &times; 12</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assigned Teachers Row -->
+    <div class="panel" style="margin-bottom: 24px;">
+        <div class="panel-header">
+            <h3>👨‍🏫 Assigned Teachers</h3>
+            <span class="badge badge-outline">{{ assigned_teachers|length }} Teacher{% if assigned_teachers|length != 1 %}s{% endif %}</span>
+        </div>
+        <div>
+            {% if assigned_teachers %}
+                <div class="teacher-cards-grid">
+                    {% for t in assigned_teachers %}
+                        <div class="teacher-mini-card">
+                            <div class="teacher-avatar">
+                                {% if t.picture %}
+                                    <img src="{{ t.picture.url }}" alt="{{ t.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                {% else %}
+                                    <span>{{ t.name|first|upper }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="teacher-info">
+                                <strong>{{ t.name }}</strong>
+                                <span class="text-sm text-muted">ID: {{ t.teacher_id }}</span>
+                                <span class="text-sm text-muted">📞 {{ t.phone }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted text-sm" style="margin: 8px 0;">
+                    No teachers assigned to this class yet.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Students Roster Table Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>📋 Enrolled Students ({{ active_count }} Active)</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    All students registered under {{ school_class.name }}.
+                </p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 130px;">Student ID</th>
+                        <th>Student Name</th>
+                        <th>Father Name</th>
+                        <th>Gender</th>
+                        <th>Phone</th>
+                        <th>Effective Monthly Fee</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                        <tr class="{% if not s.is_active %}row-inactive{% endif %}">
+                            <td>
+                                <code>{{ s.student_id }}</code>
+                            </td>
+                            <td>
+                                <strong>{{ s.name }}</strong>
+                                {% if s.email %}
+                                    <br><span class="text-xs text-muted">{{ s.email }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ s.father_name }}</td>
+                            <td>
+                                <span class="badge badge-outline">{{ s.get_gender_display }}</span>
+                            </td>
+                            <td>{{ s.phone|default:"—" }}</td>
+                            <td>
+                                <strong>Rs {{ s.effective_monthly_fee|floatformat:2 }}</strong>
+                                {% if s.custom_monthly_fee is not None %}
+                                    <span class="badge badge-warning text-xs" title="Custom fee override">Custom</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if s.is_active %}
+                                    <span class="badge badge-success">Active</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted" style="padding: 32px;">
+                                No students enrolled in {{ school_class.name }} yet.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-class-modal" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="text-danger">Confirm Delete Class</h3>
+            <button type="button" class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <form id="delete-class-form" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p id="delete-modal-msg">Are you sure you want to delete this class?</p>
+                <div id="delete-warning-box" class="alert alert-error" style="display: none; margin-top: 12px;">
+                    ⚠️ This class has students enrolled. Deletion is prohibited by database integrity constraints until students are reassigned.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+                <button type="submit" id="delete-confirm-btn" class="btn btn-danger">Yes, Delete Class</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function confirmDeleteClass(classId, className, studentCount) {
+    const form = document.getElementById('delete-class-form');
+    form.action = `/classrooms/${classId}/delete/`;
+    
+    const msg = document.getElementById('delete-modal-msg');
+    const warning = document.getElementById('delete-warning-box');
+    const confirmBtn = document.getElementById('delete-confirm-btn');
+
+    if (studentCount > 0) {
+        msg.innerHTML = `Cannot delete <strong>${className}</strong> because <strong>${studentCount}</strong> student(s) are linked to it.`;
+        warning.style.display = 'block';
+        confirmBtn.disabled = true;
+    } else {
+        msg.innerHTML = `Are you sure you want to permanently delete class <strong>${className}</strong>? This action cannot be undone.`;
+        warning.style.display = 'none';
+        confirmBtn.disabled = false;
+    }
+
+    document.getElementById('delete-class-modal').style.display = 'flex';
+}
+function closeDeleteModal() {
+    document.getElementById('delete-class-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

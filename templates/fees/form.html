@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ title }} — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="max-width: 780px; margin: 0 auto;">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <a href="{% url 'fees:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Fee Transactions</a>
+            <h1 class="dashboard-title" style="margin-top: 8px;">{{ title }}</h1>
+            <p class="dashboard-subtitle">
+                Select a student, fee month, and record payment details.
+            </p>
+        </div>
+    </div>
+
+    <!-- Fee Form Panel -->
+    <div class="panel">
+        <form method="post" id="fee-collection-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <!-- Section 1: Student Selection -->
+            <div class="form-section-title">
+                <h4>👤 Student Selection</h4>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="{{ form.student.id_for_label }}">{{ form.student.label }}</label>
+                {{ form.student }}
+                {% if form.student.errors %}
+                    <div class="form-error">{{ form.student.errors.0 }}</div>
+                {% endif %}
+                <small class="form-help">Select the student for whom this fee payment is being recorded.</small>
+            </div>
+
+            <div id="student-fee-info-box" class="alert alert-info" style="display: none; margin-bottom: 20px;">
+                <span id="student-fee-info-text"></span>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
+
+            <!-- Section 2: Fee Billing Period & Amount -->
+            <div class="form-section-title">
+                <h4>📅 Billing Period & Amount</h4>
+            </div>
+
+            <div class="form-row-3col" style="margin-bottom: 16px;">
+                <div class="form-group">
+                    <label for="{{ form.fee_month.id_for_label }}">{{ form.fee_month.label }}</label>
+                    {{ form.fee_month }}
+                    {% if form.fee_month.errors %}
+                        <div class="form-error">{{ form.fee_month.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.fee_year.id_for_label }}">{{ form.fee_year.label }}</label>
+                    {{ form.fee_year }}
+                    {% if form.fee_year.errors %}
+                        <div class="form-error">{{ form.fee_year.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}
+                        <div class="form-error">{{ form.amount.errors.0 }}</div>
+                    {% endif %}
+                    <small class="form-help">{{ form.amount.help_text }}</small>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
+
+            <!-- Section 3: Payment Details & Receipt -->
+            <div class="form-section-title">
+                <h4>💳 Payment & Voucher Details</h4>
+            </div>
+
+            <div class="form-row-2col" style="margin-bottom: 16px;">
+                <div class="form-group">
+                    <label for="{{ form.payment_date.id_for_label }}">{{ form.payment_date.label }}</label>
+                    {{ form.payment_date }}
+                    {% if form.payment_date.errors %}
+                        <div class="form-error">{{ form.payment_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                        <div class="form-error">{{ form.status.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
+                {{ form.reference }}
+                {% if form.reference.errors %}
+                    <div class="form-error">{{ form.reference.errors.0 }}</div>
+                {% endif %}
+                <small class="form-help">Leave blank to automatically assign a sequential receipt number (e.g. REC-202608-0001).</small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px; background: var(--bg); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin: 0;">
+                    {{ form.is_extra }}
+                    <span>
+                        <strong>{{ form.is_extra.label }}</strong>
+                        <small style="display: block; color: var(--text-muted); margin-top: 2px;">{{ form.is_extra.help_text }}</small>
+                    </span>
+                </label>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px;">
+                <a href="{% url 'fees:list' %}" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary">{{ action_text }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const studentSelect = document.getElementById('id_student');
+    const amountInput = document.getElementById('id_amount');
+    const infoBox = document.getElementById('student-fee-info-box');
+    const infoText = document.getElementById('student-fee-info-text');
+
+    function checkStudentFee() {
+        const studentId = studentSelect.value;
+        if (!studentId) {
+            infoBox.style.display = 'none';
+            return;
+        }
+
+        const yearInput = document.getElementById('id_fee_year');
+        const year = yearInput ? yearInput.value : new Date().getFullYear();
+
+        fetch(`/fees/api/student-info/${studentId}/?year=${year}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.effective_monthly_fee) {
+                    // Pre-fill amount if empty or on new creation
+                    if (!amountInput.value || amountInput.value === '0.00' || amountInput.value === '0') {
+                        amountInput.value = data.effective_monthly_fee.toFixed(2);
+                    }
+                    const paidMonths = data.paid_months || [];
+                    let paidMonthsStr = paidMonths.length > 0 ? paidMonths.join(', ') : 'None';
+                    infoText.innerHTML = `ℹ️ <strong>${data.name}</strong> (${data.class_name}) &bull; Monthly Rate: <strong>Rs ${data.effective_monthly_fee.toFixed(2)}</strong> &bull; Paid Months in ${year}: [${paidMonthsStr}]`;
+                    infoBox.style.display = 'block';
+                }
+            })
+            .catch(err => console.error('Error fetching student fee info:', err));
+    }
+
+    studentSelect.addEventListener('change', checkStudentFee);
+    if (studentSelect.value) {
+        checkStudentFee();
+    }
+});
+</script>
+{% endblock %}

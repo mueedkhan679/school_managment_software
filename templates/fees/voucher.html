@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Fee Voucher #{{ fee.reference }} — {{ student.name }} — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="max-width: 820px; margin: 0 auto;">
+    <!-- Action Bar (Hidden on print) -->
+    <div class="dashboard-header no-print">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <a href="{% url 'fees:list' %}" class="btn btn-ghost btn-xs">&larr; All Transactions</a>
+                <a href="{% url 'students:detail' student_id=student.student_id %}" class="btn btn-ghost btn-xs">Student Profile</a>
+            </div>
+            <h1 class="dashboard-title">Fee Receipt Voucher</h1>
+            <p class="dashboard-subtitle">
+                Receipt #<code>{{ fee.reference }}</code> &bull; {{ fee.payment_date|date:"F j, Y" }}
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <button type="button" class="btn btn-primary" onclick="window.print()">
+                <span>🖨️</span> Print Voucher
+            </button>
+            <a href="{% url 'fees:update' pk=fee.pk %}" class="btn btn-ghost">
+                <span>✏️</span> Edit Record
+            </a>
+        </div>
+    </div>
+
+    <!-- Official Voucher Printable Card -->
+    <div class="panel voucher-container" style="background: #fff; padding: 36px; border: 2px solid var(--border);">
+        <!-- Voucher Header -->
+        <div class="voucher-header" style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--primary); padding-bottom: 20px; margin-bottom: 24px;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <span style="font-size: 28px;">🎓</span>
+                    <h2 style="margin: 0; font-size: 22px; color: var(--primary); font-weight: 800;">SCHOOL MANAGEMENT SYSTEM</h2>
+                </div>
+                <p style="margin: 0; color: var(--text-muted); font-size: 13px;">
+                    Official Tuition Fee Receipt &bull; Accounts Department
+                </p>
+            </div>
+            <div style="text-align: right;">
+                <div style="display: inline-block; padding: 6px 14px; background: var(--primary-50); border: 1px solid var(--primary-100); border-radius: 8px; margin-bottom: 4px;">
+                    <span style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Receipt No:</span>
+                    <strong style="font-size: 15px; color: var(--primary); display: block;">{{ fee.reference }}</strong>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted);">
+                    Date: <strong>{{ fee.payment_date|date:"M j, Y" }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Details Grid -->
+        <div style="background: var(--bg); padding: 18px; border-radius: var(--radius-sm); margin-bottom: 24px; border: 1px solid var(--border);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px 20px; font-size: 13.5px;">
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase;">Student Name</span>
+                    <strong>{{ student.name }}</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase;">Student ID</span>
+                    <code>{{ student.student_id }}</code>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase;">Class / Grade</span>
+                    <strong>{{ student.school_class.name }}</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase;">Father's Name</span>
+                    <strong>{{ student.father_name }}</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase;">Form-B Number</span>
+                    <span>{{ student.form_b_number|default:"—" }}</span>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase;">Contact Phone</span>
+                    <span>{{ student.phone|default:"—" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee Items Table -->
+        <table class="data-table" style="margin-bottom: 24px;">
+            <thead>
+                <tr style="background: var(--primary-50);">
+                    <th style="width: 50px;">Sr #</th>
+                    <th>Fee Description / Particulars</th>
+                    <th>Billing Period</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>
+                        <strong>Monthly Tuition Fee</strong>
+                        {% if fee.is_extra %}
+                            <span class="badge badge-warning text-xs">Extra / Special Charge</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ fee.get_fee_month_display }} {{ fee.fee_year }}</td>
+                    <td>
+                        {% if fee.status == "PAID" %}
+                            <span class="badge badge-success">PAID</span>
+                        {% else %}
+                            <span class="badge badge-warning">PENDING</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <strong style="font-size: 16px;">Rs {{ fee.amount|floatformat:2 }}</strong>
+                    </td>
+                </tr>
+                <tr style="background: #f8fafc; font-weight: 700;">
+                    <td colspan="4" style="text-align: right; padding-right: 16px;">Total Paid Amount:</td>
+                    <td style="text-align: right; font-size: 18px; color: var(--primary);">
+                        Rs {{ fee.amount|floatformat:2 }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Annual Summary Standing -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 36px; padding: 14px; background: var(--bg); border-radius: 8px; font-size: 12.5px;">
+            <div>
+                <span style="color: var(--text-muted); display: block;">Annual Expected Fee:</span>
+                <strong>Rs {{ yearly_expected|floatformat:2 }}</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block;">Paid in {{ fee.fee_year }}:</span>
+                <strong class="text-success">Rs {{ current_year_paid|floatformat:2 }}</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block;">Annual Remaining / Due:</span>
+                <strong class="{% if yearly_pending > 0 %}text-danger{% else %}text-success{% endif %}">
+                    Rs {{ yearly_pending|floatformat:2 }}
+                </strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block;">Issued By:</span>
+                <span>{{ fee.recorded_by.username|default:"Admin Accounts" }}</span>
+            </div>
+        </div>
+
+        <!-- Signatures & Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 48px; border-top: 1px dashed var(--border);">
+            <div style="text-align: center; width: 200px;">
+                <div style="border-top: 1px solid #333; padding-top: 6px; font-size: 13px; font-weight: 600;">
+                    Cashier / Accounts Officer
+                </div>
+            </div>
+            <div style="text-align: center; width: 200px;">
+                <div style="border-top: 1px solid #333; padding-top: 6px; font-size: 13px; font-weight: 600;">
+                    Principal / Authorized Stamp
+                </div>
+            </div>
+        </div>
+
+        <!-- Computer Generated Footer Notice -->
+        <div style="margin-top: 32px; text-align: center; font-size: 11px; color: var(--text-muted);">
+            This is a computer-generated official school fee receipt voucher. Valid without alteration.
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}User Account Management — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">User Account Management</h1>
+            <p class="dashboard-subtitle">
+                Generate and manage system login credentials for Students and Teachers.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'accounts:id_card_batch_students' %}" class="btn btn-ghost">
+                <span>🪪</span> Student ID Cards
+            </a>
+            <a href="{% url 'accounts:id_card_batch_teachers' %}" class="btn btn-ghost">
+                <span>🪪</span> Teacher ID Cards
+            </a>
+            <button type="button" class="btn btn-primary" onclick="openCreateModal()">
+                <span>➕</span> Generate Account
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light"><span>👤</span></div>
+            <div class="stat-details">
+                <span class="stat-label">Total Accounts</span>
+                <span class="stat-value">{{ total_accounts }}</span>
+                <span class="stat-hint">Students + Teachers</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-blue-light"><span>👨‍🎓</span></div>
+            <div class="stat-details">
+                <span class="stat-label">Student Accounts</span>
+                <span class="stat-value">{{ student_accounts }}</span>
+                <span class="stat-hint">Role: Student</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-purple-light"><span>👨‍🏫</span></div>
+            <div class="stat-details">
+                <span class="stat-label">Teacher Accounts</span>
+                <span class="stat-value">{{ teacher_accounts }}</span>
+                <span class="stat-hint">Role: Teacher</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-rose-light"><span>🔒</span></div>
+            <div class="stat-details">
+                <span class="stat-label">Disabled Accounts</span>
+                <span class="stat-value">{{ disabled_accounts }}</span>
+                <span class="stat-hint">Inactive / suspended</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Panel -->
+    <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
+        <form method="get" action="{% url 'accounts:account_list' %}" class="filter-form">
+            <div class="filter-row">
+                <div class="filter-col search-box-col">
+                    <label class="filter-lbl" for="acc-search">Search Accounts</label>
+                    <div class="search-input-wrap">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input type="text" id="acc-search" name="q" class="form-control search-input"
+                               placeholder="Username, student/teacher name or ID..."
+                               value="{{ query }}">
+                    </div>
+                </div>
+                <div class="filter-col" style="min-width: 140px;">
+                    <label class="filter-lbl" for="acc-role">Role</label>
+                    <select name="role" id="acc-role" class="form-control">
+                        <option value="">All Roles</option>
+                        <option value="STUDENT" {% if role_filter == "STUDENT" %}selected{% endif %}>Student</option>
+                        <option value="TEACHER" {% if role_filter == "TEACHER" %}selected{% endif %}>Teacher</option>
+                    </select>
+                </div>
+                <div class="filter-col" style="min-width: 130px;">
+                    <label class="filter-lbl" for="acc-status">Status</label>
+                    <select name="status" id="acc-status" class="form-control">
+                        <option value="">All Statuses</option>
+                        <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+                        <option value="disabled" {% if status_filter == "disabled" %}selected{% endif %}>Disabled</option>
+                    </select>
+                </div>
+                <div class="filter-col filter-actions-col">
+                    <label class="filter-lbl">&nbsp;</label>
+                    <div style="display:flex;gap:8px;">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        {% if query or role_filter or status_filter %}
+                            <a href="{% url 'accounts:account_list' %}" class="btn btn-ghost">Reset</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Accounts Table -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Linked System Accounts</h3>
+                <p class="text-muted text-sm" style="margin:2px 0 0;">
+                    Showing {{ page_obj.start_index|default:0 }}–{{ page_obj.end_index|default:0 }} of {{ result_count }} account{% if result_count != 1 %}s{% endif %}.
+                </p>
+            </div>
+            <span class="badge badge-primary">{{ result_count }} Account{% if result_count != 1 %}s{% endif %}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Linked Profile</th>
+                        <th>Profile ID</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th style="text-align:right;width:240px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for acc in page_obj %}
+                        {% with student=acc.student_profile teacher=acc.teacher_profile %}
+                        <tr>
+                            <td><strong>{{ acc.username }}</strong></td>
+                            <td>
+                                {% if acc.role == "STUDENT" %}
+                                    <span class="badge badge-primary">Student</span>
+                                {% else %}
+                                    <span class="badge badge-outline" style="color:#6d28d9;border-color:#6d28d9;">Teacher</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if student %}
+                                    <a href="{% url 'students:detail' student_id=student.student_id %}" class="table-link">
+                                        {{ student.name }}
+                                    </a>
+                                {% elif teacher %}
+                                    <a href="{% url 'teachers:detail' teacher_id=teacher.teacher_id %}" class="table-link">
+                                        {{ teacher.name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <code>
+                                    {% if student %}{{ student.student_id }}
+                                    {% elif teacher %}{{ teacher.teacher_id }}
+                                    {% else %}—{% endif %}
+                                </code>
+                            </td>
+                            <td>
+                                {% if acc.is_active %}
+                                    <span class="badge badge-success">Active</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Disabled</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ acc.date_joined|date:"M j, Y" }}</td>
+                            <td style="text-align:right;">
+                                <div class="action-btn-group">
+                                    <!-- Toggle Status -->
+                                    <form method="post" action="{% url 'accounts:account_toggle_status' user_id=acc.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-ghost btn-xs" title="{% if acc.is_active %}Disable{% else %}Activate{% endif %} Account">
+                                            {% if acc.is_active %}Disable{% else %}Activate{% endif %}
+                                        </button>
+                                    </form>
+                                    <!-- Reset Password -->
+                                    <a href="{% url 'accounts:account_reset_password' user_id=acc.id %}" class="btn btn-outline btn-xs" title="Reset Password">
+                                        Reset PW
+                                    </a>
+                                    <!-- Delete -->
+                                    <button type="button" class="btn btn-danger-ghost btn-xs"
+                                            onclick="confirmDeleteAccount({{ acc.id }}, '{{ acc.username|escapejs }}')"
+                                            title="Delete Account">
+                                        Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted" style="padding:40px 20px;">
+                                <div style="font-size:32px;margin-bottom:8px;">👤</div>
+                                <p style="font-size:15px;margin:0 0 6px;"><strong>No accounts found.</strong></p>
+                                <p class="text-sm text-muted">Click "Generate Account" to create login credentials for students and teachers.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+            <div class="pagination-bar">
+                <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div class="pagination-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-ghost btn-xs">&larr; Prev</a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-ghost btn-xs">Next &rarr;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Account Modal -->
+<div class="modal-overlay" id="create-account-modal" style="display:none;">
+    <div class="modal-card" style="max-width:520px;">
+        <div class="modal-header">
+            <h3>Generate System Account</h3>
+            <button type="button" class="modal-close" onclick="closeCreateModal()">&times;</button>
+        </div>
+        <form method="post" action="{% url 'accounts:account_create' %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <!-- Profile Type + Selection -->
+                <div class="form-group">
+                    <label class="filter-lbl">Assign to *</label>
+                    <select name="profile_type" id="modal-profile-type" class="form-control" onchange="updateProfileSelect()" required>
+                        <option value="">Select Profile Type</option>
+                        <option value="student">Student</option>
+                        <option value="teacher">Teacher</option>
+                    </select>
+                </div>
+                <!-- Student chooser (hidden by default) -->
+                <div class="form-group" id="student-chooser" style="display:none;">
+                    <label class="filter-lbl">Select Student *</label>
+                    <select name="profile_id" id="student-select" class="form-control">
+                        <option value="">— Pick a Student —</option>
+                        {% for s in students_without_account %}
+                            <option value="{{ s.id }}" data-suggestion="{{ s.student_id|lower }}">
+                                {{ s.name }} ({{ s.student_id }}) — {{ s.school_class.name }}
+                            </option>
+                        {% empty %}
+                            <option disabled>All students already have accounts.</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Teacher chooser (hidden by default) -->
+                <div class="form-group" id="teacher-chooser" style="display:none;">
+                    <label class="filter-lbl">Select Teacher *</label>
+                    <select name="profile_id" id="teacher-select" class="form-control">
+                        <option value="">— Pick a Teacher —</option>
+                        {% for t in teachers_without_account %}
+                            <option value="{{ t.id }}" data-suggestion="{{ t.teacher_id|lower }}">
+                                {{ t.name }} ({{ t.teacher_id }})
+                            </option>
+                        {% empty %}
+                            <option disabled>All teachers already have accounts.</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="filter-lbl">Username *</label>
+                    <input type="text" name="username" id="modal-username" class="form-control"
+                           placeholder="e.g. stu-000001 or tch-000001" required autocomplete="off">
+                    <small class="form-help">Must be unique. Letters, digits, @/./+/-/_ only.</small>
+                </div>
+                <div class="form-row-2col">
+                    <div class="form-group">
+                        <label class="filter-lbl">Password *</label>
+                        <input type="password" name="password1" class="form-control" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label class="filter-lbl">Confirm Password *</label>
+                        <input type="password" name="password2" class="form-control" required autocomplete="new-password">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeCreateModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-acc-modal" style="display:none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="text-danger">Delete Account</h3>
+            <button type="button" class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <form id="delete-acc-form" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p id="delete-acc-msg">Are you sure?</p>
+                <div class="alert alert-error" style="margin-top:10px;font-size:13px;">
+                    ⚠️ Permanently deletes the login account. The linked student/teacher profile remains intact.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Yes, Delete Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCreateModal() {
+    document.getElementById('create-account-modal').style.display = 'flex';
+}
+function closeCreateModal() {
+    document.getElementById('create-account-modal').style.display = 'none';
+}
+function updateProfileSelect() {
+    const type = document.getElementById('modal-profile-type').value;
+    document.getElementById('student-chooser').style.display = (type === 'student') ? 'block' : 'none';
+    document.getElementById('teacher-chooser').style.display = (type === 'teacher') ? 'block' : 'none';
+    // Update the active select's name so only the correct one submits
+    document.getElementById('student-select').name = (type === 'student') ? 'profile_id' : '';
+    document.getElementById('teacher-select').name = (type === 'teacher') ? 'profile_id' : '';
+    // Auto-suggest username from the selected profile
+    const sel = (type === 'student') ? document.getElementById('student-select') : document.getElementById('teacher-select');
+    sel.addEventListener('change', function() {
+        const suggestion = this.options[this.selectedIndex].dataset.suggestion;
+        if (suggestion) document.getElementById('modal-username').value = suggestion;
+    });
+}
+function confirmDeleteAccount(userId, username) {
+    document.getElementById('delete-acc-form').action = `/accounts/manage/${userId}/delete/`;
+    document.getElementById('delete-acc-msg').innerHTML = `Delete account <strong>${username}</strong>? The linked profile record will NOT be deleted.`;
+    document.getElementById('delete-acc-modal').style.display = 'flex';
+}
+function closeDeleteModal() {
+    document.getElementById('delete-acc-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Salary Disbursements — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <a href="{% url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Faculty</a>
+            </div>
+            <h1 class="dashboard-title">Teacher Salary Disbursements</h1>
+            <p class="dashboard-subtitle">
+                Track staff payroll expenses, issue monthly salary vouchers, and verify disbursement records.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'teachers:salary_create' %}" class="btn btn-primary">
+                <span aria-hidden="true">💸</span> Disburse Salary
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-purple-light">
+                <span>📤</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">This Month Disbursed</span>
+                <span class="stat-value">Rs {{ month_total|floatformat:2 }}</span>
+                <span class="stat-hint">{{ current_month_name }} {{ current_year }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>📈</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Year {{ current_year }} Total Salaries</span>
+                <span class="stat-value">Rs {{ year_total|floatformat:2 }}</span>
+                <span class="stat-hint">Annual payroll expense</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light">
+                <span>📊</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Filtered Salaries Total</span>
+                <span class="stat-value">Rs {{ filtered_total|floatformat:2 }}</span>
+                <span class="stat-hint">Matching current filters</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Panel -->
+    <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
+        <form method="get" action="{% url 'teachers:salary_list' %}" class="filter-form">
+            <div class="filter-row">
+                <!-- Search Box -->
+                <div class="filter-col search-box-col">
+                    <label class="filter-lbl" for="sal-search">Search Disbursements</label>
+                    <div class="search-input-wrap">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input type="text"
+                               id="sal-search"
+                               name="q"
+                               class="form-control search-input"
+                               placeholder="Teacher ID, Name, Reference #..."
+                               value="{{ query }}">
+                    </div>
+                </div>
+
+                <!-- Month -->
+                <div class="filter-col" style="min-width: 140px;">
+                    <label class="filter-lbl" for="sal-month">Month</label>
+                    <select name="month" id="sal-month" class="form-control">
+                        <option value="">All Months</option>
+                        {% for m_num, m_name in months %}
+                            <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>
+                                {{ m_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Year -->
+                <div class="filter-col" style="min-width: 120px;">
+                    <label class="filter-lbl" for="sal-year">Year</label>
+                    <select name="year" id="sal-year" class="form-control">
+                        <option value="">All Years</option>
+                        {% for y in available_years %}
+                            <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>
+                                {{ y }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Status -->
+                <div class="filter-col" style="min-width: 130px;">
+                    <label class="filter-lbl" for="sal-status">Status</label>
+                    <select name="status" id="sal-status" class="form-control">
+                        <option value="">All Statuses</option>
+                        <option value="PAID" {% if selected_status == "PAID" %}selected{% endif %}>Paid</option>
+                        <option value="PENDING" {% if selected_status == "PENDING" %}selected{% endif %}>Pending</option>
+                    </select>
+                </div>
+
+                <!-- Actions -->
+                <div class="filter-col filter-actions-col">
+                    <label class="filter-lbl">&nbsp;</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        {% if query or selected_month or selected_year or selected_status %}
+                            <a href="{% url 'teachers:salary_list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Salary Transactions Table Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Disbursement Ledger</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Showing {{ page_obj.start_index|default:0 }} to {{ page_obj.end_index|default:0 }} of {{ result_count }} record{% if result_count != 1 %}s{% endif %}.
+                </p>
+            </div>
+            <span class="badge badge-primary">{{ result_count }} Record{% if result_count != 1 %}s{% endif %}</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Receipt #</th>
+                        <th style="width: 120px;">Teacher ID</th>
+                        <th>Teacher Name</th>
+                        <th>Salary Month</th>
+                        <th>Amount Disbursed</th>
+                        <th>Date Paid</th>
+                        <th>Status</th>
+                        <th>Recorded By</th>
+                        <th style="text-align: right; width: 190px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in page_obj %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'teachers:salary_voucher' pk=s.pk %}" class="table-link font-semibold">
+                                    <code>{{ s.reference|default:"—" }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'teachers:detail' teacher_id=s.teacher.teacher_id %}" class="table-link">
+                                    <code>{{ s.teacher.teacher_id }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'teachers:detail' teacher_id=s.teacher.teacher_id %}" class="table-link">
+                                    <strong>{{ s.teacher.name }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <strong>{{ s.get_salary_month_display }} {{ s.salary_year }}</strong>
+                            </td>
+                            <td>
+                                <strong class="text-primary">Rs {{ s.amount|floatformat:2 }}</strong>
+                            </td>
+                            <td>{{ s.payment_date|date:"M j, Y" }}</td>
+                            <td>
+                                {% if s.status == "PAID" %}
+                                    <span class="badge badge-success">Paid</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ s.recorded_by.username|default:"Admin" }}</td>
+                            <td style="text-align: right;">
+                                <div class="action-btn-group">
+                                    <a href="{% url 'teachers:salary_voucher' pk=s.pk %}" class="btn btn-outline btn-xs" title="Print Payslip">
+                                        Payslip
+                                    </a>
+                                    <a href="{% url 'teachers:salary_update' pk=s.pk %}" class="btn btn-ghost btn-xs" title="Edit">
+                                        Edit
+                                    </a>
+                                    <button type="button" class="btn btn-danger-ghost btn-xs"
+                                            onclick="confirmDeleteSalary({{ s.pk }}, '{{ s.teacher.name|escapejs }}', '{{ s.get_salary_month_display }} {{ s.salary_year }}', '{{ s.amount }}')"
+                                            title="Delete Salary">
+                                        Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted" style="padding: 40px 20px;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">💸</div>
+                                <p style="font-size: 15px; margin: 0 0 6px;"><strong>No salary disbursements found.</strong></p>
+                                <p class="text-sm text-muted">Click "Disburse Salary" to record teacher salary payments.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        {% if page_obj.has_other_pages %}
+            <div class="pagination-bar">
+                <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div class="pagination-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-ghost btn-xs">&larr; Previous</a>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="btn btn-primary btn-xs">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-ghost btn-xs">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-ghost btn-xs">Next &rarr;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-sal-modal" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="text-danger">Confirm Delete Salary Record</h3>
+            <button type="button" class="modal-close" onclick="closeDeleteSalaryModal()">&times;</button>
+        </div>
+        <form id="delete-sal-form" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p id="delete-sal-msg">Are you sure you want to delete this salary payment?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteSalaryModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Yes, Delete Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function confirmDeleteSalary(salId, teacherName, salaryMonth, amount) {
+    const form = document.getElementById('delete-sal-form');
+    form.action = `/teachers/salaries/${salId}/delete/`;
+    document.getElementById('delete-sal-msg').innerHTML = `Are you sure you want to delete salary payment of <strong>Rs ${amount}</strong> for <strong>${teacherName}</strong> (${salaryMonth})?`;
+    document.getElementById('delete-sal-modal').style.display = 'flex';
+}
+function closeDeleteSalaryModal() {
+    document.getElementById('delete-sal-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Fee Management — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Fee Management</h1>
+            <p class="dashboard-subtitle">
+                Track tuition fee collections, generate receipts, and inspect student payment statuses.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'fees:create' %}" class="btn btn-primary">
+                <span aria-hidden="true">💳</span> Collect Fee
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>📥</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">This Month Collections</span>
+                <span class="stat-value">Rs {{ month_total|floatformat:2 }}</span>
+                <span class="stat-hint">{{ current_month_name }} {{ current_year }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>📈</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Year {{ current_year }} Total</span>
+                <span class="stat-value">Rs {{ year_total|floatformat:2 }}</span>
+                <span class="stat-hint">Full annual collection</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light">
+                <span>📊</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Filtered Collections</span>
+                <span class="stat-value">Rs {{ filtered_total|floatformat:2 }}</span>
+                <span class="stat-hint">Matching current filters</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-amber-light">
+                <span>⏳</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Pending Records</span>
+                <span class="stat-value">{{ pending_count }}</span>
+                <span class="stat-hint">Awaiting payment</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Multi-filter Panel -->
+    <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
+        <form method="get" action="{% url 'fees:list' %}" class="filter-form">
+            <div class="filter-row">
+                <!-- Search Box -->
+                <div class="filter-col search-box-col">
+                    <label class="filter-lbl" for="fee-search">Search Transactions</label>
+                    <div class="search-input-wrap">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input type="text"
+                               id="fee-search"
+                               name="q"
+                               class="form-control search-input"
+                               placeholder="Student ID, Name, Father Name, Receipt #..."
+                               value="{{ query }}">
+                    </div>
+                </div>
+
+                <!-- Month Filter -->
+                <div class="filter-col" style="min-width: 140px;">
+                    <label class="filter-lbl" for="month-select">Month</label>
+                    <select name="month" id="month-select" class="form-control">
+                        <option value="">All Months</option>
+                        {% for m_num, m_name in months %}
+                            <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>
+                                {{ m_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Year Filter -->
+                <div class="filter-col" style="min-width: 110px;">
+                    <label class="filter-lbl" for="year-select">Year</label>
+                    <select name="year" id="year-select" class="form-control">
+                        <option value="">All Years</option>
+                        {% for y in available_years %}
+                            <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>
+                                {{ y }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Class Filter -->
+                <div class="filter-col" style="min-width: 150px;">
+                    <label class="filter-lbl" for="class-select">Class</label>
+                    <select name="class_id" id="class-select" class="form-control">
+                        <option value="">All Classes</option>
+                        {% for c in classes %}
+                            <option value="{{ c.id }}" {% if selected_class == c.id %}selected{% endif %}>
+                                {{ c.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="filter-col" style="min-width: 130px;">
+                    <label class="filter-lbl" for="status-select">Status</label>
+                    <select name="status" id="status-select" class="form-control">
+                        <option value="">All Statuses</option>
+                        <option value="PAID" {% if selected_status == "PAID" %}selected{% endif %}>Paid</option>
+                        <option value="PENDING" {% if selected_status == "PENDING" %}selected{% endif %}>Pending</option>
+                    </select>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="filter-col filter-actions-col">
+                    <label class="filter-lbl">&nbsp;</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        {% if query or selected_month or selected_year or selected_class or selected_status %}
+                            <a href="{% url 'fees:list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Fee Transactions Table Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Fee Transactions</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Showing {{ page_obj.start_index|default:0 }} to {{ page_obj.end_index|default:0 }} of {{ result_count }} record{% if result_count != 1 %}s{% endif %}.
+                </p>
+            </div>
+            <span class="badge badge-primary">{{ result_count }} Transaction{% if result_count != 1 %}s{% endif %}</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Receipt #</th>
+                        <th style="width: 120px;">Student ID</th>
+                        <th>Student Name</th>
+                        <th>Class</th>
+                        <th>Fee Month</th>
+                        <th>Amount</th>
+                        <th>Date Paid</th>
+                        <th>Status</th>
+                        <th style="text-align: right; width: 190px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in page_obj %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'fees:voucher' pk=f.pk %}" class="table-link font-semibold">
+                                    <code>{{ f.reference|default:"—" }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'students:detail' student_id=f.student.student_id %}" class="table-link">
+                                    <code>{{ f.student.student_id }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'students:detail' student_id=f.student.student_id %}" class="table-link">
+                                    <strong>{{ f.student.name }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge badge-outline">{{ f.student.school_class.name }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ f.get_fee_month_display }} {{ f.fee_year }}</strong>
+                                {% if f.is_extra %}
+                                    <span class="badge badge-warning text-xs" title="Extra/Special payment">Extra</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong class="text-primary">Rs {{ f.amount|floatformat:2 }}</strong>
+                            </td>
+                            <td>{{ f.payment_date|date:"M j, Y" }}</td>
+                            <td>
+                                {% if f.status == "PAID" %}
+                                    <span class="badge badge-success">Paid</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="action-btn-group">
+                                    <a href="{% url 'fees:voucher' pk=f.pk %}" class="btn btn-outline btn-xs" title="Print Receipt">
+                                        Voucher
+                                    </a>
+                                    <a href="{% url 'fees:update' pk=f.pk %}" class="btn btn-ghost btn-xs" title="Edit Record">
+                                        Edit
+                                    </a>
+                                    <button type="button" class="btn btn-danger-ghost btn-xs"
+                                            onclick="confirmDeleteFee({{ f.pk }}, '{{ f.student.name|escapejs }}', '{{ f.get_fee_month_display }} {{ f.fee_year }}', '{{ f.amount }}')"
+                                            title="Delete Record">
+                                        Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted" style="padding: 40px 20px;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">💳</div>
+                                <p style="font-size: 15px; margin: 0 0 6px;"><strong>No fee payment records found.</strong></p>
+                                <p class="text-sm text-muted">Click "Collect Fee" to record student tuition payments.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        {% if page_obj.has_other_pages %}
+            <div class="pagination-bar">
+                <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div class="pagination-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-ghost btn-xs">&larr; Previous</a>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="btn btn-primary btn-xs">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-ghost btn-xs">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn btn-ghost btn-xs">Next &rarr;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-fee-modal" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="text-danger">Confirm Delete Fee Record</h3>
+            <button type="button" class="modal-close" onclick="closeDeleteFeeModal()">&times;</button>
+        </div>
+        <form id="delete-fee-form" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p id="delete-fee-msg">Are you sure you want to delete this fee payment?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteFeeModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Yes, Delete Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function confirmDeleteFee(feeId, studentName, feeMonth, amount) {
+    const form = document.getElementById('delete-fee-form');
+    form.action = `/fees/${feeId}/delete/`;
+    document.getElementById('delete-fee-msg').innerHTML = `Are you sure you want to delete fee payment of <strong>Rs ${amount}</strong> for <strong>${studentName}</strong> (${feeMonth})?`;
+    document.getElementById('delete-fee-modal').style.display = 'flex';
+}
+function closeDeleteFeeModal() {
+    document.getElementById('delete-fee-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

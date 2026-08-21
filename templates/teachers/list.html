@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Teacher Management — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Teacher Management</h1>
+            <p class="dashboard-subtitle">
+                Manage teaching faculty, class assignments, CNIC records, and monthly salary payroll.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'teachers:salary_list' %}" class="btn btn-ghost">
+                <span>💸</span> Salary Disbursements
+            </a>
+            <a href="{% url 'teachers:create' %}" class="btn btn-primary">
+                <span aria-hidden="true">➕</span> Register Teacher
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-purple-light">
+                <span>👨‍🏫</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Total Faculty</span>
+                <span class="stat-value">{{ total_teachers }}</span>
+                <span class="stat-hint">All-time staff registered</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>✅</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Active Teachers</span>
+                <span class="stat-value">{{ active_teachers }}</span>
+                <span class="stat-hint">Currently teaching</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-blue-light">
+                <span>💰</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Monthly Payroll</span>
+                <span class="stat-value">Rs {{ total_monthly_payroll|floatformat:0 }}</span>
+                <span class="stat-hint">Active faculty base total</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>📈</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Annual Expected Payroll</span>
+                <span class="stat-value">Rs {{ total_yearly_payroll|floatformat:0 }}</span>
+                <span class="stat-hint">Monthly payroll &times; 12</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Panel -->
+    <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
+        <form method="get" action="{% url 'teachers:list' %}" class="filter-form">
+            <div class="filter-row">
+                <!-- Search box -->
+                <div class="filter-col search-box-col">
+                    <label class="filter-lbl" for="teacher-search">Search Teachers</label>
+                    <div class="search-input-wrap">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input type="text"
+                               id="teacher-search"
+                               name="q"
+                               class="form-control search-input"
+                               placeholder="Search by ID (e.g. TCH-000001), Name, CNIC, Phone..."
+                               value="{{ query }}">
+                    </div>
+                </div>
+
+                <!-- Class Filter -->
+                <div class="filter-col">
+                    <label class="filter-lbl" for="class-select">Assigned Class</label>
+                    <select name="class_id" id="class-select" class="form-control">
+                        <option value="">All Classes</option>
+                        {% for c in classes %}
+                            <option value="{{ c.id }}" {% if selected_class == c.id %}selected{% endif %}>
+                                {{ c.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="filter-col">
+                    <label class="filter-lbl" for="status-select">Status</label>
+                    <select name="status" id="status-select" class="form-control">
+                        <option value="active" {% if selected_status == "active" %}selected{% endif %}>Active Faculty</option>
+                        <option value="inactive" {% if selected_status == "inactive" %}selected{% endif %}>Archived Staff</option>
+                        <option value="all" {% if selected_status == "all" %}selected{% endif %}>All Records</option>
+                    </select>
+                </div>
+
+                <!-- Actions -->
+                <div class="filter-col filter-actions-col">
+                    <label class="filter-lbl">&nbsp;</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        {% if query or selected_class or selected_status != "active" %}
+                            <a href="{% url 'teachers:list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Teachers Table Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Faculty Directory</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Showing {{ page_obj.start_index|default:0 }} to {{ page_obj.end_index|default:0 }} of {{ result_count }} record{% if result_count != 1 %}s{% endif %}.
+                </p>
+            </div>
+            <span class="badge badge-primary">{{ result_count }} Teacher{% if result_count != 1 %}s{% endif %}</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">Photo</th>
+                        <th style="width: 130px;">Teacher ID</th>
+                        <th>Teacher Name</th>
+                        <th>Phone</th>
+                        <th>CNIC</th>
+                        <th>Monthly Salary</th>
+                        <th>Assigned Classes</th>
+                        <th>Status</th>
+                        <th style="text-align: right; width: 220px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in page_obj %}
+                        <tr class="{% if not t.is_active %}row-inactive{% endif %}">
+                            <td>
+                                <div class="student-thumb-cell">
+                                    {% if t.picture %}
+                                        <img src="{{ t.picture.url }}" alt="{{ t.name }}" class="student-thumb-img">
+                                    {% else %}
+                                        <div class="student-thumb-placeholder" style="background: var(--purple-light, #ede9fe); color: #6b21a8;">
+                                            {{ t.name|first|upper }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <a href="{% url 'teachers:detail' teacher_id=t.teacher_id %}" class="table-link">
+                                    <code>{{ t.teacher_id }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'teachers:detail' teacher_id=t.teacher_id %}" class="table-link font-semibold">
+                                    <strong>{{ t.name }}</strong>
+                                </a>
+                            </td>
+                            <td>{{ t.phone }}</td>
+                            <td>{{ t.cnic|default:"—" }}</td>
+                            <td>
+                                <strong class="text-primary">Rs {{ t.monthly_salary|floatformat:2 }}</strong>
+                            </td>
+                            <td>
+                                {% with classes=t.assigned_classes.all %}
+                                    {% if classes %}
+                                        <div class="teacher-tag-list">
+                                            {% for c in classes %}
+                                                <a href="{% url 'classrooms:detail' pk=c.pk %}" class="teacher-tag" style="text-decoration: none;">{{ c.name }}</a>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted text-sm">—</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% if t.is_active %}
+                                    <span class="badge badge-success">Active</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Archived</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="action-btn-group">
+                                    <a href="{% url 'teachers:salary_create' %}?teacher={{ t.id }}" class="btn btn-outline btn-xs" title="Pay Salary">
+                                        Pay
+                                    </a>
+                                    <a href="{% url 'teachers:detail' teacher_id=t.teacher_id %}" class="btn btn-outline btn-xs" title="View Profile">
+                                        Profile
+                                    </a>
+                                    <a href="{% url 'teachers:update' teacher_id=t.teacher_id %}" class="btn btn-ghost btn-xs" title="Edit Teacher">
+                                        Edit
+                                    </a>
+                                    {% if t.is_active %}
+                                        <button type="button" class="btn btn-danger-ghost btn-xs"
+                                                onclick="confirmArchiveTeacher('{{ t.teacher_id }}', '{{ t.name|escapejs }}')"
+                                                title="Archive Teacher">
+                                            Archive
+                                        </button>
+                                    {% else %}
+                                        <form method="post" action="{% url 'teachers:restore' teacher_id=t.teacher_id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline btn-xs text-success" title="Restore Teacher">
+                                                Restore
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted" style="padding: 40px 20px;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">👨‍🏫</div>
+                                <p style="font-size: 15px; margin: 0 0 6px;"><strong>No teachers found.</strong></p>
+                                <p class="text-sm text-muted">Click "Register Teacher" to add faculty members.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        {% if page_obj.has_other_pages %}
+            <div class="pagination-bar">
+                <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div class="pagination-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}&status={{ selected_status }}" class="btn btn-ghost btn-xs">&larr; Previous</a>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="btn btn-primary btn-xs">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}&status={{ selected_status }}" class="btn btn-ghost btn-xs">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}&status={{ selected_status }}" class="btn btn-ghost btn-xs">Next &rarr;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Archive Confirmation Modal -->
+<div class="modal-overlay" id="archive-teacher-modal" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="text-danger">Archive Teacher Record</h3>
+            <button type="button" class="modal-close" onclick="closeArchiveModal()">&times;</button>
+        </div>
+        <form id="archive-teacher-form" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p id="archive-modal-msg">Are you sure you want to archive this teacher?</p>
+                <div class="alert alert-info" style="margin-top: 12px; font-size: 13px;">
+                    ℹ️ Archiving soft-deletes the teacher while permanently keeping all historical salary payments, attendance records, and accounting ledgers intact.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeArchiveModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Yes, Archive Teacher</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function confirmArchiveTeacher(teacherId, teacherName) {
+    const form = document.getElementById('archive-teacher-form');
+    form.action = `/teachers/${teacherId}/delete/`;
+    document.getElementById('archive-modal-msg').innerHTML = `Are you sure you want to archive <strong>${teacherName} (${teacherId})</strong>?`;
+    document.getElementById('archive-teacher-modal').style.display = 'flex';
+}
+function closeArchiveModal() {
+    document.getElementById('archive-teacher-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

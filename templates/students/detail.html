@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ student.name }} ({{ student.student_id }}) — Student Profile — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header & Action Bar -->
+    <div class="dashboard-header no-print">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <a href="{% url 'students:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Students</a>
+                <span class="badge badge-outline">Class: {{ student.school_class.name }}</span>
+                {% if student.is_active %}
+                    <span class="badge badge-success">Active</span>
+                {% else %}
+                    <span class="badge badge-danger">Archived / Inactive</span>
+                {% endif %}
+            </div>
+            <h1 class="dashboard-title">{{ student.name }}</h1>
+            <p class="dashboard-subtitle">
+                Official Student ID: <code>{{ student.student_id }}</code> &bull; Enrolled on {{ student.admission_date|date:"F j, Y" }}
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <button type="button" class="btn btn-ghost" onclick="window.print()">
+                <span>🖨️</span> Print Profile
+            </button>
+            <a href="{% url 'students:update' student_id=student.student_id %}" class="btn btn-primary">
+                <span>✏️</span> Edit Profile
+            </a>
+            {% if student.is_active %}
+                <button type="button" class="btn btn-danger-ghost"
+                        onclick="confirmArchiveStudent('{{ student.student_id }}', '{{ student.name|escapejs }}')">
+                    <span>📦</span> Archive
+                </button>
+            {% else %}
+                <form method="post" action="{% url 'students:restore' student_id=student.student_id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline text-success">
+                        <span>♻️</span> Restore Student
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Printable Header (Only shows when printing) -->
+    <div class="print-only" style="display: none; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px;">
+        <h2 style="margin: 0; font-size: 24px;">School Management System</h2>
+        <p style="margin: 4px 0 0; color: #555;">Official Student Academic & Profile Record</p>
+    </div>
+
+    <!-- Student Bio Card -->
+    <div class="panel" style="margin-bottom: 24px;">
+        <div class="profile-hero-card">
+            <!-- Photo Column -->
+            <div class="profile-photo-wrap">
+                {% if student.photo %}
+                    <img src="{{ student.photo.url }}" alt="{{ student.name }}" class="profile-avatar-large">
+                {% else %}
+                    <div class="profile-avatar-large-placeholder">
+                        {{ student.name|first|upper }}
+                    </div>
+                {% endif %}
+                <span class="badge badge-primary" style="margin-top: 10px; width: 100%; text-align: center; justify-content: center;">
+                    {{ student.student_id }}
+                </span>
+            </div>
+
+            <!-- Details Grid Column -->
+            <div class="profile-details-main">
+                <div class="profile-section-title">
+                    <h3>Personal & Family Information</h3>
+                </div>
+                <div class="profile-info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Full Name</span>
+                        <strong class="info-value">{{ student.name }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Father's Name</span>
+                        <strong class="info-value">{{ student.father_name }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Form-B / B-Form Number</span>
+                        <strong class="info-value">{{ student.form_b_number|default:"Not Provided" }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Date of Birth</span>
+                        <strong class="info-value">{{ student.date_of_birth|date:"F j, Y" }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Gender</span>
+                        <strong class="info-value">{{ student.get_gender_display }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Class / Grade</span>
+                        <strong class="info-value text-primary">
+                            <a href="{% url 'classrooms:detail' pk=student.school_class.pk %}">{{ student.school_class.name }}</a>
+                        </strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Contact Phone</span>
+                        <strong class="info-value">{{ student.phone|default:"—" }}</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Gmail / Email</span>
+                        <strong class="info-value">{{ student.email|default:"—" }}</strong>
+                    </div>
+                    <div class="info-item" style="grid-column: 1 / -1;">
+                        <span class="info-label">Residential Address</span>
+                        <span class="info-value">{{ student.address|default:"No residential address specified." }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards (Fees & Attendance) -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light">
+                <span>💵</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Effective Monthly Tuition</span>
+                <span class="stat-value">Rs {{ student.effective_monthly_fee|floatformat:2 }}</span>
+                {% if student.custom_monthly_fee is not None %}
+                    <span class="stat-hint text-warning">Custom Fee Override</span>
+                {% else %}
+                    <span class="stat-hint">Standard Class Fee</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>📥</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Total Fees Paid</span>
+                <span class="stat-value">Rs {{ total_paid_fees|floatformat:2 }}</span>
+                <span class="stat-hint">All-time collected</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>📈</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">{{ current_year }} Fees Paid</span>
+                <span class="stat-value">Rs {{ curr_year_paid|floatformat:2 }}</span>
+                <span class="stat-hint">Pending: Rs {{ yearly_pending|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-cyan-light">
+                <span>📋</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Attendance Rate</span>
+                <span class="stat-value">{{ attendance_rate }}%</span>
+                <span class="stat-hint">{{ present_count }} present &bull; {{ absent_count }} absent</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two Column Row: Fee History & Attendance History -->
+    <div class="dashboard-row-2col">
+        <!-- Fee Payments Tab / Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <h3>💳 Fee Schedule & History</h3>
+                    <p class="text-muted text-sm" style="margin: 2px 0 0;">Annual billing status for {{ current_year }} and historical records.</p>
+                </div>
+                <a href="{% url 'fees:create' %}?student={{ student.id }}" class="btn btn-primary btn-xs">
+                    <span>➕</span> Collect Fee
+                </a>
+            </div>
+
+            <!-- 12-Month Calendar Schedule for Current Year -->
+            <div style="margin-bottom: 20px;">
+                <span class="text-xs font-semibold text-muted" style="display: block; margin-bottom: 8px; text-transform: uppercase;">
+                    Year {{ current_year }} Month-by-Month Status
+                </span>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 6px;">
+                    {% for m in months_schedule %}
+                        <div style="text-align: center; padding: 6px 4px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; {% if m.is_paid %}background: var(--success-50); border-color: var(--success); color: var(--success);{% else %}background: var(--bg); color: var(--text-muted);{% endif %}">
+                            <span style="display: block; font-weight: 700;">{{ m.month_name|slice:":3" }}</span>
+                            {% if m.is_paid %}
+                                <span style="font-size: 9.5px; font-weight: 600;">PAID</span>
+                            {% else %}
+                                <a href="{% url 'fees:create' %}?student={{ student.id }}&month={{ m.month_num }}&year={{ current_year }}" style="font-size: 9.5px; color: var(--primary); text-decoration: none; display: block; font-weight: 600;" title="Collect fee for {{ m.month_name }}">
+                                    + Pay
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Month / Year</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in fees %}
+                            <tr>
+                                <td>
+                                    <strong>{{ f.get_fee_month_display }} {{ f.fee_year }}</strong>
+                                    {% if f.is_extra %}
+                                        <span class="badge badge-warning text-xs">Extra</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>Rs {{ f.amount|floatformat:2 }}</strong></td>
+                                <td>{{ f.payment_date|date:"M j, Y" }}</td>
+                                <td>
+                                    {% if f.status == "PAID" %}
+                                        <span class="badge badge-success">Paid</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'fees:voucher' pk=f.pk %}" class="table-link">
+                                        <code class="text-xs">{{ f.reference|default:"View" }}</code>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted" style="padding: 24px;">
+                                    No fee records found for this student yet.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Attendance History Tab / Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <h3>📋 Attendance History</h3>
+                    <p class="text-muted text-sm" style="margin: 2px 0 0;">Recent attendance logs and punctuality.</p>
+                </div>
+                <span class="badge badge-outline">{{ total_attendance_days }} Days Total</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Marked By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in attendance_records %}
+                            <tr>
+                                <td><strong>{{ a.date|date:"l, M j, Y" }}</strong></td>
+                                <td>
+                                    {% if a.status == "PRESENT" %}
+                                        <span class="badge badge-success">Present</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Absent</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if a.marked_by %}
+                                        {{ a.marked_by.username }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted" style="padding: 24px;">
+                                    No attendance records logged for this student yet.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Archive Confirmation Modal -->
+<div class="modal-overlay no-print" id="archive-student-modal" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="text-danger">Archive Student Record</h3>
+            <button type="button" class="modal-close" onclick="closeArchiveModal()">&times;</button>
+        </div>
+        <form id="archive-student-form" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p id="archive-modal-msg">Are you sure you want to archive this student?</p>
+                <div class="alert alert-info" style="margin-top: 12px; font-size: 13px;">
+                    ℹ️ Historical fee payments and attendance records will remain preserved for school reporting.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeArchiveModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Yes, Archive Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function confirmArchiveStudent(studentId, studentName) {
+    const form = document.getElementById('archive-student-form');
+    form.action = `/students/${studentId}/delete/`;
+    document.getElementById('archive-modal-msg').innerHTML = `Are you sure you want to deactivate and archive <strong>${studentName} (${studentId})</strong>?`;
+    document.getElementById('archive-student-modal').style.display = 'flex';
+}
+function closeArchiveModal() {
+    document.getElementById('archive-student-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

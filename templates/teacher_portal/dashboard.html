@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Teacher Portal — Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span class="badge badge-primary">Teacher Portal</span>
+                <span class="badge badge-outline">ID: {{ teacher.teacher_id }}</span>
+            </div>
+            <h1 class="dashboard-title">Welcome, {{ teacher.name }}!</h1>
+            <p class="dashboard-subtitle">
+                Access your assigned classes, take daily student attendance, and track history.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'teacher_portal:mark' %}" class="btn btn-primary">
+                <span>📝</span> Mark Today's Attendance
+            </a>
+            <a href="{% url 'teacher_portal:history' %}" class="btn btn-ghost">
+                <span>📋</span> View History
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light">
+                <span>🏫</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Assigned Classes</span>
+                <span class="stat-value">{{ assigned_classes.count }}</span>
+                <span class="stat-hint">Active classroom sections</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>👨‍🎓</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Total Assigned Students</span>
+                <span class="stat-value">{{ assigned_students_count }}</span>
+                <span class="stat-hint">Enrolled active students</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>📅</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Today's Attendance</span>
+                <span class="stat-value">{{ today_marked_total }} / {{ assigned_students_count }}</span>
+                <span class="stat-hint">{{ today_present }} present today</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assigned Classes Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Your Assigned Classes</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">Quick shortcuts to take attendance for your sections.</p>
+            </div>
+            <span class="badge badge-primary">{{ assigned_classes.count }} Class{% if assigned_classes.count != 1 %}es{% endif %}</span>
+        </div>
+
+        <div class="grid-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 20px;">
+            {% for c in assigned_classes %}
+                <div class="card" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 18px; background: var(--card-bg); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h4 style="margin: 0; font-size: 18px; color: var(--primary-color);">{{ c.name }}</h4>
+                            <span class="badge badge-outline">{{ c.students.count }} Students</span>
+                        </div>
+                        <p class="text-muted text-sm" style="margin: 0 0 16px;">
+                            Monthly Fee: <strong>Rs {{ c.monthly_fee|floatformat:2 }}</strong>
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <a href="{% url 'teacher_portal:mark' %}?class_id={{ c.id }}" class="btn btn-primary btn-sm" style="flex: 1; text-align: center;">
+                            📝 Mark Attendance
+                        </a>
+                        <a href="{% url 'teacher_portal:history' %}?class_id={{ c.id }}" class="btn btn-ghost btn-sm" style="text-align: center;">
+                            History
+                        </a>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="text-center text-muted" style="grid-column: 1 / -1; padding: 40px 20px;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🏫</div>
+                    <p style="font-size: 15px; margin: 0 0 4px;"><strong>No classes assigned to your profile yet.</strong></p>
+                    <p class="text-sm text-muted">Please contact the school administrator to assign your subject classes.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

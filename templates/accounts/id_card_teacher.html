@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}
+    {% if single %}Teacher ID Card — {{ teachers.0.name }}{% else %}Teacher ID Cards — Batch Print{% endif %} — School Management System
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container no-print">
+    <div class="dashboard-header">
+        <div>
+            <a href="{% url 'accounts:account_list' %}" class="btn btn-ghost btn-xs">&larr; Back to ID Management</a>
+            <h1 class="dashboard-title" style="margin-top:8px;">
+                {% if single %}Teacher ID Card{% else %}Teacher ID Cards — Batch Print{% endif %}
+            </h1>
+            <p class="dashboard-subtitle">
+                {{ teachers|length }} teacher ID card{% if teachers|length != 1 %}s{% endif %} ready for printing.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <button type="button" class="btn btn-primary" onclick="window.print()">
+                <span>🖨️</span> Print ID Cards
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="no-print" style="max-width:900px; margin:0 auto 20px; padding:12px 16px; background:#fef9c3; border:1px solid #fde047; border-radius:8px; font-size:13px;">
+    ℹ️ <strong>Print Tip:</strong> Set paper size to <strong>A4</strong>, orientation <strong>Portrait</strong>, margins <strong>Narrow</strong>, and disable "Print headers and footers" for best results.
+</div>
+
+<!-- ID Cards Grid -->
+<div class="id-cards-grid">
+    {% for teacher in teachers %}
+        <div class="id-card id-card-teacher">
+            <!-- Card Header -->
+            <div class="id-card-header" style="background: linear-gradient(135deg, #6d28d9, #4c1d95);">
+                <div class="id-card-school-logo">🎓</div>
+                <div>
+                    <div class="id-card-school-name">SCHOOL MANAGEMENT SYSTEM</div>
+                    <div class="id-card-school-subtitle">Faculty Identity Card</div>
+                </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="id-card-body">
+                <!-- Photo -->
+                <div class="id-card-photo-wrap">
+                    {% if teacher.picture %}
+                        <img src="{{ teacher.picture.url }}" alt="{{ teacher.name }}" class="id-card-photo">
+                    {% else %}
+                        <div class="id-card-photo-placeholder" style="background:linear-gradient(135deg,#7c3aed,#4c1d95);">{{ teacher.name|first|upper }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Info -->
+                <div class="id-card-info">
+                    <div class="id-card-name">{{ teacher.name }}</div>
+                    <div class="id-card-row"><span class="id-card-lbl">Phone</span><span>{{ teacher.phone }}</span></div>
+                    {% if teacher.cnic %}
+                        <div class="id-card-row"><span class="id-card-lbl">CNIC</span><span>{{ teacher.cnic }}</span></div>
+                    {% endif %}
+                    <div class="id-card-row">
+                        <span class="id-card-lbl">Classes</span>
+                        <span>
+                            {% for c in teacher.assigned_classes.all %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+                        </span>
+                    </div>
+                    <div class="id-card-row"><span class="id-card-lbl">Joined</span><span>{{ teacher.date_joined|date:"M Y" }}</span></div>
+                </div>
+            </div>
+
+            <!-- Card Footer / ID strip -->
+            <div class="id-card-footer" style="background:linear-gradient(90deg,#6d28d9,#4c1d95);">
+                <span class="id-card-id-badge">{{ teacher.teacher_id }}</span>
+                <span class="id-card-gender">Faculty</span>
+            </div>
+        </div>
+    {% empty %}
+        <div class="no-print" style="text-align:center;padding:48px;color:var(--text-muted);">
+            <div style="font-size:40px;margin-bottom:12px;">🪪</div>
+            <p>No active teachers found.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

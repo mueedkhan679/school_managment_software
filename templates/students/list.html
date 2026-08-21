@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Student Management — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Student Management</h1>
+            <p class="dashboard-subtitle">
+                Directory of all enrolled students, bio-data records, and academic profiles.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'students:create' %}" class="btn btn-primary">
+                <span aria-hidden="true">➕</span> Register New Student
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-blue-light">
+                <span>🎓</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Total Registered</span>
+                <span class="stat-value">{{ total_students_count }}</span>
+                <span class="stat-hint">All-time admissions</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>✅</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Active Students</span>
+                <span class="stat-value">{{ active_students_count }}</span>
+                <span class="stat-hint">Currently studying</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-rose-light">
+                <span>⏸️</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Inactive / Archived</span>
+                <span class="stat-value">{{ inactive_students_count }}</span>
+                <span class="stat-hint">Passed out or left</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Panel -->
+    <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
+        <form method="get" action="{% url 'students:list' %}" class="filter-form">
+            <div class="filter-row">
+                <!-- Search box -->
+                <div class="filter-col search-box-col">
+                    <label class="filter-lbl" for="student-search">Search Students</label>
+                    <div class="search-input-wrap">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input type="text"
+                               id="student-search"
+                               name="q"
+                               class="form-control search-input"
+                               placeholder="Search by ID (e.g. STU-000001), Name, Father Name, B-Form, Phone..."
+                               value="{{ query }}">
+                    </div>
+                </div>
+
+                <!-- Class Filter -->
+                <div class="filter-col">
+                    <label class="filter-lbl" for="class-select">Filter by Class</label>
+                    <select name="class_id" id="class-select" class="form-control">
+                        <option value="">All Classes</option>
+                        {% for c in classes %}
+                            <option value="{{ c.id }}" {% if selected_class == c.id %}selected{% endif %}>
+                                {{ c.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="filter-col">
+                    <label class="filter-lbl" for="status-select">Status</label>
+                    <select name="status" id="status-select" class="form-control">
+                        <option value="active" {% if selected_status == "active" %}selected{% endif %}>Active Only</option>
+                        <option value="inactive" {% if selected_status == "inactive" %}selected{% endif %}>Inactive / Archived</option>
+                        <option value="all" {% if selected_status == "all" %}selected{% endif %}>All Records</option>
+                    </select>
+                </div>
+
+                <!-- Actions -->
+                <div class="filter-col filter-actions-col">
+                    <label class="filter-lbl">&nbsp;</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        {% if query or selected_class or selected_status != "active" %}
+                            <a href="{% url 'students:list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Students Table Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Students List</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Showing {{ page_obj.start_index|default:0 }} to {{ page_obj.end_index|default:0 }} of {{ result_count }} record{% if result_count != 1 %}s{% endif %}.
+                </p>
+            </div>
+            <span class="badge badge-primary">{{ result_count }} Found</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">Photo</th>
+                        <th style="width: 130px;">Student ID</th>
+                        <th>Full Name</th>
+                        <th>Father Name</th>
+                        <th>Class</th>
+                        <th>Form-B / B-Form</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th style="text-align: right; width: 180px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in page_obj %}
+                        <tr class="{% if not s.is_active %}row-inactive{% endif %}">
+                            <td>
+                                <div class="student-thumb-cell">
+                                    {% if s.photo %}
+                                        <img src="{{ s.photo.url }}" alt="{{ s.name }}" class="student-thumb-img">
+                                    {% else %}
+                                        <div class="student-thumb-placeholder">
+                                            {{ s.name|first|upper }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <a href="{% url 'students:detail' student_id=s.student_id %}" class="table-link">
+                                    <code>{{ s.student_id }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'students:detail' student_id=s.student_id %}" class="table-link font-semibold">
+                                    <strong>{{ s.name }}</strong>
+                                </a>
+                                {% if s.email %}
+                                    <br><span class="text-xs text-muted">{{ s.email }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ s.father_name }}</td>
+                            <td>
+                                <a href="{% url 'classrooms:detail' pk=s.school_class.pk %}" class="badge badge-outline" title="View class">
+                                    {{ s.school_class.name }}
+                                </a>
+                            </td>
+                            <td>{{ s.form_b_number|default:"—" }}</td>
+                            <td>{{ s.phone|default:"—" }}</td>
+                            <td>
+                                {% if s.is_active %}
+                                    <span class="badge badge-success">Active</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Archived</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="action-btn-group">
+                                    <a href="{% url 'students:detail' student_id=s.student_id %}" class="btn btn-outline btn-xs" title="View Profile">
+                                        Profile
+                                    </a>
+                                    <a href="{% url 'students:update' student_id=s.student_id %}" class="btn btn-ghost btn-xs" title="Edit Student">
+                                        Edit
+                                    </a>
+                                    {% if s.is_active %}
+                                        <button type="button" class="btn btn-danger-ghost btn-xs"
+                                                onclick="confirmArchiveStudent('{{ s.student_id }}', '{{ s.name|escapejs }}')"
+                                                title="Archive Student">
+                                            Archive
+                                        </button>
+                                    {% else %}
+                                        <form method="post" action="{% url 'students:restore' student_id=s.student_id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline btn-xs text-success" title="Restore Student">
+                                                Restore
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted" style="padding: 40px 20px;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
+                                <p style="font-size: 15px; margin: 0 0 6px;"><strong>No students found matching your criteria.</strong></p>
+                                <p class="text-sm text-muted">Try clearing your search query or selecting a different class filter.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        {% if page_obj.has_other_pages %}
+            <div class="pagination-bar">
+                <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div class="pagination-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}&status={{ selected_status }}" class="btn btn-ghost btn-xs">&larr; Previous</a>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="btn btn-primary btn-xs">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}&status={{ selected_status }}" class="btn btn-ghost btn-xs">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}&status={{ selected_status }}" class="btn btn-ghost btn-xs">Next &rarr;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Archive Confirmation Modal -->
+<div class="modal-overlay" id="archive-student-modal" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="text-danger">Archive Student Record</h3>
+            <button type="button" class="modal-close" onclick="closeArchiveModal()">&times;</button>
+        </div>
+        <form id="archive-student-form" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p id="archive-modal-msg">Are you sure you want to archive this student?</p>
+                <div class="alert alert-info" style="margin-top: 12px; font-size: 13px;">
+                    ℹ️ Archiving soft-deletes the student record from active lists while safely retaining all historical fee payments, attendance logs, and financial data.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeArchiveModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Yes, Archive Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function confirmArchiveStudent(studentId, studentName) {
+    const form = document.getElementById('archive-student-form');
+    form.action = `/students/${studentId}/delete/`;
+    document.getElementById('archive-modal-msg').innerHTML = `Are you sure you want to deactivate and archive <strong>${studentName} (${studentId})</strong>?`;
+    document.getElementById('archive-student-modal').style.display = 'flex';
+}
+function closeArchiveModal() {
+    document.getElementById('archive-student-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

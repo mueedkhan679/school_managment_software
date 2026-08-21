@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Attendance Records — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Attendance Records</h1>
+            <p class="dashboard-subtitle">
+                View, filter, and inspect daily student attendance logs across all classes and faculty members.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'attendance:admin_attendance_mark' %}" class="btn btn-primary">
+                <span aria-hidden="true">📝</span> Mark Daily Attendance
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards Grid -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light">
+                <span>📋</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Total Records</span>
+                <span class="stat-value">{{ total_count }}</span>
+                <span class="stat-hint">Matching filters</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>✅</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Present Count</span>
+                <span class="stat-value">{{ present_count }}</span>
+                <span class="stat-hint">Students present</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-rose-light">
+                <span>❌</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Absent Count</span>
+                <span class="stat-value">{{ absent_count }}</span>
+                <span class="stat-hint">Students absent</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-amber-light">
+                <span>📊</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Attendance Rate</span>
+                <span class="stat-value">{{ attendance_rate }}%</span>
+                <span class="stat-hint">Present percentage</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Multi-filter Panel -->
+    <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
+        <form method="get" action="{% url 'attendance:admin_attendance' %}" class="filter-form">
+            <div class="filter-row">
+                <!-- Search Box -->
+                <div class="filter-col search-box-col">
+                    <label class="filter-lbl" for="student-search">Search Student</label>
+                    <div class="search-input-wrap">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input type="text"
+                               id="student-search"
+                               name="q"
+                               class="form-control search-input"
+                               placeholder="Student ID (STU-XXXXXX) or Name..."
+                               value="{{ student_query }}">
+                    </div>
+                </div>
+
+                <!-- Date Filter -->
+                <div class="filter-col" style="min-width: 140px;">
+                    <label class="filter-lbl" for="date-select">Exact Date</label>
+                    <input type="date"
+                           id="date-select"
+                           name="date"
+                           class="form-control"
+                           value="{{ selected_date }}">
+                </div>
+
+                <!-- Month Filter -->
+                <div class="filter-col" style="min-width: 130px;">
+                    <label class="filter-lbl" for="month-select">Month</label>
+                    <select name="month" id="month-select" class="form-control">
+                        <option value="">All Months</option>
+                        {% for m_num, m_name in months %}
+                            <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>
+                                {{ m_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Year Filter -->
+                <div class="filter-col" style="min-width: 110px;">
+                    <label class="filter-lbl" for="year-select">Year</label>
+                    <select name="year" id="year-select" class="form-control">
+                        <option value="">All Years</option>
+                        {% for y in available_years %}
+                            <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>
+                                {{ y }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Class Filter -->
+                <div class="filter-col" style="min-width: 140px;">
+                    <label class="filter-lbl" for="class-select">Class</label>
+                    <select name="class_id" id="class-select" class="form-control">
+                        <option value="">All Classes</option>
+                        {% for c in classes %}
+                            <option value="{{ c.id }}" {% if selected_class == c.id %}selected{% endif %}>
+                                {{ c.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Teacher (Marked By) Filter -->
+                <div class="filter-col" style="min-width: 150px;">
+                    <label class="filter-lbl" for="marked-by-select">Marked By</label>
+                    <select name="marked_by" id="marked-by-select" class="form-control">
+                        <option value="">All Staff</option>
+                        {% for t in teachers %}
+                            <option value="{{ t.id }}" {% if selected_marked_by == t.id %}selected{% endif %}>
+                                {{ t.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="filter-col filter-actions-col">
+                    <label class="filter-lbl">&nbsp;</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        {% if student_query or selected_date or selected_month or selected_year or selected_class or selected_marked_by %}
+                            <a href="{% url 'attendance:admin_attendance' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Attendance Log Table Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Attendance Log History</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Showing {{ page_obj.start_index|default:0 }} to {{ page_obj.end_index|default:0 }} of {{ total_count }} record{% if total_count != 1 %}s{% endif %}.
+                </p>
+            </div>
+            <span class="badge badge-primary">{{ total_count }} Record{% if total_count != 1 %}s{% endif %}</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">Date</th>
+                        <th style="width: 120px;">Student ID</th>
+                        <th>Student Name</th>
+                        <th>Class</th>
+                        <th>Status</th>
+                        <th>Marked By</th>
+                        <th>Recorded At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in page_obj %}
+                        <tr>
+                            <td>
+                                <strong>{{ att.date|date:"Y-m-d" }}</strong>
+                            </td>
+                            <td>
+                                <a href="{% url 'students:detail' student_id=att.student.student_id %}" class="table-link">
+                                    <code>{{ att.student.student_id }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'students:detail' student_id=att.student.student_id %}" class="table-link">
+                                    <strong>{{ att.student.name }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge badge-outline">{{ att.student.school_class.name }}</span>
+                            </td>
+                            <td>
+                                {% if att.status == "PRESENT" %}
+                                    <span class="badge badge-success">Present</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Absent</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if att.marked_by %}
+                                    <span class="text-sm">👤 {{ att.marked_by.username }}</span>
+                                {% else %}
+                                    <span class="text-muted text-sm">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted text-sm">
+                                {{ att.created_at|date:"M j, Y H:i" }}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted" style="padding: 40px 20px;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">📅</div>
+                                <p style="font-size: 15px; margin: 0 0 6px;"><strong>No attendance records found.</strong></p>
+                                <p class="text-sm text-muted">Use the "Mark Daily Attendance" button above to record daily attendance.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        {% if page_obj.has_other_pages %}
+            <div class="pagination-bar">
+                <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div class="pagination-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if student_query %}&q={{ student_query }}{% endif %}{% if selected_date %}&date={{ selected_date }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}{% if selected_marked_by %}&marked_by={{ selected_marked_by }}{% endif %}" class="btn btn-ghost btn-xs">&larr; Previous</a>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="btn btn-primary btn-xs">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}{% if student_query %}&q={{ student_query }}{% endif %}{% if selected_date %}&date={{ selected_date }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}{% if selected_marked_by %}&marked_by={{ selected_marked_by }}{% endif %}" class="btn btn-ghost btn-xs">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if student_query %}&q={{ student_query }}{% endif %}{% if selected_date %}&date={{ selected_date }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_class %}&class_id={{ selected_class }}{% endif %}{% if selected_marked_by %}&marked_by={{ selected_marked_by }}{% endif %}" class="btn btn-ghost btn-xs">Next &rarr;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

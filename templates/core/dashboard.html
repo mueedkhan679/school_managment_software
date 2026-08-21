@@ -1,0 +1,655 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Dashboard Overview</h1>
+            <p class="dashboard-subtitle">
+                Welcome back, <strong>{{ request.user.username }}</strong> &bull; {{ today_date|date:"l, F j, Y" }}
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <span class="badge badge-primary">Academic Year {{ current_year }}</span>
+            <span class="badge badge-outline">{{ current_month_name }}</span>
+        </div>
+    </div>
+
+    <!-- Main Statistics Cards Grid -->
+    <div class="stats-grid">
+        <!-- Total Students -->
+        <div class="stat-card" onclick="scrollToSection('class-statistics-section')" title="Click to view class & student statistics">
+            <div class="stat-icon bg-blue-light">
+                <span>🎓</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Total Students</span>
+                <span class="stat-value">{{ total_students }}</span>
+                <span class="stat-hint">Active enrollments &rarr;</span>
+            </div>
+        </div>
+
+        <!-- Total Classes -->
+        <div class="stat-card stat-card-interactive" id="card-total-classes" onclick="scrollToSection('class-statistics-section')" title="Click to view all classes and students">
+            <div class="stat-icon bg-indigo-light">
+                <span>🏫</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Total Classes</span>
+                <span class="stat-value">{{ total_classes }}</span>
+                <span class="stat-hint">Click to view classes &rarr;</span>
+            </div>
+        </div>
+
+        <!-- Total Teachers -->
+        <div class="stat-card">
+            <div class="stat-icon bg-purple-light">
+                <span>👨‍🏫</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Total Teachers</span>
+                <span class="stat-value">{{ total_teachers }}</span>
+                <span class="stat-hint">Active faculty</span>
+            </div>
+        </div>
+
+        <!-- Net Balance -->
+        <div class="stat-card {% if current_balance >= 0 %}stat-card-success{% else %}stat-card-danger{% endif %}">
+            <div class="stat-icon {% if current_balance >= 0 %}bg-emerald-light{% else %}bg-rose-light{% endif %}">
+                <span>💰</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Net Balance / Income</span>
+                <span class="stat-value">Rs {{ current_balance|floatformat:2 }}</span>
+                <span class="stat-hint">Fees collected &minus; Salaries paid</span>
+            </div>
+        </div>
+
+        <!-- Monthly Fee Income -->
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>📥</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Monthly Fee Income</span>
+                <span class="stat-value">Rs {{ monthly_fee_income|floatformat:2 }}</span>
+                <span class="stat-hint">{{ current_month_name }} {{ current_year }}</span>
+            </div>
+        </div>
+
+        <!-- Yearly Fee Income -->
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>📈</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Yearly Fee Income</span>
+                <span class="stat-value">Rs {{ yearly_fee_income|floatformat:2 }}</span>
+                <span class="stat-hint">Year {{ current_year }} total</span>
+            </div>
+        </div>
+
+        <!-- Monthly Teacher Salaries -->
+        <div class="stat-card">
+            <div class="stat-icon bg-amber-light">
+                <span>📤</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Teacher Salaries (Month)</span>
+                <span class="stat-value">Rs {{ monthly_teacher_salary|floatformat:2 }}</span>
+                <span class="stat-hint">Year: Rs {{ yearly_teacher_salary|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <!-- Attendance Overview -->
+        <div class="stat-card">
+            <div class="stat-icon bg-cyan-light">
+                <span>📋</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Today's Attendance</span>
+                <span class="stat-value">{{ attendance_percentage }}%</span>
+                <span class="stat-hint">{{ today_present }} present &bull; {{ today_absent }} absent</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance & Financial Summary Row -->
+    <div class="dashboard-row-2col">
+        <!-- Today's Attendance Box -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3>📋 Attendance Overview (Today)</h3>
+                <span class="text-muted text-sm">{{ today_date|date:"M j, Y" }}</span>
+            </div>
+            <div class="attendance-summary-box">
+                <div class="attendance-metric-main">
+                    <div class="attendance-rate-circle">
+                        <span class="rate-number">{{ attendance_percentage }}%</span>
+                        <span class="rate-label">Present Rate</span>
+                    </div>
+                    <div class="attendance-breakdown">
+                        <div class="attendance-pill present">
+                            <span class="dot"></span>
+                            <span class="lbl">Present:</span>
+                            <strong>{{ today_present }}</strong>
+                        </div>
+                        <div class="attendance-pill absent">
+                            <span class="dot"></span>
+                            <span class="lbl">Absent:</span>
+                            <strong>{{ today_absent }}</strong>
+                        </div>
+                        <div class="attendance-pill total">
+                            <span class="dot"></span>
+                            <span class="lbl">Marked:</span>
+                            <strong>{{ today_marked_total }}</strong> / {{ total_students }}
+                        </div>
+                    </div>
+                </div>
+                <!-- Visual progress bar -->
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill bg-success" style="width: {{ attendance_percentage }}%;"></div>
+                </div>
+                {% if today_marked_total == 0 %}
+                    <p class="text-sm text-muted text-center" style="margin-top: 10px;">
+                        No attendance marked yet for today.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Financial Summary Box -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3>📊 Financial Overview</h3>
+                <span class="badge badge-outline">{{ current_year }} Summary</span>
+            </div>
+            <div class="finance-summary-box">
+                <div class="finance-row">
+                    <span class="finance-label">Monthly Net ({{ current_month_name }})</span>
+                    <span class="finance-val {% if monthly_net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        Rs {{ monthly_net_income|floatformat:2 }}
+                    </span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">Yearly Net ({{ current_year }})</span>
+                    <span class="finance-val {% if yearly_net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        Rs {{ yearly_net_income|floatformat:2 }}
+                    </span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">All-time Fee Collections</span>
+                    <span class="finance-val text-primary">Rs {{ total_fee_income|floatformat:2 }}</span>
+                </div>
+                <div class="finance-row">
+                    <span class="finance-label">All-time Salaries Paid</span>
+                    <span class="finance-val text-muted">Rs {{ total_teacher_salary|floatformat:2 }}</span>
+                </div>
+                <div class="finance-row finance-row-highlight">
+                    <span class="finance-label">All-time Net Balance</span>
+                    <strong class="finance-val {% if current_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        Rs {{ current_balance|floatformat:2 }}
+                    </strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Statistics Section -->
+    <div class="panel" id="class-statistics-section">
+        <div class="panel-header">
+            <div>
+                <h3>🏫 Class Statistics</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Click any class to inspect enrolled students and view their complete student profiles.
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="badge badge-primary">{{ total_classes }} Classes Available</span>
+                <a href="{% url 'classrooms:list' %}" class="btn btn-outline btn-sm">Manage Classes &rarr;</a>
+            </div>
+        </div>
+
+        <div class="classes-grid">
+            {% for sc in classes_list %}
+                <div class="class-card" onclick="loadClassStudents({{ sc.id }}, '{{ sc.name|escapejs }}')" tabindex="0" role="button">
+                    <div class="class-card-head">
+                        <div class="class-name-badge">{{ sc.name }}</div>
+                        <span class="class-count-badge">{{ sc.active_students }} Student{% if sc.active_students != 1 %}s{% endif %}</span>
+                    </div>
+                    <div class="class-card-body">
+                        <div class="class-fee-info">
+                            <span class="fee-lbl">Monthly Tuition:</span>
+                            <span class="fee-val">Rs {{ sc.monthly_fee|floatformat:0 }}</span>
+                        </div>
+                        <div class="class-fee-info">
+                            <span class="fee-lbl">Yearly Expected:</span>
+                            <span class="fee-val">Rs {{ sc.yearly_fee|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                    <div class="class-card-footer">
+                        <span>View Students &rarr;</span>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-muted">No classes found.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Transactions Grid -->
+    <div class="dashboard-row-2col">
+        <!-- Recent Student Fees -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3>📥 Recent Fee Receipts</h3>
+                <span class="text-muted text-sm">Latest Collections</span>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Month/Year</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fee in recent_fees %}
+                            <tr>
+                                <td>
+                                    <strong>{{ fee.student.name }}</strong>
+                                    <div class="text-xs text-muted">{{ fee.student.student_id }}</div>
+                                </td>
+                                <td>{{ fee.student.school_class.name }}</td>
+                                <td>{{ fee.get_fee_month_display|slice:":3" }} {{ fee.fee_year }}</td>
+                                <td class="text-success font-weight-bold">Rs {{ fee.amount|floatformat:2 }}</td>
+                                <td class="text-muted text-sm">{{ fee.payment_date|date:"Y-m-d" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No fee payments recorded yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Teacher Salaries -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3>📤 Recent Teacher Salaries</h3>
+                <span class="text-muted text-sm">Latest Disbursements</span>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Teacher</th>
+                            <th>Month/Year</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sal in recent_salaries %}
+                            <tr>
+                                <td>
+                                    <strong>{{ sal.teacher.name }}</strong>
+                                    <div class="text-xs text-muted">{{ sal.teacher.teacher_id }}</div>
+                                </td>
+                                <td>{{ sal.get_salary_month_display|slice:":3" }} {{ sal.salary_year }}</td>
+                                <td class="text-danger font-weight-bold">Rs {{ sal.amount|floatformat:2 }}</td>
+                                <td class="text-muted text-sm">{{ sal.payment_date|date:"Y-m-d" }}</td>
+                                <td><span class="badge badge-success">{{ sal.get_status_display }}</span></td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No teacher salaries recorded yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MODAL 1: Class Students List Drilldown
+     ========================================================================= -->
+<div class="modal-overlay" id="class-students-modal" onclick="closeModalOnBackdrop(event, 'class-students-modal')">
+    <div class="modal-card modal-lg">
+        <div class="modal-header">
+            <div>
+                <h3 id="class-modal-title">Class Students</h3>
+                <p class="text-muted text-sm" id="class-modal-subtitle">Enrolled students</p>
+            </div>
+            <button class="modal-close-btn" onclick="closeModal('class-students-modal')">&times;</button>
+        </div>
+        <div class="modal-body" id="class-modal-body">
+            <!-- Populated dynamically via JS -->
+            <div class="loading-spinner-box">Loading students...</div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MODAL 2: Student Complete Profile Modal
+     ========================================================================= -->
+<div class="modal-overlay" id="student-profile-modal" onclick="closeModalOnBackdrop(event, 'student-profile-modal')">
+    <div class="modal-card modal-lg">
+        <div class="modal-header">
+            <div>
+                <h3 id="profile-modal-title">Student Profile</h3>
+                <p class="text-muted text-sm" id="profile-modal-subtitle">Full academic &amp; financial details</p>
+            </div>
+            <button class="modal-close-btn" onclick="closeModal('student-profile-modal')">&times;</button>
+        </div>
+        <div class="modal-body" id="profile-modal-body">
+            <!-- Populated dynamically via JS -->
+            <div class="loading-spinner-box">Loading student profile...</div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Interactive Dashboard Drilldowns -->
+<script>
+function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function openModal(id) {
+    const m = document.getElementById(id);
+    if (m) {
+        m.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) {
+        m.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+function closeModalOnBackdrop(e, id) {
+    if (e.target.id === id) {
+        closeModal(id);
+    }
+}
+
+// Load Students for a Class
+function loadClassStudents(classId, className) {
+    const modal = document.getElementById('class-students-modal');
+    const title = document.getElementById('class-modal-title');
+    const subtitle = document.getElementById('class-modal-subtitle');
+    const body = document.getElementById('class-modal-body');
+
+    title.innerText = className;
+    subtitle.innerText = 'Loading enrolled students...';
+    body.innerHTML = '<div class="loading-spinner-box">Loading class students...</div>';
+    openModal('class-students-modal');
+
+    fetch('/api/class/' + classId + '/students/')
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.json();
+        })
+        .then(data => {
+            subtitle.innerText = data.total_students + ' Enrolled Students • Monthly Fee: Rs ' + data.monthly_fee.toFixed(2);
+            if (data.students.length === 0) {
+                body.innerHTML = `
+                    <div class="empty-state-box">
+                        <span style="font-size: 32px;">🎒</span>
+                        <h4>No Students Enrolled</h4>
+                        <p class="text-muted text-sm">There are currently no active students enrolled in ${data.class_name}.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Father's Name</th>
+                                <th>Gender</th>
+                                <th>Monthly Fee</th>
+                                <th>Contact</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.students.forEach(s => {
+                const avatar = s.photo_url 
+                    ? `<img src="${s.photo_url}" class="student-mini-avatar" alt="${s.name}">`
+                    : `<div class="student-mini-avatar avatar-placeholder">${s.name.charAt(0)}</div>`;
+
+                html += `
+                    <tr>
+                        <td><code>${s.student_id}</code></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                ${avatar}
+                                <strong>${s.name}</strong>
+                            </div>
+                        </td>
+                        <td>${s.father_name}</td>
+                        <td>${s.gender}</td>
+                        <td>Rs ${s.effective_monthly_fee.toFixed(2)}</td>
+                        <td>${s.phone}</td>
+                        <td style="text-align: right;">
+                            <button class="btn btn-sm btn-primary" onclick="loadStudentProfile('${s.student_id}')">
+                                View Profile
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            body.innerHTML = html;
+        })
+        .catch(err => {
+            body.innerHTML = '<div class="alert alert-error">Failed to load students. Please try again.</div>';
+        });
+}
+
+// Load Student Profile Modal
+function loadStudentProfile(studentId) {
+    const modal = document.getElementById('student-profile-modal');
+    const title = document.getElementById('profile-modal-title');
+    const subtitle = document.getElementById('profile-modal-subtitle');
+    const body = document.getElementById('profile-modal-body');
+
+    title.innerText = 'Student Profile (' + studentId + ')';
+    subtitle.innerText = 'Loading details...';
+    body.innerHTML = '<div class="loading-spinner-box">Loading student profile...</div>';
+    openModal('student-profile-modal');
+
+    fetch('/api/student/' + encodeURIComponent(studentId) + '/profile/')
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.json();
+        })
+        .then(s => {
+            title.innerText = s.name;
+            subtitle.innerText = s.student_id + ' • ' + s.class_name;
+
+            const photoHtml = s.photo_url
+                ? `<img src="${s.photo_url}" class="profile-photo" alt="${s.name}">`
+                : `<div class="profile-photo photo-placeholder">${s.name.charAt(0)}</div>`;
+
+            let recentFeesHtml = '';
+            if (s.recent_fees && s.recent_fees.length > 0) {
+                recentFeesHtml = `
+                    <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                        <table class="data-table data-table-compact">
+                            <thead>
+                                <tr>
+                                    <th>Month/Year</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Ref</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${s.recent_fees.map(f => `
+                                    <tr>
+                                        <td>${f.month_display} ${f.fee_year}</td>
+                                        <td class="text-success font-weight-bold">Rs ${f.amount.toFixed(2)}</td>
+                                        <td>${f.payment_date}</td>
+                                        <td>${f.reference}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                recentFeesHtml = '<p class="text-muted text-sm" style="margin: 8px 0 0;">No fee payments recorded.</p>';
+            }
+
+            let recentAttHtml = '';
+            if (s.recent_attendance && s.recent_attendance.length > 0) {
+                recentAttHtml = `
+                    <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                        <table class="data-table data-table-compact">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${s.recent_attendance.map(a => `
+                                    <tr>
+                                        <td>${a.date}</td>
+                                        <td>
+                                            <span class="badge ${a.status === 'PRESENT' ? 'badge-success' : 'badge-danger'}">
+                                                ${a.status_display}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                recentAttHtml = '<p class="text-muted text-sm" style="margin: 8px 0 0;">No attendance records found.</p>';
+            }
+
+            body.innerHTML = `
+                <div class="profile-layout">
+                    <!-- Bio & Identity Card -->
+                    <div class="profile-header-card">
+                        ${photoHtml}
+                        <div class="profile-header-meta">
+                            <h4>${s.name}</h4>
+                            <div class="profile-badges">
+                                <span class="badge badge-primary">${s.student_id}</span>
+                                <span class="badge badge-outline">${s.class_name}</span>
+                                <span class="badge badge-info">${s.gender}</span>
+                            </div>
+                            <div class="profile-meta-grid">
+                                <div><strong>Father:</strong> ${s.father_name}</div>
+                                <div><strong>DOB:</strong> ${s.date_of_birth}</div>
+                                <div><strong>Form B:</strong> ${s.form_b_number}</div>
+                                <div><strong>Phone:</strong> ${s.phone}</div>
+                                <div><strong>Email:</strong> ${s.email}</div>
+                                <div><strong>Admitted:</strong> ${s.admission_date}</div>
+                            </div>
+                            <div style="margin-top: 6px; font-size: 13px;">
+                                <strong>Address:</strong> ${s.address}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fee and Attendance Details Grid -->
+                    <div class="profile-sections-grid">
+                        <!-- Fee Overview -->
+                        <div class="panel profile-section-box">
+                            <h5>💳 Fee Information</h5>
+                            <div class="profile-stat-pills">
+                                <div class="stat-pill">
+                                    <span class="lbl">Monthly Fee:</span>
+                                    <strong>Rs ${s.effective_monthly_fee.toFixed(2)}</strong>
+                                </div>
+                                <div class="stat-pill">
+                                    <span class="lbl">Yearly Expected:</span>
+                                    <strong>Rs ${s.yearly_expected_fee.toFixed(2)}</strong>
+                                </div>
+                                <div class="stat-pill text-success">
+                                    <span class="lbl">Total Paid:</span>
+                                    <strong>Rs ${s.total_paid_fees.toFixed(2)}</strong>
+                                </div>
+                                <div class="stat-pill text-danger">
+                                    <span class="lbl">Year Pending:</span>
+                                    <strong>Rs ${s.current_year_pending.toFixed(2)}</strong>
+                                </div>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <strong>Payment History</strong>
+                                ${recentFeesHtml}
+                            </div>
+                        </div>
+
+                        <!-- Attendance Overview -->
+                        <div class="panel profile-section-box">
+                            <h5>📋 Attendance Information</h5>
+                            <div class="profile-stat-pills">
+                                <div class="stat-pill">
+                                    <span class="lbl">Total Days:</span>
+                                    <strong>${s.total_attendance_days}</strong>
+                                </div>
+                                <div class="stat-pill text-success">
+                                    <span class="lbl">Present:</span>
+                                    <strong>${s.present_count}</strong>
+                                </div>
+                                <div class="stat-pill text-danger">
+                                    <span class="lbl">Absent:</span>
+                                    <strong>${s.absent_count}</strong>
+                                </div>
+                                <div class="stat-pill text-primary">
+                                    <span class="lbl">Attendance Rate:</span>
+                                    <strong>${s.attendance_percentage}%</strong>
+                                </div>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <strong>Recent Attendance</strong>
+                                ${recentAttHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(err => {
+            body.innerHTML = '<div class="alert alert-error">Failed to load student profile. Please try again.</div>';
+        });
+}
+</script>
+{% endblock %}
+

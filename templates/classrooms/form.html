@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Edit Class {{ school_class.name }} — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="max-width: 680px; margin: 0 auto;">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <a href="{% url 'classrooms:detail' pk=school_class.pk %}" class="btn btn-ghost btn-xs">&larr; Back to Class</a>
+            <h1 class="dashboard-title" style="margin-top: 8px;">Edit Class: {{ school_class.name }}</h1>
+            <p class="dashboard-subtitle">
+                Update class naming, sort order, or standard tuition fee.
+            </p>
+        </div>
+    </div>
+
+    <!-- Edit Card Panel -->
+    <div class="panel">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="{{ form.name.id_for_label }}">Class Name *</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="form-error">{{ form.name.errors.0 }}</div>
+                {% endif %}
+                <small class="form-help">{{ form.name.help_text }}</small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="{{ form.order.id_for_label }}">Display Order</label>
+                {{ form.order }}
+                {% if form.order.errors %}
+                    <div class="form-error">{{ form.order.errors.0 }}</div>
+                {% endif %}
+                <small class="form-help">{{ form.order.help_text }}</small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label for="{{ form.monthly_fee.id_for_label }}">Standard Monthly Tuition Fee (Rs) *</label>
+                {{ form.monthly_fee }}
+                {% if form.monthly_fee.errors %}
+                    <div class="form-error">{{ form.monthly_fee.errors.0 }}</div>
+                {% endif %}
+                <small class="form-help">{{ form.monthly_fee.help_text }}</small>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <a href="{% url 'classrooms:detail' pk=school_class.pk %}" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

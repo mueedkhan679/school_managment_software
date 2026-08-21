@@ -21,6 +21,14 @@ from django.urls import include, path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('apps.accounts.urls')),
+    path('classrooms/', include('apps.classrooms.urls')),
+    path('students/', include('apps.students.urls')),
+    path('teachers/', include('apps.teachers.urls')),
+    path('fees/', include('apps.fees.urls')),
+    path('attendance/', include('apps.attendance.urls')),
+    path('teacher-portal/', include('apps.teachers.portal_urls')),
+    path('student-portal/', include('apps.students.portal_urls')),
     path('', include('apps.core.urls')),
 ]
 

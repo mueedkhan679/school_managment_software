@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ title }} — School Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="max-width: 860px; margin: 0 auto;">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            {% if teacher %}
+                <a href="{% url 'teachers:detail' teacher_id=teacher.teacher_id %}" class="btn btn-ghost btn-xs">&larr; Back to Profile</a>
+            {% else %}
+                <a href="{% url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Faculty List</a>
+            {% endif %}
+            <h1 class="dashboard-title" style="margin-top: 8px;">{{ title }}</h1>
+            <p class="dashboard-subtitle">
+                Fill in the teacher's profile, salary settings, and class assignments.
+            </p>
+        </div>
+    </div>
+
+    <!-- Teacher Form Panel -->
+    <div class="panel">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <!-- Section 1: Personal & Contact Information -->
+            <div class="form-section-title">
+                <h4>👤 Faculty Bio-Data & Contact</h4>
+            </div>
+
+            <div class="form-row-2col">
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="form-error">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        <div class="form-error">{{ form.phone.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row-2col">
+                <div class="form-group">
+                    <label for="{{ form.cnic.id_for_label }}">{{ form.cnic.label }}</label>
+                    {{ form.cnic }}
+                    {% if form.cnic.errors %}
+                        <div class="form-error">{{ form.cnic.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.monthly_salary.id_for_label }}">{{ form.monthly_salary.label }}</label>
+                    {{ form.monthly_salary }}
+                    {% if form.monthly_salary.errors %}
+                        <div class="form-error">{{ form.monthly_salary.errors.0 }}</div>
+                    {% endif %}
+                    <small class="form-help">{{ form.monthly_salary.help_text }}</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>
+                {{ form.address }}
+                {% if form.address.errors %}
+                    <div class="form-error">{{ form.address.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
+
+            <!-- Section 2: Assigned Classes -->
+            <div class="form-section-title">
+                <h4>🏫 Assigned School Classes</h4>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.assigned_classes.id_for_label }}">{{ form.assigned_classes.label }}</label>
+                {{ form.assigned_classes }}
+                {% if form.assigned_classes.errors %}
+                    <div class="form-error">{{ form.assigned_classes.errors.0 }}</div>
+                {% endif %}
+                <small class="form-help">Select the classes taught by this teacher (hold Ctrl on Windows to select multiple).</small>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
+
+            <!-- Section 3: Identity Photos & CNIC Documents -->
+            <div class="form-section-title">
+                <h4>📷 Photographs & Identity Documents</h4>
+            </div>
+
+            <div class="form-group">
+                {% if teacher and teacher.picture %}
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 10px;">
+                        <img src="{{ teacher.picture.url }}" alt="{{ teacher.name }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border);">
+                        <span class="text-sm text-muted">Current photo on file. Upload a new image to replace.</span>
+                    </div>
+                {% endif %}
+                <label for="{{ form.picture.id_for_label }}">{{ form.picture.label }}</label>
+                {{ form.picture }}
+                {% if form.picture.errors %}
+                    <div class="form-error">{{ form.picture.errors.0 }}</div>
+                {% endif %}
+                <small class="form-help">{{ form.picture.help_text }}</small>
+            </div>
+
+            <div class="form-row-2col">
+                <div class="form-group">
+                    {% if teacher and teacher.cnic_front_pic %}
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                            <img src="{{ teacher.cnic_front_pic.url }}" alt="CNIC Front" style="width: 80px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+                            <span class="text-xs text-muted">CNIC Front Picture</span>
+                        </div>
+                    {% endif %}
+                    <label for="{{ form.cnic_front_pic.id_for_label }}">{{ form.cnic_front_pic.label }}</label>
+                    {{ form.cnic_front_pic }}
+                    {% if form.cnic_front_pic.errors %}
+                        <div class="form-error">{{ form.cnic_front_pic.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {% if teacher and teacher.cnic_back_pic %}
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                            <img src="{{ teacher.cnic_back_pic.url }}" alt="CNIC Back" style="width: 80px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+                            <span class="text-xs text-muted">CNIC Back Picture</span>
+                        </div>
+                    {% endif %}
+                    <label for="{{ form.cnic_back_pic.id_for_label }}">{{ form.cnic_back_pic.label }}</label>
+                    {{ form.cnic_back_pic }}
+                    {% if form.cnic_back_pic.errors %}
+                        <div class="form-error">{{ form.cnic_back_pic.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px;">
+                {% if teacher %}
+                    <a href="{% url 'teachers:detail' teacher_id=teacher.teacher_id %}" class="btn btn-ghost">Cancel</a>
+                {% else %}
+                    <a href="{% url 'teachers:list' %}" class="btn btn-ghost">Cancel</a>
+                {% endif %}
+                <button type="submit" class="btn btn-primary">{{ action_text }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

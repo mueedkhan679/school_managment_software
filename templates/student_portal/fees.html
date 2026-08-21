@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Fee Summary — Student Portal{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span class="badge badge-primary">Student Portal</span>
+                <span class="badge badge-outline">ID: {{ student.student_id }}</span>
+            </div>
+            <h1 class="dashboard-title">Fee Summary & Ledger</h1>
+            <p class="dashboard-subtitle">
+                Track your tuition fee payments, monthly statuses, and outstanding annual balance.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'student_portal:dashboard' %}" class="btn btn-ghost">
+                &larr; Back to Portal
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Financial KPI Cards -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light">
+                <span>💵</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Monthly Rate</span>
+                <span class="stat-value">Rs {{ student.effective_monthly_fee|floatformat:2 }}</span>
+                <span class="stat-hint">Charged per month</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light">
+                <span>📥</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Total Paid (All-Time)</span>
+                <span class="stat-value">Rs {{ total_paid_fees|floatformat:2 }}</span>
+                <span class="stat-hint">Lifetime tuition payments</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light">
+                <span>📈</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">{{ current_year }} Fees Paid</span>
+                <span class="stat-value">Rs {{ curr_year_paid|floatformat:2 }}</span>
+                <span class="stat-hint">Annual expected: Rs {{ yearly_expected|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-amber-light">
+                <span>⏳</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">{{ current_year }} Pending Balance</span>
+                <span class="stat-value">Rs {{ yearly_pending|floatformat:2 }}</span>
+                <span class="stat-hint">Remaining dues</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 12-Month Matrix Panel -->
+    <div class="panel" style="margin-bottom: 24px;">
+        <div class="panel-header">
+            <div>
+                <h3>Year {{ current_year }} Month-by-Month Fee Schedule</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">Status of tuition payments for each month of the current year.</p>
+            </div>
+        </div>
+        <div style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)); gap: 8px;">
+                {% for m in months_schedule %}
+                    <div style="text-align: center; padding: 10px 6px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 12px; {% if m.is_paid %}background: var(--success-bg, #ecfdf5); border-color: var(--success-color, #10b981); color: var(--success-color, #047857);{% else %}background: var(--card-bg); color: var(--text-muted);{% endif %}">
+                        <span style="display: block; font-weight: 700; font-size: 13px; margin-bottom: 4px;">{{ m.month_name|slice:":3" }}</span>
+                        {% if m.is_paid %}
+                            <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">PAID</span>
+                        {% else %}
+                            <span class="badge badge-warning" style="font-size: 10px; padding: 2px 6px;">UNPAID</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment History Ledger Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Payment History Ledger</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">Official fee transactions recorded by the administration.</p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Receipt #</th>
+                        <th>Month / Year</th>
+                        <th>Amount</th>
+                        <th>Payment Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in page_obj %}
+                        <tr>
+                            <td><code>{{ f.reference|default:"—" }}</code></td>
+                            <td>
+                                <strong>{{ f.get_fee_month_display }} {{ f.fee_year }}</strong>
+                                {% if f.is_extra %}
+                                    <span class="badge badge-warning text-xs">Extra</span>
+                                {% endif %}
+                            </td>
+                            <td><strong class="text-primary">Rs {{ f.amount|floatformat:2 }}</strong></td>
+                            <td>{{ f.payment_date|date:"M j, Y" }}</td>
+                            <td>
+                                {% if f.status == "PAID" %}
+                                    <span class="badge badge-success">Paid</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted" style="padding: 40px 20px;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">💳</div>
+                                <p style="font-size: 15px; margin: 0 0 4px;"><strong>No fee transactions recorded.</strong></p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <div class="pagination-bar">
+                <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div class="pagination-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-ghost btn-xs">&larr; Previous</a>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="btn btn-primary btn-xs">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}" class="btn btn-ghost btn-xs">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-ghost btn-xs">Next &rarr;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
