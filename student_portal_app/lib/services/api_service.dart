@@ -29,7 +29,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> login(String username, String password) async {
-    const endpoint = '$baseUrl/accounts/login/';
+    const endpoint = '$baseUrl/api/v1/auth/login/';
     final url = Uri.parse(endpoint);
     try {
       final response = await http.post(
@@ -74,7 +74,7 @@ class ApiService {
     final refresh = await _storageService.getRefreshToken();
     if (refresh == null || refresh.isEmpty) return false;
 
-    final url = Uri.parse('$baseUrl/auth/token/refresh/');
+    final url = Uri.parse('$baseUrl/api/v1/auth/token/refresh/');
     try {
       final response = await http.post(
         url,
@@ -95,11 +95,11 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getStudentProfile() async {
-    return _authenticatedGet('$baseUrl/accounts/student-portal/api/data/');
+    return _authenticatedGet('$baseUrl/api/v1/students/profile/');
   }
 
   Future<Map<String, dynamic>> getAttendance({int? month, int? year}) async {
-    var endpoint = '$baseUrl/accounts/student-portal/api/data/attendance/';
+    var endpoint = '$baseUrl/api/v1/students/attendance/';
     final params = <String>[];
     if (month != null) params.add('month=$month');
     if (year != null) params.add('year=$year');
@@ -110,7 +110,7 @@ class ApiService {
   }
 
     Future<Map<String, dynamic>> getFees() async {
-    return _authenticatedGet('$baseUrl/accounts/student-portal/api/data/fees/');
+    return _authenticatedGet('$baseUrl/api/v1/students/fees/');
   }
 
   Future<Map<String, dynamic>> getTeacherAttendance({int? month, int? year, String? date}) async {

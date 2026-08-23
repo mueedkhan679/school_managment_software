@@ -39,6 +39,16 @@ class StudentController extends ChangeNotifier {
     ]);
   }
 
+  void clearAllData() {
+    _profile = null;
+    _attendanceData = null;
+    _feeData = null;
+    _profileError = null;
+    _attendanceError = null;
+    _feeError = null;
+    notifyListeners();
+  }
+
   Future<void> fetchProfile() async {
     _isLoadingProfile = true;
     _profileError = null;

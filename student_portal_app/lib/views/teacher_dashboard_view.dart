@@ -27,6 +27,7 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
   }
 
   void _onLogout() {
+    context.read<TeacherController>().clearAllData();
     context.read<AuthController>().logout();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const LoginView()),

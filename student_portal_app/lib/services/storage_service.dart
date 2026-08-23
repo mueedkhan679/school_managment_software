@@ -78,6 +78,14 @@ class StorageService {
   }
 
   Future<void> clearAll() async {
-    await _storage.deleteAll();
+    await _storage.delete(key: _keyAccessToken);
+    await _storage.delete(key: _keyRefreshToken);
+    await _storage.delete(key: _keyStudentId);
+    await _storage.delete(key: _keyStudentName);
+    await _storage.delete(key: _keyTeacherId);
+    await _storage.delete(key: _keyTeacherName);
+    await _storage.delete(key: _keyRole);
+    await _storage.delete(key: _keySessionCookie);
+    await _storage.deleteAll(); // Fallback to wipe any remaining keys
   }
 }

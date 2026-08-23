@@ -42,6 +42,7 @@ class _MainScaffoldViewState extends State<MainScaffoldView> {
 
   void _handleLogout() async {
     final auth = context.read<AuthController>();
+    context.read<StudentController>().clearAllData();
     await auth.logout();
     if (mounted) {
       Navigator.of(context).pushReplacement(

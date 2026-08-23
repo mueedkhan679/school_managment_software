@@ -49,7 +49,9 @@ class _LoginViewState extends State<LoginView> {
           MaterialPageRoute(builder: (_) => const TeacherDashboardView()),
         );
       } else {
-        context.read<StudentController>().fetchAllData();
+        final sc = context.read<StudentController>();
+        sc.clearAllData();
+        sc.fetchAllData();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const MainScaffoldView()),
         );
