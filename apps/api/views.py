@@ -1,10 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
-from django.core.exceptions import PermissionDenied
 from django.db import models
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.views.decorators.http import require_POST
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -40,12 +38,17 @@ def _get_student(request):
 
 
 def _get_teacher_profile(user):
-    """Retrieve Teacher profile for an authenticated user, or return None."""
+    """Retrieve Teacher profile for an authenticated user, or return None.
+
+    Uses ``getattr`` to avoid crashing with AttributeError when the reverse
+    OneToOne relation is missing, and catches the related-object DoesNotExist
+    exception raised by Django for unset OneToOne fields.
+    """
     try:
-        teacher = user.teacher_profile
-        if teacher and teacher.is_active:
+        teacher = getattr(user, "teacher_profile", None)
+        if teacher is not None and teacher.is_active:
             return teacher
-    except (Teacher.DoesNotExist, AttributeError):
+    except Teacher.DoesNotExist:
         pass
     return None
 
@@ -243,19 +246,28 @@ class TeacherAttendanceView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def _get_teacher(self, request):
-        teacher = _get_teacher_profile(request.user)
-        if not teacher:
-            raise PermissionDenied("No active teacher profile linked to this account.")
-        return teacher
-
     def _get_assigned_class_ids(self, teacher):
-        if teacher.assigned_class_id:
-            return [teacher.assigned_class_id]
-        return list(teacher.assigned_classes.values_list("id", flat=True))
+        """Return assigned class ids for a teacher, tolerating unset relations."""
+        if not teacher:
+            return []
+        primary_id = getattr(teacher, "assigned_class_id", None)
+        if primary_id:
+            return [primary_id]
+        assigned_classes = getattr(teacher, "assigned_classes", None)
+        if assigned_classes is None:
+            return []
+        return list(assigned_classes.values_list("id", flat=True))
 
     def get(self, request, *args, **kwargs):
-        teacher = self._get_teacher(request)
+        teacher = _get_teacher_profile(request.user)
+        if not teacher:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Active teacher profile not found for this account.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         assigned_class_ids = self._get_assigned_class_ids(teacher)
         if not assigned_class_ids:
             return Response(
@@ -295,9 +307,16 @@ class TeacherAttendanceView(APIView):
             status=status.HTTP_200_OK,
         )
 
-    @require_POST
     def post(self, request, *args, **kwargs):
-        teacher = self._get_teacher(request)
+        teacher = _get_teacher_profile(request.user)
+        if not teacher:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Active teacher profile not found for this account.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         submissions = request.data.get("attendance", request.data.get("submissions", {}))
         date_str = request.data.get("date", timezone.now().date().strftime("%Y-%m-%d"))
         try:
@@ -338,7 +357,13 @@ class TeacherSalaryView(APIView):
     def get(self, request, *args, **kwargs):
         teacher = _get_teacher_profile(request.user)
         if not teacher:
-            raise PermissionDenied("No active teacher profile linked to this account.")
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Active teacher profile not found for this account.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         current_year = timezone.now().year
         year = int(request.GET.get("year", current_year))
         paid_salaries = teacher.salaries.filter(
