@@ -1,0 +1,83 @@
+Running Gradle task 'assembleRelease'...                        
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+A problem occurred configuring project ':flutter_secure_storage'.
+> Could not resolve all artifacts for configuration 'classpath'.
+   > Could not download gradle-8.5.1.jar (com.android.tools.build:gradle:8.5.1)
+      > Could not get resource 'https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.5.1/gradle-8.5.1.jar'.
+         > Read timed out
+   > Could not download builder-8.5.1.jar (com.android.tools.build:builder:8.5.1)
+      > Could not get resource 'https://dl.google.com/dl/android/maven2/com/android/tools/build/builder/8.5.1/builder-8.5.1.jar'.
+         > Read timed out
+   > Could not download bundletool-1.16.0.jar (com.android.tools.build:bundletool:1.16.0)
+      > Could not get resource 'https://dl.google.com/dl/android/maven2/com/android/tools/build/bundletool/1.16.0/bundletool-1.16.0.jar'.
+         > Read timed out
+   > Could not download protos-31.5.1.jar (com.android.tools.analytics-library:protos:31.5.1)
+      > Could not get resource 'https://dl.google.com/dl/android/maven2/com/android/tools/analytics-library/protos/31.5.1/protos-31.5.1.jar'.
+         > Read timed out
+> Failed to notify project evaluation listener.
+   > java.lang.NullPointerException (no error message)
+   > 'kotlin-android' plugin requires one of the Android Gradle plugins.
+     Please apply one of the following plugins to ':flutter_secure_storage' project:
+     - com.android.application
+     	- com.android.library
+     	- com.android.dynamic-feature
+     	- com.android.test
+     	- com.android.instantapp
+     	- com.android.feature
+   > java.lang.NullPointerException (no error message)
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 7m 44s
+Running Gradle task 'assembleRelease'...                          464.9s
+[!] Gradle threw an error while downloading artifacts from the network.
+Retrying Gradle Build: #1, wait time: 100ms
+Running Gradle task 'assembleRelease'...                        
+The message received from the daemon indicates that the daemon has disappeared.
+Build request sent: Build{id=53347d0d-e5c7-4c6b-8617-3288dc09755b, currentDir=C:\Users\ytmoi\Desktop\school_project\student_portal_app\android}
+Attempting to read last messages from the daemon log...
+Daemon pid: 5844
+  log file: C:\Users\ytmoi\.gradle\daemon\9.1.0\daemon-5844.out.log
+----- Last 20 lines from daemon log file - daemon-5844.out.log -----
+2026-08-21T12:04:18.700-0300 [DEBUG] [org.gradle.launcher.daemon.server.SynchronizedDispatchConnection] thread 142: received class org.gradle.launcher.daemon.protocol.Build
+2026-08-21T12:04:18.700-0300 [DEBUG] [org.gradle.launcher.daemon.server.DefaultDaemonConnection] thread 142: Received non-IO message from client: Build{id=53347d0d-e5c7-4c6b-8617-3288dc09755b, currentDir=C:\Users\ytmoi\Desktop\school_project\student_portal_app\android}
+2026-08-21T12:04:18.700-0300 [INFO] [org.gradle.launcher.daemon.server.DefaultIncomingConnectionHandler] Received command: Build{id=53347d0d-e5c7-4c6b-8617-3288dc09755b, currentDir=C:\Users\ytmoi\Desktop\school_project\student_portal_app\android}.
+2026-08-21T12:04:18.700-0300 [DEBUG] [org.gradle.launcher.daemon.server.DefaultIncomingConnectionHandler] Starting executing command: Build{id=53347d0d-e5c7-4c6b-8617-3288dc09755b, currentDir=C:\Users\ytmoi\Desktop\school_project\student_portal_app\android} with connection: socket connection from /127.0.0.1:59872 to /127.0.0.1:60146.
+2026-08-21T12:04:18.700-0300 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] Command execution: started DaemonCommandExecution[command = Build{id=53347d0d-e5c7-4c6b-8617-3288dc09755b, currentDir=C:\Users\ytmoi\Desktop\school_project\student_portal_app\android}, connection = DefaultDaemonConnection: socket connection from /127.0.0.1:59872 to /127.0.0.1:60146] after 0.025233333333333333 minutes of idle
+2026-08-21T12:04:18.701-0300 [INFO] [org.gradle.launcher.daemon.server.DaemonRegistryUpdater] Marking the daemon as busy, address: [3b9c89c8-6b7e-46ec-8da6-9e710c2960dc port:59872, addresses:[localhost/127.0.0.1]]
+2026-08-21T12:04:18.701-0300 [DEBUG] [org.gradle.launcher.daemon.registry.PersistentDaemonRegistry] Marking busy by address: [3b9c89c8-6b7e-46ec-8da6-9e710c2960dc port:59872, addresses:[localhost/127.0.0.1]]
+2026-08-21T12:04:18.705-0300 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Waiting to acquire exclusive lock on daemon addresses registry.
+2026-08-21T12:04:18.705-0300 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Lock acquired on daemon addresses registry.
+2026-08-21T12:04:18.706-0300 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Releasing lock on daemon addresses registry.
+2026-08-21T12:04:18.708-0300 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] resetting idle timer
+2026-08-21T12:04:18.708-0300 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] daemon is running. Sleeping until state changes.
+2026-08-21T12:04:18.708-0300 [INFO] [org.gradle.launcher.daemon.server.exec.StartBuildOrRespondWithBusy] Daemon is about to start building Build{id=53347d0d-e5c7-4c6b-8617-3288dc09755b, currentDir=C:\Users\ytmoi\Desktop\school_project\student_portal_app\android}. Dispatching build started information...
+2026-08-21T12:04:18.709-0300 [DEBUG] [org.gradle.launcher.daemon.server.SynchronizedDispatchConnection] thread 35: dispatching org.gradle.launcher.daemon.protocol.BuildStarted@4fec0918
+2026-08-21T12:04:18.709-0300 [DEBUG] [org.gradle.launcher.daemon.server.exec.EstablishBuildEnvironment] Configuring env variables: [PATH, USERDOMAIN_ROAMINGPROFILE, PROCESSOR_LEVEL, SYSTEMDRIVE, POWERSHELL_EXECUTABLE, ALLUSERSPROFILE, PROCESSOR_ARCHITECTURE, DRIVERDATA, PROGRAMFILES, PSMODULEPATH, PROGRAMDATA, DIRNAME, USERNAME, CMD_LINE_ARGS, EXIT_WITH_ERRORLEVEL, ONEDRIVE, APP_HOME, MINGIT_PATH, PATHEXT, SNAPSHOT_PATH, SHARED_BIN, WINDIR, HOMEPATH, PROCESSOR_IDENTIFIER, PUBLIC, CACHE_DIR, ZES_ENABLE_SYSMAN, _SKIP, LOCALAPPDATA, COMMONPROGRAMFILES(X86), USERDOMAIN, DART_SDK_PATH, LOGONSERVER, JAVA_HOME, FLUTTER_TOOLS_DIR, PROMPT, PROGRAMFILES(X86), FLUTTER_ROOT, =C:, APPDATA, PROGRAMW6432, SYSTEMROOT, JAVA_EXE, DART, OS, COMMONPROGRAMW6432, COMPUTERNAME, COMMONPROGRAMFILES, COMSPEC, PROCESSOR_REVISION, CLASSPATH, APP_BASE_NAME, TEMP, FLUTTER_ALREADY_LOCKED, HOMEDRIVE, USERPROFILE, TMP, NUMBER_OF_PROCESSORS]
+2026-08-21T12:04:18.711-0300 [DEBUG] [org.gradle.launcher.daemon.server.exec.LogToClient] About to start relaying all logs to the client via the connection.
+2026-08-21T12:04:18.712-0300 [INFO] [org.gradle.launcher.daemon.server.exec.LogToClient] The client will now receive all logging from the daemon (pid: 5844). The daemon log file: C:\Users\ytmoi\.gradle\daemon\9.1.0\daemon-5844.out.log
+2026-08-21T12:04:18.713-0300 [INFO] [org.gradle.launcher.daemon.server.exec.LogAndCheckHealth] Starting 2nd build in daemon [uptime: 7 mins 43.536 secs, performance: 100%, GC rate: 0.00/s, heap usage: 0% of 8 GiB, non-heap usage: 2% of 4 GiB]
+2026-08-21T12:04:18.713-0300 [DEBUG] [org.gradle.launcher.daemon.server.exec.ExecuteBuild] The daemon has started executing the build.
+2026-08-21T12:04:18.713-0300 [DEBUG] [org.gradle.launcher.daemon.server.exec.ExecuteBuild] Executing build with daemon context: DefaultDaemonContext[uid=202a62e3-6777-4156-a7d8-04371f470e86,javaHome=C:\Program Files\Android\Android Studio\jbr,javaVersion=21,javaVendor=JetBrains s.r.o.,daemonRegistryDir=C:\Users\ytmoi\.gradle\daemon,pid=5844,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=4G,-XX:ReservedCodeCacheSize=512m,-XX:+HeapDumpOnOutOfMemoryError,-Xmx8G,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]----- End of the daemon log -----
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Gradle build daemon disappeared unexpectedly (it may have been killed or may have crashed)
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+Running Gradle task 'assembleRelease'...                          121.6s
+Gradle task assembleRelease failed with exit code 1
+[21/08/2026 12:06:19.69] BUILD EXIT CODE: 1 
