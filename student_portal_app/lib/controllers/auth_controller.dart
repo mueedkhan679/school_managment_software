@@ -82,7 +82,29 @@ class AuthController extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        _errorMessage = res['message'] ?? 'Login failed';
+        String exactError = 'Login failed';
+        if (res['errors'] != null) {
+          final errs = res['errors'];
+          if (errs is Map && errs.containsKey('detail')) {
+            final detail = errs['detail'];
+            if (detail is List && detail.isNotEmpty) {
+              exactError = detail.first.toString();
+            } else {
+              exactError = detail.toString();
+            }
+          } else if (errs is Map && errs.isNotEmpty) {
+            exactError = errs.values.first.toString();
+            if (exactError.startsWith('[') && exactError.endsWith(']')) {
+              exactError = exactError.substring(1, exactError.length - 1);
+            }
+          } else if (errs is String) {
+            exactError = errs;
+          }
+        } else if (res['message'] != null && res['message'] != 'Login failed') {
+          exactError = res['message'];
+        }
+        
+        _errorMessage = exactError;
         _status = AuthStatus.error;
         notifyListeners();
         return false;

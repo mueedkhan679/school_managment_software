@@ -4,3 +4,7 @@ whitenoise
 dj-database-url
 psycopg2-binary
 python-dotenv
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+

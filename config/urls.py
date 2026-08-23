@@ -29,7 +29,9 @@ urlpatterns = [
     path('attendance/', include('apps.attendance.urls')),
     path('teacher-portal/', include('apps.teachers.portal_urls')),
     path('student-portal/', include('apps.students.portal_urls')),
+    path('api/v1/', include('apps.api.urls')),
     path('', include('apps.core.urls')),
+
 ]
 
 if settings.DEBUG:

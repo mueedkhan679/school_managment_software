@@ -36,6 +36,15 @@ class Teacher(models.Model):
         validators=[MinValueValidator(Decimal("0.01"))],
         verbose_name="Monthly Salary",
     )
+    assigned_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="class_teachers",
+        verbose_name="Assigned Class",
+        help_text="Primary class assigned to this teacher",
+    )
     assigned_classes = models.ManyToManyField(
         SchoolClass, blank=True, related_name="assigned_teachers"
     )

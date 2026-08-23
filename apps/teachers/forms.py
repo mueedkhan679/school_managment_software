@@ -36,6 +36,7 @@ class TeacherForm(forms.ModelForm):
             "phone",
             "address",
             "monthly_salary",
+            "assigned_class",
             "assigned_classes",
             "picture",
             "cnic_front_pic",
@@ -63,8 +64,11 @@ class TeacherForm(forms.ModelForm):
                     "required": True,
                 }
             ),
+            "assigned_class": forms.Select(
+                attrs={"class": "form-control", "required": True}
+            ),
             "assigned_classes": forms.SelectMultiple(
-                attrs={"class": "form-control", "size": "6"}
+                attrs={"class": "form-control", "size": "4"}
             ),
             "picture": forms.FileInput(
                 attrs={"class": "form-control", "accept": "image/jpeg,image/png,image/webp"}
@@ -82,19 +86,37 @@ class TeacherForm(forms.ModelForm):
             "phone": "Phone Number *",
             "address": "Home Address (Optional)",
             "monthly_salary": "Monthly Salary (Rs) *",
-            "assigned_classes": "Assign Classes (Hold Ctrl to select multiple)",
+            "assigned_class": "Assigned Class (Class Teacher) *",
+            "assigned_classes": "Additional Assigned Classes (Optional)",
             "picture": "Teacher Photograph (Optional)",
             "cnic_front_pic": "CNIC Front Picture (Optional)",
             "cnic_back_pic": "CNIC Back Picture (Optional)",
         }
         help_texts = {
             "monthly_salary": "Annual salary will be automatically calculated as Monthly x 12.",
+            "assigned_class": "Select the primary class managed by this teacher (mandatory).",
             "picture": "Supported formats: JPG, PNG, WEBP. Max size: 5MB.",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["assigned_class"].queryset = SchoolClass.objects.order_by("order", "id")
+        self.fields["assigned_class"].empty_label = "-- Select Assigned Class * --"
         self.fields["assigned_classes"].queryset = SchoolClass.objects.order_by("order", "id")
+        self.fields["assigned_classes"].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        assigned_class = cleaned_data.get("assigned_class")
+        assigned_classes = cleaned_data.get("assigned_classes")
+
+        if not assigned_class:
+            if assigned_classes and assigned_classes.exists():
+                cleaned_data["assigned_class"] = assigned_classes.first()
+            else:
+                self.add_error("assigned_class", "Please select an assigned class for this teacher.")
+
+        return cleaned_data
 
     def clean_picture(self):
         return validate_uploaded_image(self.cleaned_data.get("picture"))
@@ -110,6 +132,20 @@ class TeacherForm(forms.ModelForm):
         if salary is not None and salary <= Decimal("0.00"):
             raise ValidationError("Monthly salary must be greater than zero.")
         return salary
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        if commit:
+            if instance.assigned_class:
+                instance.assigned_classes.add(instance.assigned_class)
+        else:
+            old_save_m2m = self.save_m2m
+            def new_save_m2m():
+                old_save_m2m()
+                if instance.assigned_class:
+                    instance.assigned_classes.add(instance.assigned_class)
+            self.save_m2m = new_save_m2m
+        return instance
 
 
 class TeacherSalaryForm(forms.ModelForm):

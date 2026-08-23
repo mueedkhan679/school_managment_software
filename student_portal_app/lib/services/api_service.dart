@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 
 class ApiService {
+  // Use https://mueed563.pythonanywhere.com for live server
+  // (Local testing IP previously used here was removed — always connect to live DB)
   static const String baseUrl = 'https://mueed563.pythonanywhere.com';
   final StorageService _storageService = StorageService();
 
@@ -31,6 +33,11 @@ class ApiService {
   Future<Map<String, dynamic>> login(String username, String password) async {
     const endpoint = '$baseUrl/api/v1/auth/login/';
     final url = Uri.parse(endpoint);
+    
+    debugPrint('====================================');
+    debugPrint('LOGIN URL: $url');
+    debugPrint('====================================');
+    
     try {
       final response = await http.post(
         url,
