@@ -19,6 +19,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from apps.api.views import StudentProfileView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls')),
@@ -29,6 +31,8 @@ urlpatterns = [
     path('attendance/', include('apps.attendance.urls')),
     path('teacher-portal/', include('apps.teachers.portal_urls')),
     path('student-portal/', include('apps.students.portal_urls')),
+    # Mobile API: student portal data endpoint for the Flutter app
+    path('student-portal/api/data/', StudentProfileView.as_view(), name='student_portal_api_data'),
     path('api/v1/', include('apps.api.urls')),
     path('', include('apps.core.urls')),
 

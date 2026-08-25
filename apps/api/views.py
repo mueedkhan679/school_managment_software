@@ -2,6 +2,8 @@ from datetime import datetime
 from decimal import Decimal
 from django.db import models
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -49,6 +51,7 @@ def _get_teacher_profile(user):
     return None
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class StudentLoginView(APIView):
     """POST /api/v1/auth/login/
     Student authentication endpoint accepting Username or Student Registration ID.
@@ -76,6 +79,7 @@ class StudentLoginView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class StudentProfileView(APIView):
     """GET /api/v1/students/profile/
     Returns full profile details of the logged-in student.
@@ -104,6 +108,7 @@ class StudentProfileView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class StudentAttendanceView(APIView):
     """GET /api/v1/students/attendance/
     Returns attendance summary metrics and paginated records log.
@@ -164,6 +169,7 @@ class StudentAttendanceView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class StudentFeeView(APIView):
     """GET /api/v1/students/fees/
     Returns fee history, yearly pending balance, and payment status schedule.
@@ -235,6 +241,7 @@ class StudentFeeView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class TeacherAttendanceView(APIView):
     """GET/POST /api/v1/teacher/attendance/
     - GET:  List students of the teacher's assigned classes (with optional date).
@@ -346,6 +353,7 @@ class TeacherAttendanceView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class TeacherSalaryView(APIView):
     """GET /api/v1/teacher/salary/ — base salary and monthly paid/pending breakdown."""
     permission_classes = [IsAuthenticated]
@@ -391,6 +399,7 @@ class TeacherSalaryView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class TeacherAttendanceScanView(APIView):
     """POST /api/v1/teacher/attendance/scan/   (alias: /api/v1/teachers/attendance/scan/)
 
@@ -474,6 +483,7 @@ class TeacherAttendanceScanView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class TeacherLatestScanView(APIView):
     """GET /api/v1/teacher/attendance/latest-scan/
     (alias: /api/v1/teachers/attendance/latest-scan/)

@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+import django
+
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -7,6 +9,10 @@ from django.db import models
 from apps.classrooms.models import SchoolClass
 from apps.core.constants import MONTHS
 from apps.core.models import Sequence
+
+# Django 6.1 renamed CheckConstraint's ``check`` kwarg to ``condition``.
+# Detect the installed version so the model works on both old and new Django.
+_CHECK_KWARG = "condition" if django.VERSION >= (6, 1) else "check"
 
 
 class Teacher(models.Model):
@@ -132,7 +138,8 @@ class TeacherSalary(models.Model):
                 name="unique_teacher_salary_month",
             ),
             models.CheckConstraint(
-                condition=models.Q(amount__gt=0), name="salary_amount_positive"
+                **{_CHECK_KWARG: models.Q(amount__gt=0)},
+                name="salary_amount_positive"
             ),
         ]
 
