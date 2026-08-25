@@ -31,6 +31,20 @@ class Sequence(models.Model):
             seq.save(update_fields=["next_value"])
             return value
 
+    @classmethod
+    def ensure_above(cls, name: str, value: int) -> None:
+        """Push the stored counter forward if it sits at or below ``value``.
+
+        Used for self-healing after a database restore/import where entity rows
+        exist but the counter row is missing or lagging behind them. A missing
+        row is created on demand starting just above ``value``; an existing row
+        is only ever moved forward, never backwards.
+        """
+        cls.objects.get_or_create(name=name, defaults={"next_value": value + 1})
+        cls.objects.filter(name=name, next_value__lte=value).update(
+            next_value=value + 1
+        )
+
 
 class SchoolSettings(models.Model):
     """Singleton record holding school-wide branding and contact details.

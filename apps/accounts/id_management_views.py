@@ -2,6 +2,7 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -94,40 +95,54 @@ def account_create(request):
         return redirect("accounts:account_list")
 
     profile_type = request.POST.get("profile_type", "").strip()  # "student" or "teacher"
-    profile_id = request.POST.get("profile_id", "").strip()
+    profile_id_raw = request.POST.get("profile_id", "").strip()
 
     form = CreateUserAccountForm(request.POST)
     if not form.is_valid():
         messages.error(request, f"Could not create account: {form.errors.as_text()}")
         return redirect("accounts:account_list")
 
-    if profile_type == "student":
-        profile = get_object_or_404(Student, id=int(profile_id))
-        if profile.user_id:
-            messages.warning(request, f"{profile.name} already has a linked account.")
-            return redirect("accounts:account_list")
-        role = Role.STUDENT
-    elif profile_type == "teacher":
-        profile = get_object_or_404(Teacher, id=int(profile_id))
-        if profile.user_id:
-            messages.warning(request, f"{profile.name} already has a linked account.")
-            return redirect("accounts:account_list")
-        role = Role.TEACHER
-    else:
+    try:
+        profile_pk = int(profile_id_raw)
+    except (TypeError, ValueError):
+        messages.error(request, "Invalid profile specified.")
+        return redirect("accounts:account_list")
+
+    profile_model = {"student": Student, "teacher": Teacher}.get(profile_type)
+    if profile_model is None:
         messages.error(request, "Invalid profile type specified.")
+        return redirect("accounts:account_list")
+
+    profile = get_object_or_404(profile_model, id=profile_pk)
+    role = Role.STUDENT if profile_type == "student" else Role.TEACHER
+    if profile.user_id:
+        messages.warning(request, f"{profile.name} already has a linked account.")
         return redirect("accounts:account_list")
 
     username = form.cleaned_data["username"]
     password = form.cleaned_data["password1"]
 
-    user = User.objects.create_user(
-        username=username,
-        password=password,
-        role=role,
-        is_active=True,
-    )
-    profile.user = user
-    profile.save(update_fields=["user"])
+    try:
+        # Atomic: the login account and its profile link commit together, so a
+        # failure can never leave an orphaned (unlinked) account behind.
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                role=role,
+                is_active=True,
+            )
+            profile.user = user
+            profile.save(update_fields=["user"])
+    except IntegrityError:
+        # Covers the rare race where the same username is claimed by another
+        # request between the form-level uniqueness check and this INSERT.
+        messages.error(
+            request,
+            f"Could not create account: the username <strong>{username}</strong> "
+            "was just taken. Please choose a different one.",
+        )
+        return redirect("accounts:account_list")
 
     messages.success(
         request,

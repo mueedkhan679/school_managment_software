@@ -4,7 +4,7 @@ import django
 
 from django.conf import settings
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import IntegrityError, models, transaction
 
 from apps.classrooms.models import SchoolClass
 from apps.core.constants import MONTHS
@@ -79,9 +79,37 @@ class Teacher(models.Model):
     def __str__(self):
         return f"{self.name} ({self.teacher_id})"
 
+    # Bounded retries if the Sequence counter has drifted behind existing rows.
+    MAX_ID_GENERATION_ATTEMPTS = 5
+
     def save(self, *args, **kwargs):
+        """Persist the teacher, auto-generating a unique permanent ID on create.
+
+        The ``TCH-XXXXXX`` identifier is claimed from the monotonic ``Sequence``
+        counter. If that counter has fallen behind reality (e.g. after restoring
+        a database backup, importing rows without their counter row, or manual
+        edits), the INSERT would collide with an already-used ID and previously
+        crashed with an unhandled IntegrityError. We now detect the collision,
+        push the counter past the conflicting number, and retry with a fresh ID.
+        """
         if not self.teacher_id:
-            self.teacher_id = f"TCH-{Sequence.take_next('teacher'):06d}"
+            for _ in range(self.MAX_ID_GENERATION_ATTEMPTS):
+                candidate = f"TCH-{Sequence.take_next('teacher'):06d}"
+                self.teacher_id = candidate
+                try:
+                    # Atomic per attempt so a collision rolls back cleanly and
+                    # leaves the surrounding transaction usable for the retry.
+                    with transaction.atomic():
+                        super().save(*args, **kwargs)
+                    return
+                except IntegrityError:
+                    numeric = int(candidate.split("-")[1])
+                    Sequence.ensure_above("teacher", numeric)
+                    continue
+            raise IntegrityError(
+                "Could not generate a unique teacher ID after "
+                f"{self.MAX_ID_GENERATION_ATTEMPTS} attempts."
+            )
         super().save(*args, **kwargs)
 
     @property

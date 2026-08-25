@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.db.models import Q, Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -108,12 +108,27 @@ def teacher_create(request):
     if request.method == "POST":
         form = TeacherForm(request.POST, request.FILES)
         if form.is_valid():
-            teacher = form.save()
-            messages.success(
-                request,
-                f"Teacher '{teacher.name}' registered successfully with ID {teacher.teacher_id}.",
-            )
-            return redirect("teachers:detail", teacher_id=teacher.teacher_id)
+            try:
+                # Atomic: profile row + class-teacher M2M assignment commit or
+                # roll back together, so a failure never leaves a half-created
+                # teacher behind.
+                with transaction.atomic():
+                    teacher = form.save()
+            except IntegrityError:
+                # Final safety net — the model self-heals stale ID counters,
+                # so reaching this means an unexpected conflict. Re-render the
+                # form with a friendly error instead of crashing with a 500.
+                messages.error(
+                    request,
+                    "Teacher registration failed: the generated record "
+                    "conflicted with existing data. Please try again.",
+                )
+            else:
+                messages.success(
+                    request,
+                    f"Teacher '{teacher.name}' registered successfully with ID {teacher.teacher_id}.",
+                )
+                return redirect("teachers:detail", teacher_id=teacher.teacher_id)
     else:
         form = TeacherForm()
 
@@ -192,11 +207,21 @@ def teacher_update(request, teacher_id):
     if request.method == "POST":
         form = TeacherForm(request.POST, request.FILES, instance=teacher)
         if form.is_valid():
-            teacher = form.save()
-            messages.success(
-                request, f"Profile for '{teacher.name}' ({teacher.teacher_id}) updated successfully."
-            )
-            return redirect("teachers:detail", teacher_id=teacher.teacher_id)
+            try:
+                with transaction.atomic():
+                    teacher = form.save()
+            except IntegrityError:
+                messages.error(
+                    request,
+                    "Update failed: the changes conflicted with existing "
+                    "data. Please review and try again.",
+                )
+            else:
+                messages.success(
+                    request,
+                    f"Profile for '{teacher.name}' ({teacher.teacher_id}) updated successfully.",
+                )
+                return redirect("teachers:detail", teacher_id=teacher.teacher_id)
     else:
         form = TeacherForm(instance=teacher)
 
