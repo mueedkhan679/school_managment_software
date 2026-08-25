@@ -116,6 +116,7 @@
                         <th>Time In</th>
                         <th>Status</th>
                         <th>Method</th>
+                        <th class="no-print">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -146,10 +147,26 @@
                                     <span class="badge badge-outline">✍️ Manual Entry</span>
                                 {% endif %}
                             </td>
+                            <td class="no-print">
+                                <div class="dropdown inline-dropdown">
+                                    <button type="button" class="btn btn-ghost btn-xs" onclick="toggleDropdown('status-edit-{{ record.id }}')">
+                                        Edit
+                                    </button>
+                                    <div class="dropdown-menu" id="status-edit-{{ record.id }}" style="display: none; position: absolute; background: white; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 4px; z-index: 10;">
+                                        <form method="post" action="{% url 'teachers:attendance_update' pk=record.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" name="status" value="PRESENT" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; padding: 8px 12px; cursor: pointer;">✅ Present</button>
+                                            <button type="submit" name="status" value="ABSENT" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; padding: 8px 12px; cursor: pointer;">❌ Absent</button>
+                                            <button type="submit" name="status" value="LEAVE" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; padding: 8px 12px; cursor: pointer;">🏖️ Leave</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted" style="padding: 40px 20px;">
+                            <td colspan="8" class="text-center text-muted" style="padding: 40px 20px;">
                                 <div style="font-size: 32px; margin-bottom: 8px;">🗓️</div>
                                 <p style="margin: 0;"><strong>No attendance records match the current filters.</strong></p>
                                 <p class="text-sm text-muted">Teachers check in by scanning the dashboard QR code.</p>
@@ -191,5 +208,29 @@
         document.getElementById('wrap-from').style.display = mode === 'custom' ? '' : 'none';
         document.getElementById('wrap-to').style.display = mode === 'custom' ? '' : 'none';
     }
+
+    function toggleDropdown(id) {
+        var el = document.getElementById(id);
+        if (el.style.display === 'none') {
+            // close any other dropdowns
+            var dropdowns = document.getElementsByClassName('dropdown-menu');
+            for (var i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].style.display = 'none';
+            }
+            el.style.display = 'block';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+
+    // Close dropdowns if clicked outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.inline-dropdown')) {
+            var dropdowns = document.getElementsByClassName('dropdown-menu');
+            for (var i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].style.display = 'none';
+            }
+        }
+    });
 </script>
 {% endblock %}

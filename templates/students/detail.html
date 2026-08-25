@@ -178,7 +178,7 @@
             <div class="stat-details">
                 <span class="stat-label">Attendance Rate</span>
                 <span class="stat-value">{{ attendance_rate }}%</span>
-                <span class="stat-hint">{{ present_count }} present &bull; {{ absent_count }} absent</span>
+                <span class="stat-hint">{{ present_count }} present &bull; {{ absent_count }} absent &bull; {{ leave_count }} leave</span>
             </div>
         </div>
     </div>
@@ -275,7 +275,7 @@
                 <span class="badge badge-outline">{{ total_attendance_days }} Days Total</span>
             </div>
 
-            <div class="table-responsive">
+            <div class="table-responsive" style="margin-bottom: 24px;">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -291,6 +291,8 @@
                                 <td>
                                     {% if a.status == "PRESENT" %}
                                         <span class="badge badge-success">Present</span>
+                                    {% elif a.status == "LEAVE" %}
+                                        <span class="badge badge-warning">Leave</span>
                                     {% else %}
                                         <span class="badge badge-danger">Absent</span>
                                     {% endif %}
@@ -307,6 +309,46 @@
                             <tr>
                                 <td colspan="3" class="text-center text-muted" style="padding: 24px;">
                                     No attendance records logged for this student yet.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel-header">
+                <div>
+                    <h3>⚠️ Leave & Absent Records</h3>
+                    <p class="text-muted text-sm" style="margin: 2px 0 0;">Detailed log of absences and leaves.</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Reason / Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in absent_leave_records %}
+                            <tr>
+                                <td><strong>{{ a.date|date:"l, M j, Y" }}</strong></td>
+                                <td>
+                                    {% if a.status == "LEAVE" %}
+                                        <span class="badge badge-warning">Leave</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Absent</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ a.note|default:"—" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted" style="padding: 24px;">
+                                    No leave or absent records found.
                                 </td>
                             </tr>
                         {% endfor %}

@@ -133,10 +133,16 @@ def student_detail(request, student_id):
     total_attendance_days = attendance_records.count()
     present_count = attendance_records.filter(status=AttendanceStatus.PRESENT).count()
     absent_count = attendance_records.filter(status=AttendanceStatus.ABSENT).count()
+    leave_count = attendance_records.filter(status=AttendanceStatus.LEAVE).count()
     if total_attendance_days > 0:
         attendance_rate = round((present_count / total_attendance_days) * 100, 1)
     else:
         attendance_rate = 0.0
+
+    # Detailed absent / leave log (exact dates, newest first)
+    absent_leave_records = attendance_records.filter(
+        status__in=[AttendanceStatus.ABSENT, AttendanceStatus.LEAVE]
+    )
 
     # 12-month schedule for current year
     paid_month_map = {
@@ -163,9 +169,11 @@ def student_detail(request, student_id):
         "yearly_expected": yearly_expected,
         "yearly_pending": yearly_pending,
         "attendance_records": attendance_records[:30],  # Recent 30 days
+        "absent_leave_records": absent_leave_records,
         "total_attendance_days": total_attendance_days,
         "present_count": present_count,
         "absent_count": absent_count,
+        "leave_count": leave_count,
         "attendance_rate": attendance_rate,
         "current_year": current_year,
     }

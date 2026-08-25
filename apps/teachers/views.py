@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import Q, Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -156,6 +157,15 @@ def teacher_detail(request, teacher_id):
             "is_paid": m_num in paid_months_set,
         })
 
+    # Attendance breakdown (QR self check-in records)
+    attn_qs = teacher.qr_attendance_records.order_by("-date")
+    present_days = attn_qs.filter(status="PRESENT").count()
+    absent_days = attn_qs.filter(status="ABSENT").count()
+    leave_days = attn_qs.filter(status="LEAVE").count()
+    absent_leave_records = attn_qs.filter(
+        status__in=["ABSENT", "LEAVE"]
+    )
+
     context = {
         "teacher": teacher,
         "assigned_classes": teacher.assigned_classes.all(),
@@ -166,6 +176,11 @@ def teacher_detail(request, teacher_id):
         "yearly_expected_salary": yearly_expected_salary,
         "yearly_pending": yearly_pending,
         "current_year": current_year,
+        # Attendance overview
+        "present_days": present_days,
+        "absent_days": absent_days,
+        "leave_days": leave_days,
+        "absent_leave_records": absent_leave_records,
     }
     return render(request, "teachers/detail.html", context)
 
@@ -580,3 +595,26 @@ def teacher_attendance_list(request):
         **summary,
     }
     return render(request, "teachers/attendance_list.html", context)
+
+
+@admin_required
+@require_POST
+def attendance_update(request, pk):
+    """API endpoint to update teacher attendance status inline."""
+    record = get_object_or_404(TeacherAttendance, pk=pk)
+    new_status = request.POST.get("status")
+    
+    valid_statuses = [c[0] for c in TeacherAttendanceStatus.choices]
+    if new_status in valid_statuses:
+        record.status = new_status
+        record.source = "MANUAL"
+        record.save(update_fields=["status", "source"])
+        messages.success(
+            request, 
+            f"Attendance for {record.teacher.name} updated to {new_status}."
+        )
+    else:
+        messages.error(request, "Invalid status provided.")
+        
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("teachers:attendance_list")
+    return redirect(next_url)

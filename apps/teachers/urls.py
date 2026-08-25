@@ -16,6 +16,7 @@ urlpatterns = [
     path("attendance/qr/", views.teacher_attendance_qr_page, name="attendance_qr"),
     path("attendance/qr.png", views.teacher_attendance_qr_png, name="attendance_qr_png"),
     path("attendance/", views.teacher_attendance_list, name="attendance_list"),
+    path("attendance/<int:pk>/update/", views.attendance_update, name="attendance_update"),
     path("api/teacher-info/<int:teacher_id>/", views.api_teacher_salary_info, name="api_teacher_salary_info"),
     # Teacher ID parametrized routes
     path("<str:teacher_id>/", views.teacher_detail, name="detail"),

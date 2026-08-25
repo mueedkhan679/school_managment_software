@@ -7,6 +7,7 @@ from apps.students.models import Student
 class AttendanceStatus(models.TextChoices):
     PRESENT = "PRESENT", "Present"
     ABSENT = "ABSENT", "Absent"
+    LEAVE = "LEAVE", "Leave"
 
 
 class Attendance(models.Model):
