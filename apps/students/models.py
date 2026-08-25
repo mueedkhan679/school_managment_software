@@ -48,6 +48,17 @@ class Student(models.Model):
         validators=[MinValueValidator(Decimal("0.00"))],
         help_text="Optional per-student override of the class monthly fee",
     )
+    admission_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(Decimal("0.00"))],
+        help_text=(
+            "Optional one-time admission fee collected at registration. "
+            "Tracked separately from monthly tuition and reported on the dashboard."
+        ),
+    )
     admission_date = models.DateField(auto_now_add=True)
     is_active = models.BooleanField(
         default=True,

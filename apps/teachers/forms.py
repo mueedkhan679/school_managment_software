@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.classrooms.models import SchoolClass
-from apps.core.constants import MONTHS, MONTHS_MAP
+from apps.core.constants import MONTHS_MAP
 from .models import SalaryStatus, Teacher, TeacherSalary
 
 ALLOWED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"]

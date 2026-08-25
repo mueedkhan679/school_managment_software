@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Fee Management — School Management System{% endblock %}
+{% block title %}Fee Management — {{ school_name }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
@@ -13,6 +13,9 @@
             </p>
         </div>
         <div class="dashboard-actions">
+            <button type="button" class="btn btn-ghost" onclick="openDefaulterModal()">
+                <span aria-hidden="true">📋</span> Generate Defaulter List
+            </button>
             <a href="{% url 'fees:create' %}" class="btn btn-primary">
                 <span aria-hidden="true">💳</span> Collect Fee
             </a>
@@ -294,6 +297,51 @@ function confirmDeleteFee(feeId, studentName, feeMonth, amount) {
 }
 function closeDeleteFeeModal() {
     document.getElementById('delete-fee-modal').style.display = 'none';
+}
+</script>
+
+<!-- Defaulter List Generator: Class Selection Modal -->
+<div class="modal-overlay" id="defaulter-modal" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div>
+                <h3>Generate Defaulter List</h3>
+                <p class="text-sm text-muted" style="margin: 0;">Select a class to build its month-by-month payment matrix.</p>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeDefaulterModal()" aria-label="Close">&times;</button>
+        </div>
+        <form method="get" action="{% url 'fees:defaulter_list' %}">
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="filter-lbl" for="defaulter-class-select">Class</label>
+                    <select name="class_id" id="defaulter-class-select" class="form-control">
+                        <option value="">All Classes</option>
+                        {% for c in classes %}
+                            <option value="{{ c.pk }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <p class="text-sm text-muted" style="margin: 0;">
+                    ✔ marks paid months and ✖ marks unpaid/defaulted months for the current academic year.
+                    The generated report includes a Download PDF / Print button.
+                </p>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 0 20px 20px;">
+                <button type="button" class="btn btn-ghost" onclick="closeDefaulterModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <span aria-hidden="true">📊</span> Generate Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openDefaulterModal() {
+    document.getElementById('defaulter-modal').style.display = 'flex';
+}
+function closeDefaulterModal() {
+    document.getElementById('defaulter-modal').style.display = 'none';
 }
 </script>
 {% endblock %}

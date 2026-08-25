@@ -6,6 +6,7 @@ from .views import (
     StudentFeeView,
     StudentLoginView,
     StudentProfileView,
+    TeacherAttendanceScanView,
     TeacherAttendanceView,
     TeacherSalaryView,
 )
@@ -24,5 +25,8 @@ urlpatterns = [
 
     # Teacher portal endpoints
     path("teacher/attendance/", TeacherAttendanceView.as_view(), name="teacher-attendance"),
+    # Dynamic QR self check-in for teachers (POST)
+    path("teacher/attendance/scan/", TeacherAttendanceScanView.as_view(), name="teacher-attendance-scan"),
+    path("teachers/attendance/scan/", TeacherAttendanceScanView.as_view(), name="teachers-attendance-scan"),
     path("teacher/salary/", TeacherSalaryView.as_view(), name="teacher-salary"),
 ]

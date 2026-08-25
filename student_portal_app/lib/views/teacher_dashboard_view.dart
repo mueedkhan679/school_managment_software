@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/teacher_controller.dart';
 import 'login_view.dart';
+import 'qr_scan_view.dart';
 import 'package:intl/intl.dart';
 
 class TeacherDashboardView extends StatefulWidget {
@@ -48,6 +49,15 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
       appBar: AppBar(
         title: const Text('Teacher Dashboard'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            tooltip: 'Scan Attendance QR',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const QrScanView()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _onLogout,

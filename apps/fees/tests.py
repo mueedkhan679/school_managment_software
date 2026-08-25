@@ -260,6 +260,17 @@ class FeeManagementTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(StudentFee.objects.filter(pk=self.fee1.pk).exists())
 
+    def test_fee_delete_nonexistent_record_redirects_with_flash(self):
+        """Deleting a non-existent fee redirects to the list with an error flash, not 404."""
+        self.client.force_login(self.admin)
+        missing_pk = self.fee1.pk + 100
+        response = self.client.post(reverse("fees:delete", kwargs={"pk": missing_pk}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("fees:list"))
+        listing = self.client.get(response.url)
+        self.assertContains(listing, f"Fee record #{missing_pk}")
+        self.assertContains(listing, "was not found")
+
     def test_api_student_fee_info(self):
         """API returns student effective fee and paid months list for dynamic form pre-filling."""
         self.client.force_login(self.admin)

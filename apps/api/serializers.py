@@ -1,13 +1,10 @@
-from decimal import Decimal
 from django.contrib.auth import authenticate, get_user_model
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import Role
-from apps.attendance.models import Attendance, AttendanceStatus
-from apps.core.constants import MONTHS
-from apps.fees.models import FeeStatus, StudentFee
+from apps.attendance.models import Attendance
+from apps.fees.models import StudentFee
 from apps.students.models import Student
 from apps.teachers.models import Teacher
 
@@ -108,6 +105,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "custom_monthly_fee",
             "effective_monthly_fee",
             "yearly_fee",
+            "admission_fee",
             "qr_code_data",
         ]
 

@@ -1,6 +1,6 @@
 from decimal import Decimal
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Sum
 from django.shortcuts import render
 from django.utils import timezone
 

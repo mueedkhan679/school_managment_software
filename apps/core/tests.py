@@ -1,14 +1,20 @@
+import io
+import shutil
+import tempfile
 from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image as PILImage
 
 from apps.accounts.models import Role
 from apps.attendance.models import Attendance, AttendanceStatus
 from apps.classrooms.models import SchoolClass
+from apps.core.models import SchoolSettings
 from apps.fees.models import FeeStatus, StudentFee
 from apps.students.models import Gender, Student
 from apps.teachers.models import SalaryStatus, Teacher, TeacherSalary
@@ -386,4 +392,253 @@ class FinancialReportsTestCase(TestCase):
         self.assertEqual(ctx["expected_yearly_billing"], Decimal("18000.00"))
         self.assertEqual(len(ctx["class_reports"]), 1)
         self.assertEqual(ctx["class_reports"][0]["class"].id, self.cls1.id)
+
+
+class SchoolSettingsTests(TestCase):
+    """Singleton SchoolSettings model, school_info context processor, and the
+    School Settings configuration form on the Change Credentials page."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="branding_admin",
+            password="brandingpass123",
+            role=Role.ADMIN,
+        )
+        self.teacher_user = User.objects.create_user(
+            username="branding_teacher",
+            password="brandingteacher123",
+            role=Role.TEACHER,
+        )
+
+    def test_load_creates_singleton_with_defaults(self):
+        """SchoolSettings.load() lazily creates one row holding the defaults."""
+        self.assertFalse(SchoolSettings.objects.exists())
+        settings_obj = SchoolSettings.load()
+        self.assertEqual(SchoolSettings.objects.count(), 1)
+        self.assertEqual(settings_obj.pk, 1)
+        self.assertEqual(settings_obj.school_name, SchoolSettings.DEFAULT_SCHOOL_NAME)
+        # Second call must return the very same row, never duplicate it.
+        self.assertEqual(SchoolSettings.load().pk, settings_obj.pk)
+
+    def test_save_always_writes_the_single_row(self):
+        """Every save writes to pk=1 so branding stays a single editable record."""
+        first = SchoolSettings.load()
+        first.school_name = "Al-Noor Public School"
+        first.school_phone = "0300-1234567"
+        first.save()
+        second = SchoolSettings.load()
+        second.school_name = "Iqbal Model High School"
+        second.save()
+        self.assertEqual(SchoolSettings.objects.count(), 1)
+        self.assertEqual(SchoolSettings.objects.first().pk, 1)
+        self.assertEqual(SchoolSettings.load().school_name, "Iqbal Model High School")
+
+    def test_context_processor_exposes_branding(self):
+        """school_info returns school_name/school_phone/school_logo for templates."""
+        from apps.core.context_processors import school_info
+
+        settings_obj = SchoolSettings.load()
+        settings_obj.school_name = "Al-Noor Public School"
+        settings_obj.school_phone = "042-111-222-333"
+        settings_obj.save()
+
+        info = school_info(request=None)
+        self.assertEqual(info["school_name"], "Al-Noor Public School")
+        self.assertEqual(info["school_phone"], "042-111-222-333")
+        self.assertFalse(info["school_logo"])
+
+    def test_change_credentials_page_shows_settings_form(self):
+        """The Change Credentials page renders the School Settings panel with a
+        multipart form (required for the logo upload) below credentials fields."""
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("accounts:change_credentials"))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('enctype="multipart/form-data"', html)
+        self.assertIn('name="save_settings"', html)
+        self.assertIn('name="school_name"', html)
+        self.assertIn('name="school_phone"', html)
+        self.assertIn('name="school_logo"', html)
+        # Credentials section still present alongside the settings panel.
+        self.assertIn('name="current_password"', html)
+
+    def test_change_credentials_page_requires_admin(self):
+        """Anonymous users are redirected; teachers get 403."""
+        res_anon = self.client.get(reverse("accounts:change_credentials"))
+        self.assertEqual(res_anon.status_code, 302)
+        self.assertIn(reverse("accounts:login"), res_anon.url)
+
+        self.client.force_login(self.teacher_user)
+        res_teacher = self.client.get(reverse("accounts:change_credentials"))
+        self.assertEqual(res_teacher.status_code, 403)
+
+    def test_saving_school_settings_updates_global_branding(self):
+        """POSTing save_settings stores values that immediately flow into every
+        template through the school_info context processor."""
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("accounts:change_credentials"),
+            {
+                "save_settings": "1",
+                "school_name": "Al-Noor Public School",
+                "school_phone": "0300-1234567",
+            },
+            follow=True,
+        )
+        self.assertRedirects(response, reverse("accounts:change_credentials"))
+        stored = SchoolSettings.load()
+        self.assertEqual(stored.school_name, "Al-Noor Public School")
+        self.assertEqual(stored.school_phone, "0300-1234567")
+
+        # Dynamic branding visible on the admin dashboard.
+        dash = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(dash.status_code, 200)
+        self.assertContains(dash, "Al-Noor Public School")
+
+    def test_school_name_required(self):
+        """Blank school names are rejected by the model form."""
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("accounts:change_credentials"),
+            {
+                "save_settings": "1",
+                "school_name": "",
+                "school_phone": "",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["settings_form"].errors)
+        # Previous (default) branding untouched.
+        self.assertEqual(
+            SchoolSettings.load().school_name, SchoolSettings.DEFAULT_SCHOOL_NAME
+        )
+
+    def test_school_logo_upload_flows_to_templates(self):
+        """Uploading a PNG logo persists it under MEDIA_ROOT/school_logo/ and
+        exposes it globally so printable headers render the <img> tag."""
+        tmp_media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp_media, True)
+
+        buffer = io.BytesIO()
+        PILImage.new("RGB", (64, 64), color=(20, 90, 160)).save(buffer, format="PNG")
+        buffer.seek(0)
+        logo = SimpleUploadedFile("crest.png", buffer.read(), content_type="image/png")
+
+        self.client.force_login(self.admin)
+        with override_settings(MEDIA_ROOT=tmp_media):
+            response = self.client.post(
+                reverse("accounts:change_credentials"),
+                {
+                    "save_settings": "1",
+                    "school_name": "Crest Academy",
+                    "school_phone": "051-9876543",
+                    "school_logo": logo,
+                },
+                follow=True,
+            )
+            self.assertRedirects(response, reverse("accounts:change_credentials"))
+
+            stored = SchoolSettings.load()
+            self.assertTrue(stored.school_logo)
+            self.assertTrue(stored.school_logo.name.startswith("school_logo/"))
+
+            # Context processor now serves the uploaded logo everywhere.
+            from apps.core.context_processors import school_info
+
+            info = school_info(request=None)
+            self.assertEqual(info["school_logo"].name, stored.school_logo.name)
+
+            # Sidebar brand swaps the emoji for the uploaded logo image.
+            dash = self.client.get(reverse("core:dashboard"))
+            self.assertEqual(dash.status_code, 200)
+            self.assertIn(b"sidebar-brand-logo-img", dash.content)
+
+    def test_print_header_partial_uses_dynamic_branding(self):
+        """The shared printable letterhead renders school name + phone."""
+        settings_obj = SchoolSettings.load()
+        settings_obj.school_name = "Payslip International"
+        settings_obj.school_phone = "0999-000111"
+        settings_obj.save()
+
+        self.client.force_login(self.admin)
+        reports = self.client.get(reverse("core:reports"))
+        self.assertEqual(reports.status_code, 200)
+        self.assertContains(reports, "Payslip International")
+        self.assertContains(reports, "print-brand")
+
+
+class DashboardAdmissionFeeTests(TestCase):
+    """Dashboard admission-fee widget: totals, class filtering, breakdown."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="admin_user",
+            password="adminpassword123",
+            role=Role.ADMIN,
+        )
+        self.cls1, _ = SchoolClass.objects.get_or_create(
+            name="Class 1", defaults={"order": 4, "monthly_fee": Decimal("1500.00")}
+        )
+        self.cls2, _ = SchoolClass.objects.get_or_create(
+            name="Class 2", defaults={"order": 5, "monthly_fee": Decimal("2000.00")}
+        )
+        Student.objects.create(
+            name="Ali Khan", father_name="Tariq Khan",
+            school_class=self.cls1, date_of_birth=date(2015, 5, 12),
+            gender=Gender.MALE, is_active=True, admission_fee=Decimal("5000.00"),
+        )
+        Student.objects.create(
+            name="Sara Ahmed", father_name="Ahmed Bilal",
+            school_class=self.cls2, date_of_birth=date(2016, 2, 20),
+            gender=Gender.FEMALE, is_active=True, admission_fee=Decimal("3000.00"),
+        )
+        Student.objects.create(
+            name="Bilal Raza", father_name="Raza Hassan",
+            school_class=self.cls1, date_of_birth=date(2017, 9, 1),
+            gender=Gender.MALE, is_active=True,  # no admission fee
+        )
+        Student.objects.create(
+            name="Old Student", father_name="Legacy Parent",
+            school_class=self.cls1, date_of_birth=date(2013, 3, 3),
+            gender=Gender.MALE, is_active=False, admission_fee=Decimal("9999.00"),
+        )
+
+    def _dashboard(self, query=""):
+        self.client.force_login(self.admin)
+        return self.client.get(reverse("core:dashboard") + query)
+
+    def test_widget_shows_combined_total_for_all_classes(self):
+        """All Classes scope sums every active student's admission fee."""
+        resp = self._dashboard()
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Admission Fees Collected")
+        self.assertEqual(resp.context["admission_total"], Decimal("8000.00"))
+        self.assertEqual(resp.context["admission_count"], 2)
+        self.assertEqual(resp.context["admission_scope_label"], "All Classes")
+
+    def test_class_filter_scopes_admission_totals(self):
+        """Selecting a class scopes the total/count/scope-label to it."""
+        resp = self._dashboard(f"?class_id={self.cls2.id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context["admission_total"], Decimal("3000.00"))
+        self.assertEqual(resp.context["admission_count"], 1)
+        self.assertEqual(resp.context["admission_scope_label"], "Class 2")
+
+    def test_inactive_students_excluded_from_totals(self):
+        """The inactive student's 9999 fee never enters the aggregate."""
+        resp = self._dashboard()
+        self.assertEqual(resp.context["admission_total"], Decimal("8000.00"))
+
+    def test_zero_state_renders_empty_notice(self):
+        """With no admission fees recorded the widget shows a friendly notice."""
+        Student.objects.update(admission_fee=None)
+        resp = self._dashboard()
+        self.assertEqual(resp.context["admission_total"], Decimal("0.00"))
+        self.assertFalse(resp.context["admission_breakdown"])
+        self.assertContains(resp, "No admission fees recorded")
+
+    def test_invalid_class_param_falls_back_to_all_classes(self):
+        resp = self._dashboard("?class_id=abc")
+        self.assertIsNone(resp.context["selected_class_id"])
+        self.assertEqual(resp.context["admission_total"], Decimal("8000.00"))
 

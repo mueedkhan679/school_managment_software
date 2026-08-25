@@ -1,0 +1,20 @@
+{% comment %}
+Modern printable document letterhead — shared by Fee Receipts, Salary Payslips,
+Financial Reports and profile print headers. Branding comes from the global
+`school_info` context processor (School Name / Phone / Logo).
+{% endcomment %}
+<div class="print-brand">
+    <div class="print-brand-logo">
+        {% if school_logo %}
+            <img src="{{ school_logo.url }}" alt="{{ school_name }} logo">
+        {% else %}
+            <span aria-hidden="true">🎓</span>
+        {% endif %}
+    </div>
+    <div class="print-brand-text">
+        <h2 class="print-brand-name">{{ school_name }}</h2>
+        {% if school_phone %}
+            <p class="print-brand-phone"><span aria-hidden="true">📞</span> {{ school_phone }}</p>
+        {% endif %}
+    </div>
+</div>

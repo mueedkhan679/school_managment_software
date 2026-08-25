@@ -266,4 +266,88 @@ class ChangeCredentialsTests(TestCase):
         self.assertEqual(resp.status_code, 403)
 
 
+class LoginUITests(TestCase):
+    """Login page redesign: demo credentials removed, modern UI, remember me."""
+
+    def setUp(self):
+        self.admin = make_admin()
+
+    def test_login_page_has_no_demo_credentials(self):
+        """The demo credentials helper card/text is completely gone."""
+        resp = self.client.get(reverse("accounts:login"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "Default credentials")
+        self.assertNotContains(resp, "admin123")
+
+    def test_login_page_style_block_is_wellformed(self):
+        """Regression: all CSS lives inside ONE properly-closed <style> tag."""
+        resp = self.client.get(reverse("accounts:login"))
+        html = resp.content.decode()
+        self.assertEqual(html.count("<style>"), 1)
+        self.assertEqual(html.count("</style>"), 1)
+        start = html.index("<style>")
+        end = html.index("</style>")
+        # Button/spinner CSS must be INSIDE the style block...
+        self.assertIn(".btn-signin", html[start:end])
+        self.assertIn(".lgi-row", html[start:end])
+        # ...and no raw CSS may leak into the document after it closes.
+        self.assertNotIn(".lgi-", html[end:])
+
+    def test_login_page_contains_modern_ui_elements(self):
+        """Branding, password toggle, remember-me checkbox and loading state exist."""
+        from apps.core.models import SchoolSettings
+
+        SchoolSettings.objects.update_or_create(
+            pk=1, defaults={"school_name": "Iqra Model School"}
+        )
+        resp = self.client.get(reverse("accounts:login"))
+        self.assertContains(resp, "togglePassword")      # show/hide toggle
+        self.assertContains(resp, 'name="remember_me"')  # remember checkbox
+        self.assertContains(resp, "login-brand-logo")    # dynamic branding block
+        self.assertContains(resp, "Iqra Model School")   # school name from settings
+        self.assertContains(resp, "Signing In")          # button loading label
+
+    def test_remember_me_keeps_session_for_two_weeks(self):
+        from apps.accounts.views import REMEMBER_ME_SECONDS
+
+        resp = self.client.post(
+            reverse("accounts:login"),
+            {"username": "admin", "password": "admin123", "remember_me": "on"},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(self.client.session.get_expiry_age(), REMEMBER_ME_SECONDS)
+
+    def test_without_remember_me_session_expires_on_browser_close(self):
+        resp = self.client.post(
+            reverse("accounts:login"),
+            {"username": "admin", "password": "admin123"},
+        )
+        self.assertEqual(resp.status_code, 302)
+        # get_expiry_age() falls back to SESSION_COOKIE_AGE when the stored
+        # expiry is 0, so browser-close semantics are checked explicitly.
+        self.assertTrue(self.client.session.get_expire_at_browser_close())
+
+
+class SidebarLogoutButtonTests(TestCase):
+    """Dashboard layout exposes an accessible POST-based logout button."""
+
+    def setUp(self):
+        self.admin = make_admin()
+
+    def test_dashboard_shows_post_logout_button(self):
+        self.client.login(username="admin", password="admin123")
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+        logout_url = reverse("accounts:logout")
+        self.assertContains(resp, f'action="{logout_url}"')
+        self.assertContains(resp, "sidebar-user-logout")
+
+    def test_logout_button_posts_and_redirects_to_login(self):
+        """End-to-end: pressing the sidebar button logs the user out."""
+        self.client.login(username="admin", password="admin123")
+        resp = self.client.post(reverse("accounts:logout"))
+        self.assertRedirects(resp, reverse("accounts:login"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+
 

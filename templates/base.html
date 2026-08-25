@@ -4,22 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}School Management System{% endblock %}</title>
+    <title>{% block title %}{{ school_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
-<body>
+<body class="app-body">
     {% block body %}
-    {% include "partials/navbar.html" %}
-    <main class="app-main">
-        {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
-                {% endfor %}
+    <div class="app-frame">
+        {% include "partials/sidebar.html" %}
+        <div class="app-shell">
+            <div class="app-content">
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% block content %}{% endblock %}
             </div>
-        {% endif %}
-        {% block content %}{% endblock %}
-    </main>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var btn = document.getElementById('sidebarCollapse');
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    document.body.classList.toggle('sidebar-collapsed');
+                });
+            }
+        })();
+    </script>
     {% endblock %}
 </body>
 </html>

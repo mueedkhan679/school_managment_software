@@ -19,6 +19,7 @@ class StudentProfile {
   final String? customMonthlyFee;
   final String effectiveMonthlyFee;
   final String yearlyFee;
+  final String? admissionFee;
   final String qrCodeData;
   final String totalPaid;
   final String attendancePercentage;
@@ -42,6 +43,7 @@ class StudentProfile {
     this.customMonthlyFee,
     required this.effectiveMonthlyFee,
     required this.yearlyFee,
+    this.admissionFee,
     required this.qrCodeData,
     this.totalPaid = '0.00',
     this.attendancePercentage = '0.0',
@@ -106,6 +108,7 @@ class StudentProfile {
       customMonthlyFee: json['custom_monthly_fee']?.toString(),
       effectiveMonthlyFee: json['effective_tuition']?.toString() ?? json['monthly_tuition']?.toString() ?? json['tuition_fee']?.toString() ?? json['effective_monthly_fee']?.toString() ?? '0.00',
       yearlyFee: json['yearly_fee']?.toString() ?? '0.00',
+      admissionFee: _nonEmpty(json['admission_fee']),
       qrCodeData: json['qr_code_data']?.toString() ?? '',
       totalPaid: json['total_paid']?.toString() ?? json['paid_amount']?.toString() ?? '0.00',
       attendancePercentage: json['attendance_percentage']?.toString() ?? '0.0',
@@ -163,4 +166,14 @@ class StudentProfile {
 
   /// Whether a usable profile photo URL is available.
   bool get hasPhoto => photoUrl != null && photoUrl!.trim().isNotEmpty;
+
+  /// Whether a one-time admission fee was actually charged (amount > 0).
+  ///
+  /// A missing (`null`) or zero amount means the fee was waived / not
+  /// applicable, matching the Django template behaviour.
+  bool get hasAdmissionFee {
+    final cleaned = (admissionFee ?? '').replaceAll(',', '').trim();
+    final value = double.tryParse(cleaned) ?? 0.0;
+    return value > 0;
+  }
 }

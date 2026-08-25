@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ student.name }} ({{ student.student_id }}) — Student Profile — School Management System{% endblock %}
+{% block title %}{{ student.name }} ({{ student.student_id }}) — Student Profile — {{ school_name }}{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
+<div class="dashboard-container student-profile-print">
     <!-- Header & Action Bar -->
     <div class="dashboard-header no-print">
         <div>
@@ -46,8 +46,8 @@
 
     <!-- Printable Header (Only shows when printing) -->
     <div class="print-only" style="display: none; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px;">
-        <h2 style="margin: 0; font-size: 24px;">School Management System</h2>
-        <p style="margin: 4px 0 0; color: #555;">Official Student Academic & Profile Record</p>
+        {% include "partials/print_header.html" %}
+        <p style="margin: 8px 0 0; color: #555;">Official Student Academic & Profile Record</p>
     </div>
 
     <!-- Student Bio Card -->
@@ -118,6 +118,22 @@
 
     <!-- Quick Stats Cards (Fees & Attendance) -->
     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-amber-light">
+                <span>🧾</span>
+            </div>
+            <div class="stat-details">
+                <span class="stat-label">Admission Fee</span>
+                {% if student.admission_fee and student.admission_fee > 0 %}
+                    <span class="stat-value">Rs {{ student.admission_fee|floatformat:2 }}</span>
+                    <span class="stat-hint text-success">One-time payment on record</span>
+                {% else %}
+                    <span class="stat-value">N/A</span>
+                    <span class="stat-hint">Free / Waived</span>
+                {% endif %}
+            </div>
+        </div>
+
         <div class="stat-card">
             <div class="stat-icon bg-indigo-light">
                 <span>💵</span>
@@ -193,7 +209,7 @@
                             {% if m.is_paid %}
                                 <span style="font-size: 9.5px; font-weight: 600;">PAID</span>
                             {% else %}
-                                <a href="{% url 'fees:create' %}?student={{ student.id }}&month={{ m.month_num }}&year={{ current_year }}" style="font-size: 9.5px; color: var(--primary); text-decoration: none; display: block; font-weight: 600;" title="Collect fee for {{ m.month_name }}">
+                                <a href="{% url 'fees:create' %}?student={{ student.id }}&month={{ m.month_num }}&year={{ current_year }}" class="no-print" style="font-size: 9.5px; color: var(--primary); text-decoration: none; display: block; font-weight: 600;" title="Collect fee for {{ m.month_name }}">
                                     + Pay
                                 </a>
                             {% endif %}

@@ -147,6 +147,38 @@ def dashboard(request):
         .all()
     )
 
+    # Admission Fees report widget (filterable by class)
+    class_param = request.GET.get("class_id", "").strip()
+    selected_class_id = int(class_param) if class_param.isdigit() else None
+
+    admission_base = Student.objects.filter(
+        is_active=True, admission_fee__isnull=False
+    )
+    if selected_class_id:
+        admission_base = admission_base.filter(school_class_id=selected_class_id)
+
+    admission_total = (
+        admission_base.aggregate(total=models.Sum("admission_fee"))["total"]
+        or Decimal("0.00")
+    )
+    admission_count = admission_base.count()
+
+    admission_scope_label = "All Classes"
+    if selected_class_id:
+        matched_class = next(
+            (c for c in classes_list if c.id == selected_class_id), None
+        )
+        admission_scope_label = (
+            matched_class.name if matched_class else f"Class #{selected_class_id}"
+        )
+
+    admission_breakdown = (
+        Student.objects.filter(is_active=True, admission_fee__isnull=False)
+        .values("school_class__id", "school_class__name", "school_class__order")
+        .annotate(total=models.Sum("admission_fee"), payments=models.Count("id"))
+        .order_by("school_class__order", "school_class__id")
+    )
+
     # Recent transactions
     recent_fees = StudentFee.objects.select_related(
         "student", "student__school_class"
@@ -205,6 +237,12 @@ def dashboard(request):
         "classes_list": classes_list,
         "recent_fees": recent_fees,
         "recent_salaries": recent_salaries,
+        # Admission fees report widget
+        "selected_class_id": selected_class_id,
+        "admission_scope_label": admission_scope_label,
+        "admission_total": admission_total,
+        "admission_count": admission_count,
+        "admission_breakdown": admission_breakdown,
     }
     return render(request, "core/dashboard.html", context)
 

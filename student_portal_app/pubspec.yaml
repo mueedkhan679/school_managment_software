@@ -17,6 +17,7 @@ dependencies:
   flutter_animate: ^4.5.0
   google_fonts: ^6.1.0
   table_calendar: ^3.0.9
+  mobile_scanner: ^6.0.0
 
 dev_dependencies:
   flutter_test:

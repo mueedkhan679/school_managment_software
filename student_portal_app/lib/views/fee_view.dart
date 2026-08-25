@@ -34,6 +34,7 @@ class _FeeViewState extends State<FeeView> with SingleTickerProviderStateMixin {
     final theme = Theme.of(context);
     final studentCtrl = context.watch<StudentController>();
     final feeData = studentCtrl.feeData;
+    final profile = studentCtrl.profile;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -142,6 +143,52 @@ class _FeeViewState extends State<FeeView> with SingleTickerProviderStateMixin {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    // One-time Admission Fee badge (sourced from the
+                    // student-profile API; N/A when waived or not charged).
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: (profile?.hasAdmissionFee ?? false)
+                              ? Colors.amber.withValues(alpha: 0.18)
+                              : theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🧾', style: TextStyle(fontSize: 14)),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Admission Fee:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              (profile?.hasAdmissionFee ?? false)
+                                  ? Format.rupees(profile!.admissionFee)
+                                  : 'N/A (Free / Waived)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: (profile?.hasAdmissionFee ?? false)
+                                    ? Colors.amber.shade900
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),

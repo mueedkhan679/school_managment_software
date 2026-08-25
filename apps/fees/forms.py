@@ -3,7 +3,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from apps.core.constants import MONTHS, MONTHS_MAP
+from apps.core.constants import MONTHS_MAP
 from apps.students.models import Student
 from .models import FeeStatus, StudentFee
 

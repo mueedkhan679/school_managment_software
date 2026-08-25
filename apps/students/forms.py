@@ -28,6 +28,7 @@ class StudentForm(forms.ModelForm):
             "address",
             "photo",
             "custom_monthly_fee",
+            "admission_fee",
         ]
         widgets = {
             "name": forms.TextInput(
@@ -68,6 +69,14 @@ class StudentForm(forms.ModelForm):
                     "min": "0",
                 }
             ),
+            "admission_fee": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "One-time admission fee (optional)",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
         }
         labels = {
             "name": "Student Full Name *",
@@ -81,15 +90,23 @@ class StudentForm(forms.ModelForm):
             "address": "Home Address (Optional)",
             "photo": "Passport Size Photo (Optional)",
             "custom_monthly_fee": "Custom Monthly Fee Override (Rs)",
+            "admission_fee": "Admission Fee (Rs) - Optional",
         }
         help_texts = {
             "photo": "Supported formats: JPG, PNG, WEBP. Max size: 5MB.",
             "custom_monthly_fee": "Optional fee discount/override. If left blank, the class default monthly fee will apply.",
+            "admission_fee": "One-time admission fee collected at registration. Leave blank if not applicable.",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["school_class"].queryset = SchoolClass.objects.order_by("order", "id")
+
+    def clean_admission_fee(self):
+        fee = self.cleaned_data.get("admission_fee")
+        if fee is not None and fee < Decimal("0.00"):
+            raise ValidationError("Admission fee cannot be negative.")
+        return fee
 
     def clean_photo(self):
         photo = self.cleaned_data.get("photo")

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Teacher Attendance Register — {{ school_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Printable letterhead -->
+    <div class="print-only" style="display: none; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px;">
+        {% include "partials/print_header.html" %}
+        <p style="margin: 8px 0 0; color: #555;">
+            Teacher Attendance Report &bull; {{ range_label }} &bull;
+            Generated {% now "M j, Y g:i A" %}
+        </p>
+    </div>
+
+    <!-- Header -->
+    <div class="dashboard-header no-print">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <a href="{% url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Teachers</a>
+                <a href="{% url 'teachers:attendance_qr' %}" class="btn btn-ghost btn-xs">QR Check-in</a>
+            </div>
+            <h1 class="dashboard-title">Teacher Attendance Register</h1>
+            <p class="dashboard-subtitle">
+                QR scan and manual check-in records &bull; Showing:
+                <span class="badge badge-primary">{{ range_label }}</span>
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <button type="button" class="btn btn-primary" onclick="window.print()">
+                🖨️ Print / Export Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary chips -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card"><div class="stat-icon bg-indigo-light"><span>📋</span></div>
+            <div class="stat-details"><span class="stat-label">Total Records</span><span class="stat-value">{{ total }}</span><span class="stat-hint">{{ range_label }}</span></div>
+        </div>
+        <div class="stat-card"><div class="stat-icon bg-emerald-light"><span>✅</span></div>
+            <div class="stat-details"><span class="stat-label">Present</span><span class="stat-value">{{ present }}</span><span class="stat-hint">Checked in</span></div>
+        </div>
+        <div class="stat-card"><div class="stat-icon bg-red-light"><span>❌</span></div>
+            <div class="stat-details"><span class="stat-label">Absent</span><span class="stat-value">{{ absent }}</span><span class="stat-hint">No check-in</span></div>
+        </div>
+        <div class="stat-card"><div class="stat-icon bg-amber-light"><span>🏖️</span></div>
+            <div class="stat-details"><span class="stat-label">On Leave</span><span class="stat-value">{{ leave }}</span><span class="stat-hint">Approved leave</span></div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="panel no-print" style="padding: 18px 24px; margin-bottom: 24px;">
+        <form method="get" action="{% url 'teachers:attendance_list' %}" class="filter-form">
+            <div class="filter-row">
+                <div class="filter-col">
+                    <label class="filter-lbl" for="f-range">Date Range</label>
+                    <select name="range" id="f-range" class="form-control" onchange="toggleCustom()">
+                        <option value="">All Time</option>
+                        <option value="today" {% if range_mode == 'today' %}selected{% endif %}>Today</option>
+                        <option value="specific" {% if range_mode == 'specific' %}selected{% endif %}>Specific Date</option>
+                        <option value="custom" {% if range_mode == 'custom' %}selected{% endif %}>Custom Range</option>
+                    </select>
+                </div>
+                <div class="filter-col" id="wrap-specific" style="{% if range_mode != 'specific' %}display:none;{% endif %}">
+                    <label class="filter-lbl" for="f-date">Pick Date</label>
+                    <input type="date" name="date" id="f-date" class="form-control" value="{{ specific_date }}">
+                </div>
+                <div class="filter-col" id="wrap-from" style="{% if range_mode != 'custom' %}display:none;{% endif %}">
+                    <label class="filter-lbl" for="f-from">From</label>
+                    <input type="date" name="from" id="f-from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="filter-col" id="wrap-to" style="{% if range_mode != 'custom' %}display:none;{% endif %}">
+                    <label class="filter-lbl" for="f-to">To</label>
+                    <input type="date" name="to" id="f-to" class="form-control" value="{{ date_to }}">
+                </div>
+                <div class="filter-col">
+                    <label class="filter-lbl" for="f-teacher">Teacher</label>
+                    <select name="teacher" id="f-teacher" class="form-control">
+                        <option value="">All Teachers</option>
+                        {% for t in teachers %}
+                            <option value="{{ t.id }}" {% if selected_teacher == t.id %}selected{% endif %}>{{ t.name }} ({{ t.teacher_id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-col">
+                    <label class="filter-lbl" for="f-status">Status</label>
+                    <select name="status" id="f-status" class="form-control">
+                        <option value="">All Statuses</option>
+                        <option value="PRESENT" {% if selected_status == 'PRESENT' %}selected{% endif %}>Present</option>
+                        <option value="ABSENT" {% if selected_status == 'ABSENT' %}selected{% endif %}>Absent</option>
+                        <option value="LEAVE" {% if selected_status == 'LEAVE' %}selected{% endif %}>Leave</option>
+                    </select>
+                </div>
+                <div class="filter-col" style="align-self: flex-end;">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{% url 'teachers:attendance_list' %}" class="btn btn-ghost">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    <!-- Records Table -->
+    <div class="panel" style="padding: 0; overflow: hidden;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border);">
+            <h3 style="margin: 0; font-size: 16px;">📋 Attendance Records</h3>
+            <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Teacher</th>
+                        <th>Teacher ID</th>
+                        <th>Date</th>
+                        <th>Time In</th>
+                        <th>Status</th>
+                        <th>Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in page_obj %}
+                        <tr>
+                            <td class="text-muted">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                            <td><strong>{{ record.teacher.name }}</strong></td>
+                            <td><code>{{ record.teacher.teacher_id }}</code></td>
+                            <td>{{ record.date|date:"D, M j, Y" }}</td>
+                            <td>
+                                {% if record.time_in %}
+                                    {{ record.time_in|time:"g:i A" }}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>
+                                {% if record.status == 'PRESENT' %}
+                                    <span class="badge badge-success">Present</span>
+                                {% elif record.status == 'LEAVE' %}
+                                    <span class="badge badge-warning">On Leave</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Absent</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.source == 'QR' %}
+                                    <span class="badge badge-primary">📱 QR Scan</span>
+                                {% else %}
+                                    <span class="badge badge-outline">✍️ Manual Entry</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted" style="padding: 40px 20px;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">🗓️</div>
+                                <p style="margin: 0;"><strong>No attendance records match the current filters.</strong></p>
+                                <p class="text-sm text-muted">Teachers check in by scanning the dashboard QR code.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <div class="pagination-bar no-print">
+                <span class="text-sm text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div class="pagination-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&range={{ range_mode }}&date={{ specific_date }}&from={{ date_from }}&to={{ date_to }}&teacher={{ selected_teacher|default:'' }}&status={{ selected_status }}" class="btn btn-ghost btn-xs">&larr; Previous</a>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="btn btn-primary btn-xs">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}&range={{ range_mode }}&date={{ specific_date }}&from={{ date_from }}&to={{ date_to }}&teacher={{ selected_teacher|default:'' }}&status={{ selected_status }}" class="btn btn-ghost btn-xs">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&range={{ range_mode }}&date={{ specific_date }}&from={{ date_from }}&to={{ date_to }}&teacher={{ selected_teacher|default:'' }}&status={{ selected_status }}" class="btn btn-ghost btn-xs">Next &rarr;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function toggleCustom() {
+        var mode = document.getElementById('f-range').value;
+        document.getElementById('wrap-specific').style.display = mode === 'specific' ? '' : 'none';
+        document.getElementById('wrap-from').style.display = mode === 'custom' ? '' : 'none';
+        document.getElementById('wrap-to').style.display = mode === 'custom' ? '' : 'none';
+    }
+</script>
+{% endblock %}

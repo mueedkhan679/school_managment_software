@@ -1,7 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
 from django.db import models
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
@@ -10,19 +9,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.attendance.models import Attendance, AttendanceStatus
-from apps.classrooms.models import SchoolClass
-from apps.core.constants import MONTHS, MONTHS_MAP
+from apps.core.constants import MONTHS
 from apps.fees.models import FeeStatus
 from apps.students.models import Student
-from apps.teachers.models import Teacher, TeacherSalary, SalaryStatus
+from apps.teachers.models import Teacher, TeacherAttendance, SalaryStatus
 
 from .serializers import (
     AttendanceRecordSerializer,
     CustomTokenObtainPairSerializer,
     FeeRecordSerializer,
     StudentProfileSerializer,
-    TeacherAttendanceStudentSerializer,
-    TeacherSalarySerializer,
 )
 
 
@@ -392,4 +388,87 @@ class TeacherSalaryView(APIView):
         return Response(
             {"status": "success", "message": "Teacher salary info", "payload": payload},
             status=status.HTTP_200_OK,
+        )
+
+
+class TeacherAttendanceScanView(APIView):
+    """POST /api/v1/teacher/attendance/scan/   (alias: /api/v1/teachers/attendance/scan/)
+
+    Body: {"token": "<QR payload scanned from the admin dashboard>"}
+
+    Flow:
+      1. Validate the HMAC-signed, date-bound QR token.
+      2. Identify the teacher from the JWT auth header.
+      3. If no attendance exists for today -> create one (Present + time_in).
+         Otherwise respond idempotently with the original check-in time.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        from apps.attendance.qr_tokens import verify_token
+
+        teacher = _get_teacher_profile(request.user)
+        if not teacher:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Active teacher profile not found for this account.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        token = (request.data.get("token") or "").strip()
+        is_valid, reason = verify_token(token, timezone.localdate())
+        if not is_valid:
+            return Response(
+                {"status": "error", "message": reason},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        today = timezone.localdate()
+        existing = TeacherAttendance.objects.filter(teacher=teacher, date=today).first()
+        if existing:
+            check_in = (
+                existing.time_in.strftime("%I:%M %p")
+                if existing.time_in
+                else "earlier today"
+            )
+            return Response(
+                {
+                    "status": "success",
+                    "message": f"Attendance already marked at {check_in}.",
+                    "payload": {
+                        "duplicate": True,
+                        "date": today.strftime("%Y-%m-%d"),
+                        "time_in": existing.time_in.strftime("%H:%M:%S")
+                        if existing.time_in
+                        else None,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        now = timezone.localtime()
+        record = TeacherAttendance.objects.create(
+            teacher=teacher,
+            date=today,
+            time_in=now.time(),
+            source="QR",
+            recorded_by=request.user,
+        )
+        check_in_label = record.time_in.strftime("%I:%M %p")
+        return Response(
+            {
+                "status": "success",
+                "message": f"Attendance marked successfully at {check_in_label}",
+                "payload": {
+                    "duplicate": False,
+                    "teacher_id": teacher.teacher_id,
+                    "name": teacher.name,
+                    "date": today.strftime("%Y-%m-%d"),
+                    "time_in": record.time_in.strftime("%H:%M:%S"),
+                },
+            },
+            status=status.HTTP_201_CREATED,
         )

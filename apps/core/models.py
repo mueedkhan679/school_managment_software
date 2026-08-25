@@ -31,3 +31,57 @@ class Sequence(models.Model):
             seq.save(update_fields=["next_value"])
             return value
 
+
+class SchoolSettings(models.Model):
+    """Singleton record holding school-wide branding and contact details.
+
+    Used by the global ``school_info`` context processor so every template (and
+    every printable document header) can display the configured school name,
+    phone number, and logo instead of hardcoded text.
+    """
+
+    DEFAULT_SCHOOL_NAME = "School Management System"
+
+    school_name = models.CharField(
+        max_length=120,
+        default=DEFAULT_SCHOOL_NAME,
+        help_text="Shown in the sidebar, page titles, login screen and all printable documents.",
+    )
+    school_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="Contact number printed on receipts, payslips and report letterheads.",
+    )
+    school_logo = models.ImageField(
+        upload_to="school_logo/",
+        blank=True,
+        null=True,
+        help_text="Logo shown next to the school name on printed documents.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "School Settings"
+        verbose_name_plural = "School Settings"
+
+    def __str__(self):
+        return self.school_name
+
+    def save(self, *args, **kwargs):
+        # Singleton behaviour: every save writes to row pk=1.
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls) -> "SchoolSettings":
+        """Return the single settings row, creating it with defaults if missing."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @classmethod
+    def get_settings(cls) -> "SchoolSettings":
+        """Alias of :meth:`load` used by the school_info context processor."""
+        return cls.load()
+
+

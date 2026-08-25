@@ -139,3 +139,65 @@ class TeacherSalary(models.Model):
     def __str__(self):
         return f"{self.teacher} - {self.get_salary_month_display()} {self.salary_year}"
 
+
+class TeacherAttendanceStatus(models.TextChoices):
+    PRESENT = "PRESENT", "Present"
+    ABSENT = "ABSENT", "Absent"
+    LEAVE = "LEAVE", "Leave"
+
+
+class TeacherAttendance(models.Model):
+    """A daily self check-in record for one teacher on one date.
+
+    Created automatically when a teacher scans the dynamic QR code displayed
+    on the admin dashboard (`POST /api/v1/teacher/attendance/scan/`). One
+    record per teacher per date is enforced at the database level; a repeat
+    scan is idempotent and simply reports the original check-in time.
+    """
+
+    class Source(models.TextChoices):
+        QR_SCAN = "QR", "QR Scan"
+        MANUAL = "MANUAL", "Manual"
+
+    teacher = models.ForeignKey(
+        Teacher,
+        on_delete=models.PROTECT,
+        related_name="qr_attendance_records",
+    )
+    date = models.DateField()
+    status = models.CharField(
+        max_length=10,
+        choices=TeacherAttendanceStatus.choices,
+        default=TeacherAttendanceStatus.PRESENT,
+    )
+    time_in = models.TimeField(null=True, blank=True)
+    source = models.CharField(
+        max_length=10,
+        choices=Source.choices,
+        default=Source.QR_SCAN,
+        help_text="How this attendance entry was recorded",
+    )
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recorded_teacher_attendance",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date", "teacher__teacher_id"]
+        verbose_name = "Teacher Attendance"
+        verbose_name_plural = "Teacher Attendance Records"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["teacher", "date"],
+                name="unique_teacher_attendance_date",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.teacher} - {self.date} - {self.get_status_display()}"
+

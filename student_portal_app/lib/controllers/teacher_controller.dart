@@ -20,6 +20,9 @@ class TeacherController extends ChangeNotifier {
   bool _isLoadingSalary = false;
   String? _salaryError;
 
+  bool _isScanningSelf = false;
+  String? _selfScanMessage;
+
   // In-progress attendance submissions (studentId -> status)
   final Map<String, String> _attendanceSubmissions = {};
 
@@ -36,6 +39,33 @@ class TeacherController extends ChangeNotifier {
   TeacherSalaryData? get salaryData => _salaryData;
   bool get isLoadingSalary => _isLoadingSalary;
   String? get salaryError => _salaryError;
+
+  bool get isScanningSelf => _isScanningSelf;
+  String? get selfScanMessage => _selfScanMessage;
+
+  /// Sends a scanned dashboard QR token to check this teacher in as Present.
+  ///
+  /// Returns `true` when the backend reports success (including the
+  /// idempotent "already marked" case). The human-readable result message is
+  /// exposed via [selfScanMessage].
+  Future<bool> markOwnAttendanceViaQr(String token) async {
+    _isScanningSelf = true;
+    notifyListeners();
+
+    final res = await _apiService.scanTeacherAttendance(token);
+    final ok = res['status'] == 'success';
+    _isScanningSelf = false;
+    _selfScanMessage =
+        (res['message'] ?? (ok ? 'Attendance marked.' : 'Scan failed.'))
+            .toString();
+    notifyListeners();
+    return ok;
+  }
+
+  void clearSelfScanMessage() {
+    _selfScanMessage = null;
+    notifyListeners();
+  }
 
   void clearAllData() {
     _profile = null;

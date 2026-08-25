@@ -1,5 +1,5 @@
 import io
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from PIL import Image
 
@@ -7,10 +7,16 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.models import Role
 from apps.classrooms.models import SchoolClass
-from apps.teachers.models import SalaryStatus, Teacher, TeacherSalary
+from apps.teachers.models import (
+    SalaryStatus,
+    Teacher,
+    TeacherAttendance,
+    TeacherSalary,
+)
 
 User = get_user_model()
 
@@ -320,3 +326,201 @@ class TeacherManagementTestCase(TestCase):
         self.assertEqual(data["teacher_id"], self.teacher.teacher_id)
         self.assertEqual(data["monthly_salary"], 50000.0)
         self.assertIn(8, data["paid_months"])
+
+
+class TeacherAttendanceQRTests(TestCase):
+    """Dynamic QR page/PNG endpoints + HMAC token validation."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="qr_admin",
+            password="adminpassword123",
+            role=Role.ADMIN,
+        )
+        self.teacher_user = User.objects.create_user(
+            username="qr_teacher",
+            password="teacherpassword123",
+            role=Role.TEACHER,
+        )
+
+    # ------------------ Token helpers ------------------
+
+    def test_token_roundtrip_valid_for_today(self):
+        """generate_token -> verify_token succeeds for today's date."""
+        from apps.attendance.qr_tokens import generate_token, verify_token
+
+        token = generate_token(timezone.localdate())
+        is_valid, reason = verify_token(token, timezone.localdate())
+        self.assertTrue(is_valid, reason)
+
+    def test_tampered_signature_rejected(self):
+        from apps.attendance.qr_tokens import generate_token, verify_token
+
+        bad = generate_token(timezone.localdate())[:-4] + "beef"
+        is_valid, _reason = verify_token(bad, timezone.localdate())
+        self.assertFalse(is_valid)
+
+    def test_yesterdays_token_rejected(self):
+        from datetime import timedelta
+
+        from apps.attendance.qr_tokens import generate_token, verify_token
+
+        yesterday = timezone.localdate() - timedelta(days=1)
+        is_valid, reason = verify_token(
+            generate_token(yesterday), timezone.localdate()
+        )
+        self.assertFalse(is_valid)
+        self.assertIn("expired", reason)
+
+    def test_random_string_rejected(self):
+        from apps.attendance.qr_tokens import verify_token
+
+        is_valid, _reason = verify_token("hello-world-123", timezone.localdate())
+        self.assertFalse(is_valid)
+
+    # ------------------ Web endpoints ------------------
+
+    def test_qr_page_requires_authentication(self):
+        response = self.client.get(reverse("teachers:attendance_qr"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("accounts:login"), response.url)
+
+    def test_qr_page_forbidden_for_non_admin(self):
+        self.client.force_login(self.teacher_user)
+        response = self.client.get(reverse("teachers:attendance_qr"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_qr_page_renders_for_admin_with_image(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("teachers:attendance_qr"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "teachers/attendance_qr.html")
+        self.assertContains(response, "data:image/png;base64,")
+        self.assertContains(response, "Teacher Attendance QR")
+
+    def test_qr_png_endpoint_returns_image(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("teachers:attendance_qr_png"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertTrue(response.content.startswith(b"\x89PNG"))
+
+
+class TeacherAttendanceListTests(TestCase):
+    """Teacher Attendance Record register page + filters."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="att_admin",
+            password="adminpassword123",
+            role=Role.ADMIN,
+        )
+        self.teacher_user = User.objects.create_user(
+            username="att_teacher",
+            password="teacherpassword123",
+            role=Role.TEACHER,
+        )
+        self.teacher_a = Teacher.objects.create(
+            name="Amna Sheikh",
+            phone="03001110000",
+            monthly_salary=Decimal("40000.00"),
+            user=self.teacher_user,
+        )
+        self.teacher_b = Teacher.objects.create(
+            name="Bilal Ahmed",
+            phone="03002220000",
+            monthly_salary=Decimal("42000.00"),
+        )
+
+        today = timezone.localdate()
+        yesterday = today - timedelta(days=1)
+        TeacherAttendance.objects.create(
+            teacher=self.teacher_a, date=today,
+            time_in=datetime.strptime("08:15", "%H:%M").time(),
+            status="PRESENT", source="QR",
+        )
+        TeacherAttendance.objects.create(
+            teacher=self.teacher_b, date=today, status="ABSENT", source="MANUAL",
+        )
+        TeacherAttendance.objects.create(
+            teacher=self.teacher_a, date=yesterday, status="LEAVE", source="MANUAL",
+        )
+
+    def _login_admin(self):
+        self.client.force_login(self.admin)
+
+    # ------------------ Access control ------------------
+
+    def test_anonymous_redirected(self):
+        resp = self.client.get(reverse("teachers:attendance_list"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse("accounts:login"), resp.url)
+
+    def test_non_admin_forbidden(self):
+        self.client.force_login(self.teacher_user)
+        resp = self.client.get(reverse("teachers:attendance_list"))
+        self.assertEqual(resp.status_code, 403)
+
+    # ------------------ Rendering & filters ------------------
+
+    def test_page_renders_all_records_by_default(self):
+        self._login_admin()
+        resp = self.client.get(reverse("teachers:attendance_list"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, "teachers/attendance_list.html")
+        self.assertContains(resp, "Attendance Records")
+        self.assertContains(resp, "Print / Export Report")
+        self.assertEqual(resp.context["total"], 3)
+        self.assertEqual(resp.context["range_label"], "All Time")
+        self.assertContains(resp, "Amna Sheikh")
+
+    def test_today_filter_scopes_to_current_date(self):
+        self._login_admin()
+        resp = self.client.get(reverse("teachers:attendance_list") + "?range=today")
+        self.assertEqual(resp.context["total"], 2)
+        self.assertIn("Today", resp.context["range_label"])
+
+    def test_specific_date_filter(self):
+        yesterday = timezone.localdate() - timedelta(days=1)
+        self._login_admin()
+        resp = self.client.get(
+            reverse("teachers:attendance_list") + f"?range=specific&date={yesterday:%Y-%m-%d}"
+        )
+        self.assertEqual(resp.context["total"], 1)
+        self.assertContains(resp, "On Leave")
+
+    def test_custom_date_range_inclusive(self):
+        today = timezone.localdate()
+        start = today - timedelta(days=5)
+        self._login_admin()
+        resp = self.client.get(
+            reverse("teachers:attendance_list")
+            + f"?range=custom&from={start:%Y-%m-%d}&to={today:%Y-%m-%d}"
+        )
+        self.assertEqual(resp.context["total"], 3)
+
+    def test_teacher_filter(self):
+        self._login_admin()
+        resp = self.client.get(
+            reverse("teachers:attendance_list") + f"?teacher={self.teacher_b.id}"
+        )
+        self.assertEqual(resp.context["total"], 1)
+        # Table body lists only the selected teacher's record
+        self.assertContains(resp, "Bilal Ahmed")
+        self.assertContains(resp, "badge-danger")
+
+    def test_status_filter_leave(self):
+        self._login_admin()
+        resp = self.client.get(reverse("teachers:attendance_list") + "?status=LEAVE")
+        self.assertEqual(resp.context["total"], 1)
+        self.assertEqual(resp.context["present"], 0)
+        self.assertContains(resp, "On Leave")
+
+    def test_invalid_params_fall_back_gracefully(self):
+        self._login_admin()
+        resp = self.client.get(
+            reverse("teachers:attendance_list")
+            + "?range=custom&from=garbage&teacher=xyz&status=NOPE"
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context["total"], 3)  # filters ignored

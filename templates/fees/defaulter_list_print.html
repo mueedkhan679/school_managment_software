@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Defaulter List {{ report_year }} — {{ scope_label }} — {{ school_name }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Document-level page setup: this report exports on A4 LANDSCAPE,
+       overriding the global portrait @page rule from app.css. */
+    @page { size: A4 landscape; margin: 10mm; }
+</style>
+<div class="dashboard-container defaulter-print">
+    <!-- Action Bar (Hidden on paper) -->
+    <div class="dashboard-header no-print">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <a href="{% url 'fees:defaulter_list' %}?{% if selected_class %}class_id={{ selected_class.pk }}&amp;{% endif %}year={{ report_year }}" class="btn btn-ghost btn-xs">&larr; Back to Report</a>
+                <a href="{% url 'fees:list' %}" class="btn btn-ghost btn-xs">Fee Management</a>
+            </div>
+            <h1 class="dashboard-title">Defaulter List — Print Preview</h1>
+            <p class="dashboard-subtitle">
+                A4 landscape &bull; <span class="dl-paid">✔</span> Paid / <span class="dl-unpaid">✖</span> Unpaid &bull;
+                School letterhead is added automatically.
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <button type="button" class="btn btn-primary" onclick="window.print()">
+                <span aria-hidden="true">🖨️</span> Download PDF / Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Printable Sheet -->
+    <div class="panel defaulter-print-sheet">
+        {% include "partials/print_header.html" %}
+        <p class="print-doc-line">
+            <strong>Defaulters Fee Status Report</strong> &bull; {{ scope_label }} &bull; Academic Year {{ report_year }}
+        </p>
+
+        <table class="dl-matrix-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student Name</th>
+                    <th>Father Name</th>
+                    <th>Class</th>
+                    {% for mh in month_headers %}
+                        <th class="dl-month-col" title="{{ mh.name }} {{ report_year }}">{{ mh.name }}</th>
+                    {% endfor %}
+                    <th>Unpaid</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ row.student.name }}</strong></td>
+                        <td>{{ row.student.father_name }}</td>
+                        <td>{{ row.student.school_class.name }}</td>
+                        {% for m in row.months %}
+                            <td style="text-align: center;" title="{{ m.name }} {{ report_year }}">
+                                {% if m.paid %}<span class="dl-paid">✔</span>{% else %}<span class="dl-unpaid">✖</span>{% endif %}
+                            </td>
+                        {% endfor %}
+                        <td style="text-align: center;">{{ row.unpaid_count }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="17" style="text-align: center; padding: 20px;">No active students found for this selection.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p class="print-doc-summary">
+            Total Students: <strong>{{ total_students }}</strong> &nbsp;&bull;&nbsp;
+            Defaulters: <strong>{{ defaulter_count }}</strong> &nbsp;&bull;&nbsp;
+            Fully Paid: <strong>{{ cleared_count }}</strong> &nbsp;&bull;&nbsp;
+            Generated on {{ generated_at|date:"j M, Y" }}
+        </p>
+
+        <div class="print-signatures" aria-hidden="true">
+            <div>Prepared By: ____________________</div>
+            <div>Checked By: ____________________</div>
+            <div>Principal: ____________________</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

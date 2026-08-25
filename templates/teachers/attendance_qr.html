@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Teacher Attendance QR — {{ school_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="max-width: 640px; margin: 0 auto;">
+    <div class="dashboard-header no-print">
+        <div>
+            <a href="{% url 'core:dashboard' %}" class="btn btn-ghost btn-xs">&larr; Dashboard</a>
+            <h1 class="dashboard-title" style="margin-top: 8px;">Teacher Attendance QR</h1>
+            <p class="dashboard-subtitle">
+                Teachers scan this code with the mobile app to check in.
+                The code rotates daily and expires automatically at midnight.
+            </p>
+        </div>
+    </div>
+
+    <div class="panel" style="text-align: center; padding: 32px;">
+        <img src="{{ qr_data_uri }}"
+             alt="Teacher attendance QR for {{ today }}"
+             width="280" height="280"
+             style="border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: #fff;">
+        <p style="margin: 16px 0 4px; font-weight: 700;">Valid for: {{ today|date:"l, F j, Y" }}</p>
+        <code style="font-size: 11px; color: var(--text-muted); word-break: break-all;">{{ token }}</code>
+
+        <div style="margin-top: 20px; display: flex; justify-content: center; gap: 12px;">
+            <button type="button" class="btn btn-primary" onclick="location.reload()">
+                🔄 Regenerate
+            </button>
+            <a href="{% url 'teachers:attendance_qr_png' %}"
+               download="teacher-attendance-qr.png" class="btn btn-ghost">⬇ Download PNG</a>
+        </div>
+        <p class="text-sm text-muted" style="margin-top: 16px;">
+            This page auto-refreshes every 5 minutes to keep the displayed code fresh.
+        </p>
+    </div>
+</div>
+
+<script>
+    // Keep the rendered code fresh even if the tab stays open all day.
+    setInterval(function () { location.reload(); }, 5 * 60 * 1000);
+</script>
+{% endblock %}

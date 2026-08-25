@@ -1,223 +1,287 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — School Management System{% endblock %}
+{% block title %}Dashboard — {{ school_name }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
-    <!-- Header with Filter Controls -->
-    <div class="dashboard-header" style="flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between;">
-        <div>
+    <!-- Modern Header Bar -->
+    <div class="dash-header-bar">
+        <div class="dash-header-left">
             <h1 class="dashboard-title">Dashboard Overview</h1>
             <p class="dashboard-subtitle">
                 Welcome back, <strong>{{ request.user.username }}</strong> &bull; {{ today_date|date:"l, F j, Y" }}
             </p>
         </div>
-
-        <!-- Filter Form -->
-        <form method="GET" action="{% url 'core:dashboard' %}" class="dashboard-filter-form" style="display: flex; gap: 10px; align-items: center; background: var(--bg-card, #ffffff); padding: 8px 14px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--border-color, #e2e8f0); flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <label for="filter-year" style="font-size: 13px; font-weight: 600; color: var(--text-muted, #64748b);">Year:</label>
-                <select name="year" id="filter-year" class="form-control" style="padding: 6px 10px; font-size: 13px; height: 36px; border-radius: 8px;">
+        <div class="dash-header-right">
+            <div class="dash-date-badge" title="Today's date">
+                <span class="dash-date-ico">📅</span>
+                <span class="dash-date-text">{{ today_date|date:"M j, Y" }}</span>
+            </div>
+            <!-- Academic Year Dropdown (uses existing filter) -->
+            <form method="GET" action="{% url 'core:dashboard' %}" class="dash-acad-form">
+                <label for="academic-year" class="dash-acad-label">Academic Year:</label>
+                <select name="year" id="academic-year" class="dash-acad-select" onchange="this.form.submit()">
                     <option value="">All Years</option>
                     {% for y in available_years %}
                         <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
                     {% endfor %}
                 </select>
-            </div>
-
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <label for="filter-month" style="font-size: 13px; font-weight: 600; color: var(--text-muted, #64748b);">Month:</label>
-                <select name="month" id="filter-month" class="form-control" style="padding: 6px 10px; font-size: 13px; height: 36px; border-radius: 8px;">
-                    <option value="">All Months</option>
-                    {% for m_num, m_name in months_list %}
-                        <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>{{ m_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-sm" style="height: 36px; padding: 0 16px; border-radius: 8px; font-weight: 600;">
-                Filter
+                {% if selected_month %}
+                    <input type="hidden" name="month" value="{{ selected_month }}">
+                {% endif %}
+                {% if selected_class_id %}
+                    <input type="hidden" name="class_id" value="{{ selected_class_id }}">
+                {% endif %}
+                <noscript>
+                    <button type="submit" class="btn btn-primary btn-xs">Go</button>
+                </noscript>
+            </form>
+            <button class="dash-icon-btn" title="Notifications" type="button">
+                <span class="dash-bell">🔔</span>
+                <span class="dash-bell-dot"></span>
             </button>
-            {% if selected_year or selected_month %}
-                <a href="{% url 'core:dashboard' %}" class="btn btn-outline btn-sm" style="height: 36px; line-height: 22px; padding: 6px 12px; border-radius: 8px; font-size: 12px;" title="Reset Filters">
-                    Reset
-                </a>
-            {% endif %}
-        </form>
+            <span class="dash-avatar" title="{{ request.user.username }}">{{ request.user.username|first|upper }}</span>
+        </div>
     </div>
 
     <!-- Active Filter Badge Indicator -->
-    <div style="margin-bottom: 18px; display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 13px; color: var(--text-muted, #64748b); font-weight: 500;">Showing Analytics For:</span>
-        <span class="badge badge-primary" style="font-size: 13px; padding: 4px 10px;">{{ filter_label }}</span>
+    <div class="dash-filter-indicator">
+        <span class="dash-filter-label">Showing Analytics For:</span>
+        <span class="badge badge-primary">{{ filter_label }}</span>
         {% if not selected_year and not selected_month %}
             <span class="text-muted text-xs">(All-time accumulated records)</span>
         {% endif %}
+        {% if selected_year or selected_month %}
+            <a href="{% url 'core:dashboard' %}" class="btn btn-outline btn-xs">Reset Filters</a>
+        {% endif %}
     </div>
 
-    <!-- PRIMARY FINANCIAL FLOW CARDS (3 Primary Cards) -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 24px;">
-        <!-- Card 1: Total Income -->
-        <div class="stat-card" style="border-left: 5px solid #10b981; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
-            <div class="stat-icon bg-emerald-light" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 28px;">
-                <span>📥</span>
-            </div>
-            <div class="stat-details">
-                <span class="stat-label" style="font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; color: #059669;">Total Income (Collections)</span>
-                <span class="stat-value" style="font-size: 28px; color: #065f46; font-weight: 800;">Rs {{ total_income|floatformat:2 }}</span>
-                <span class="stat-hint" style="color: #059669;">Paid Student Fees &bull; {{ filter_label }}</span>
+    <!-- MODERN METRIC CARDS -->
+    <div class="dash-metrics-grid">
+        <!-- Metric: Total Income -->
+        <div class="dash-metric-card">
+            <div class="dash-metric-icon dash-metric-icon-blue">📥</div>
+            <div class="dash-metric-body">
+                <span class="dash-metric-label">Total Income</span>
+                <span class="dash-metric-value">Rs {{ total_income|floatformat:2 }}</span>
+                <span class="dash-metric-hint">Paid student fees &bull; {{ filter_label }}</span>
             </div>
         </div>
 
-        <!-- Card 2: Total Expenses -->
-        <div class="stat-card" style="border-left: 5px solid #f59e0b; background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);">
-            <div class="stat-icon bg-amber-light" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-size: 28px;">
-                <span>📤</span>
-            </div>
-            <div class="stat-details">
-                <span class="stat-label" style="font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; color: #d97706;">Total Expenses (Salaries)</span>
-                <span class="stat-value" style="font-size: 28px; color: #92400e; font-weight: 800;">Rs {{ total_expenses|floatformat:2 }}</span>
-                <span class="stat-hint" style="color: #d97706;">Disbursed Salaries &bull; {{ filter_label }}</span>
+        <!-- Metric: Total Expenses -->
+        <div class="dash-metric-card">
+            <div class="dash-metric-icon dash-metric-icon-violet">📤</div>
+            <div class="dash-metric-body">
+                <span class="dash-metric-label">Total Expenses</span>
+                <span class="dash-metric-value">Rs {{ total_expenses|floatformat:2 }}</span>
+                <span class="dash-metric-hint">Disbursed salaries &bull; {{ filter_label }}</span>
             </div>
         </div>
 
-        <!-- Card 3: Remaining Balance -->
-        <div class="stat-card {% if remaining_balance >= 0 %}stat-card-success{% else %}stat-card-danger{% endif %}" style="border-left: 5px solid {% if remaining_balance >= 0 %}#3b82f6{% else %}#ef4444{% endif %}; background: linear-gradient(135deg, #ffffff 0%, {% if remaining_balance >= 0 %}#eff6ff{% else %}#fef2f2{% endif %} 100%);">
-            <div class="stat-icon" style="background: {% if remaining_balance >= 0 %}rgba(59, 130, 246, 0.15){% else %}rgba(239, 68, 68, 0.15){% endif %}; color: {% if remaining_balance >= 0 %}#2563eb{% else %}#dc2626{% endif %}; font-size: 28px;">
-                <span>💰</span>
-            </div>
-            <div class="stat-details">
-                <span class="stat-label" style="font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; color: {% if remaining_balance >= 0 %}#1d4ed8{% else %}#b91c1c{% endif %};">Remaining Balance (Net)</span>
-                <span class="stat-value" style="font-size: 28px; color: {% if remaining_balance >= 0 %}#1e40af{% else %}#991b1b{% endif %}; font-weight: 800;">Rs {{ remaining_balance|floatformat:2 }}</span>
-                <span class="stat-hint" style="color: {% if remaining_balance >= 0 %}#2563eb{% else %}#dc2626{% endif %};">Income &minus; Expenses &bull; {{ filter_label }}</span>
+        <!-- Metric: Net Balance (solid blue card) -->
+        <div class="dash-metric-card dash-metric-solid">
+            <div class="dash-metric-icon dash-metric-icon-glass">💰</div>
+            <div class="dash-metric-body">
+                <span class="dash-metric-label">Net Balance</span>
+                <span class="dash-metric-value">Rs {{ remaining_balance|floatformat:2 }}</span>
+                <span class="dash-metric-hint">Income &minus; Expenses</span>
             </div>
         </div>
     </div>
 
-    <!-- SECONDARY SUMMARY TILES UNDERNEATH (4 Compact Tiles) -->
-    <div class="stats-grid" style="margin-bottom: 24px;">
-        <!-- Total Students -->
-        <div class="stat-card" onclick="scrollToSection('class-statistics-section')" title="Click to view class & student statistics">
-            <div class="stat-icon bg-blue-light">
-                <span>🎓</span>
-            </div>
-            <div class="stat-details">
-                <span class="stat-label">Total Students</span>
-                <span class="stat-value">{{ total_students }}</span>
-                <span class="stat-hint">Active enrollments &rarr;</span>
-            </div>
+    <!-- SECONDARY SUMMARY TILES -->
+    <div class="dash-metrics-grid dash-metrics-grid-sm">
+        <div class="dash-tile" onclick="scrollToSection('class-statistics-section')" title="Click to view class & student statistics">
+            <span class="dash-tile-ico dash-tile-blue">🎓</span>
+            <div><span class="dash-tile-label">Students</span><span class="dash-tile-value">{{ total_students }}</span></div>
         </div>
-
-        <!-- Total Teachers -->
-        <div class="stat-card">
-            <div class="stat-icon bg-purple-light">
-                <span>👨‍🏫</span>
-            </div>
-            <div class="stat-details">
-                <span class="stat-label">Total Teachers</span>
-                <span class="stat-value">{{ total_teachers }}</span>
-                <span class="stat-hint">Active faculty members</span>
-            </div>
+        <div class="dash-tile">
+            <span class="dash-tile-ico dash-tile-violet">👨‍🏫</span>
+            <div><span class="dash-tile-label">Teachers</span><span class="dash-tile-value">{{ total_teachers }}</span></div>
         </div>
-
-        <!-- Today's Attendance -->
-        <div class="stat-card">
-            <div class="stat-icon bg-cyan-light">
-                <span>📋</span>
-            </div>
-            <div class="stat-details">
-                <span class="stat-label">Today's Attendance</span>
-                <span class="stat-value">{{ attendance_percentage }}%</span>
-                <span class="stat-hint">{{ today_present }} present &bull; {{ today_absent }} absent</span>
-            </div>
+        <div class="dash-tile">
+            <span class="dash-tile-ico dash-tile-cyan">📋</span>
+            <div><span class="dash-tile-label">Today's Attendance</span><span class="dash-tile-value">{{ attendance_percentage }}%</span></div>
         </div>
-
-        <!-- Total Classes -->
-        <div class="stat-card stat-card-interactive" id="card-total-classes" onclick="scrollToSection('class-statistics-section')" title="Click to view all classes and students">
-            <div class="stat-icon bg-indigo-light">
-                <span>🏫</span>
-            </div>
-            <div class="stat-details">
-                <span class="stat-label">Total Classes</span>
-                <span class="stat-value">{{ total_classes }}</span>
-                <span class="stat-hint">Click to view classes &rarr;</span>
-            </div>
+        <div class="dash-tile" onclick="scrollToSection('class-statistics-section')" title="Click to view all classes">
+            <span class="dash-tile-ico dash-tile-indigo">🏫</span>
+            <div><span class="dash-tile-label">Classes</span><span class="dash-tile-value">{{ total_classes }}</span></div>
         </div>
     </div>
 
-    <!-- Attendance & Financial Summary Row -->
-    <div class="dashboard-row-2col">
-        <!-- Attendance Box -->
-        <div class="panel">
-            <div class="panel-header">
-                <h3>📋 Attendance Overview</h3>
-                <span class="text-muted text-sm">{{ today_date|date:"M j, Y" }}</span>
+    <!-- ADMISSION FEES REPORT WIDGET -->
+    <div class="dash-card" id="admission-fees-section">
+        <div class="dash-card-head">
+            <h3>🎓 Admission Fees Collected</h3>
+            <span class="dash-card-badge">{{ admission_scope_label }}</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-bottom: 14px;">
+            <form method="GET" action="{% url 'core:dashboard' %}" class="dash-acad-form" style="margin: 0;">
+                <label for="admission-class-filter" class="dash-acad-label">Filter by Class:</label>
+                <select name="class_id" id="admission-class-filter" class="dash-acad-select" onchange="this.form.submit()">
+                    <option value="">All Classes</option>
+                    {% for c in classes_list %}
+                        <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
+                {% if selected_month %}<input type="hidden" name="month" value="{{ selected_month }}">{% endif %}
+                <noscript><button type="submit" class="btn btn-primary btn-xs">Go</button></noscript>
+            </form>
+            <div>
+                <span class="dash-metric-label">Total Collected</span><br>
+                <span class="dash-metric-value" style="font-size: 22px;">Rs {{ admission_total|floatformat:2 }}</span>
+                <span class="text-muted text-xs">&bull; {{ admission_count }} payment{{ admission_count|pluralize }}</span>
             </div>
-            <div class="attendance-summary-box">
-                <div class="attendance-metric-main">
-                    <div class="attendance-rate-circle">
-                        <span class="rate-number">{% if selected_year or selected_month %}{{ period_attendance_rate }}%{% else %}{{ attendance_percentage }}%{% endif %}</span>
-                        <span class="rate-label">{% if selected_year or selected_month %}Period Rate{% else %}Today's Rate{% endif %}</span>
-                    </div>
-                    <div class="attendance-breakdown">
-                        <div class="attendance-pill present">
-                            <span class="dot"></span>
-                            <span class="lbl">Present:</span>
-                            <strong>{% if selected_year or selected_month %}{{ period_present }}{% else %}{{ today_present }}{% endif %}</strong>
-                        </div>
-                        <div class="attendance-pill absent">
-                            <span class="dot"></span>
-                            <span class="lbl">Absent:</span>
-                            <strong>{% if selected_year or selected_month %}{{ period_absent }}{% else %}{{ today_absent }}{% endif %}</strong>
-                        </div>
-                        <div class="attendance-pill total">
-                            <span class="dot"></span>
-                            <span class="lbl">Marked:</span>
-                            <strong>{% if selected_year or selected_month %}{{ period_marked_total }}{% else %}{{ today_marked_total }}{% endif %}</strong>
-                        </div>
-                    </div>
+        </div>
+        {% if admission_breakdown %}
+        <div class="table-responsive">
+            <table class="data-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Class</th>
+                        <th>Payments</th>
+                        <th>Total (Rs)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in admission_breakdown %}
+                        <tr>
+                            <td>{{ row.school_class__name }}</td>
+                            <td>{{ row.payments }}</td>
+                            <td>{{ row.total|floatformat:2 }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-sm" style="margin: 0;">
+            No admission fees recorded yet. Enter an amount in the optional
+            &ldquo;Admission Fee&rdquo; field during student registration to track one here.
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- TEACHER ATTENDANCE QR WIDGET -->
+    <div class="dash-card" id="teacher-qr-section">
+        <div class="dash-card-head">
+            <h3>🧾 Teacher Attendance QR</h3>
+            <span class="dash-card-badge">Rotates daily</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px;">
+            <img id="teacherQrImg"
+                 src="{% url 'teachers:attendance_qr_png' %}"
+                 alt="Teacher attendance QR code"
+                 width="150" height="150"
+                 style="border: 1px solid var(--border); border-radius: 10px; padding: 6px; background: #fff;">
+            <div style="flex: 1; min-width: 220px;">
+                <p style="margin: 0 0 8px;">
+                    Teachers scan this code in the mobile app to check in as
+                    <strong>Present</strong>. The signed token is valid only for
+                    <strong>today</strong> and expires at midnight.
+                </p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-outline btn-sm"
+                            onclick="(function(){var i=document.getElementById('teacherQrImg');i.src=i.src.split('?')[0]+'?t='+Date.now();})()">
+                        🔄 Refresh Code
+                    </button>
+                    <a href="{% url 'teachers:attendance_qr' %}" class="btn btn-primary btn-sm">
+                        🔍 Open Full View
+                    </a>
                 </div>
-                <!-- Visual progress bar -->
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill bg-success" style="width: {% if selected_year or selected_month %}{{ period_attendance_rate }}{% else %}{{ attendance_percentage }}{% endif %}%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh the QR image every 5 minutes so it stays current.
+        setInterval(function () {
+            var img = document.getElementById('teacherQrImg');
+            if (img && document.getElementById('teacher-qr-section')) {
+                img.src = img.src.split('?')[0] + '?t=' + Date.now();
+            }
+        }, 5 * 60 * 1000);
+    </script>
+
+    <!-- CHART ROW: Attendance Donut + Financial Line -->
+    <div class="dash-charts-row">
+        <!-- Left: Attendance Circular Donut -->
+        <div class="dash-card">
+            <div class="dash-card-head">
+                <h3>Attendance Overview</h3>
+                <span class="dash-card-badge">{{ today_date|date:"M j, Y" }}</span>
+            </div>
+            <div class="dash-donut-wrap">
+                {% if selected_year or selected_month %}
+                    {% with rate=period_attendance_rate %}
+                    <div class="dash-donut" style="--rate: {{ rate }}%;">
+                        <div class="dash-donut-inner">
+                            <span class="dash-donut-value">{{ rate }}%</span>
+                            <span class="dash-donut-label">Period Rate</span>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    {% with rate=attendance_percentage %}
+                    <div class="dash-donut" style="--rate: {{ rate }}%;">
+                        <div class="dash-donut-inner">
+                            <span class="dash-donut-value">{{ rate }}%</span>
+                            <span class="dash-donut-label">Today's Rate</span>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% endif %}
+                <div class="dash-donut-legend">
+                    <div class="dash-donut-legend-row present"><span class="lg-dot"></span>Present <strong>{% if selected_year or selected_month %}{{ period_present }}{% else %}{{ today_present }}{% endif %}</strong></div>
+                    <div class="dash-donut-legend-row absent"><span class="lg-dot"></span>Absent <strong>{% if selected_year or selected_month %}{{ period_absent }}{% else %}{{ today_absent }}{% endif %}</strong></div>
+                    <div class="dash-donut-legend-row marked"><span class="lg-dot"></span>Marked <strong>{% if selected_year or selected_month %}{{ period_marked_total }}{% else %}{{ today_marked_total }}{% endif %}</strong></div>
                 </div>
                 {% if not selected_year and not selected_month and today_marked_total == 0 %}
-                    <p class="text-sm text-muted text-center" style="margin-top: 10px;">
-                        No attendance marked yet for today.
-                    </p>
+                    <p class="text-sm text-muted text-center" style="margin-top: 10px;">No attendance marked yet for today.</p>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Financial Summary Box -->
-        <div class="panel">
-            <div class="panel-header">
-                <h3>📊 Financial Summary ({{ filter_label }})</h3>
-                <span class="badge badge-outline">Period Breakdown</span>
+        <!-- Right: Financial Line Chart -->
+        <div class="dash-card">
+            <div class="dash-card-head">
+                <h3>Financial Summary</h3>
+                <span class="badge badge-outline">{{ filter_label }}</span>
             </div>
-            <div class="finance-summary-box">
-                <div class="finance-row">
-                    <span class="finance-label">Filtered Income</span>
-                    <span class="finance-val text-success">
-                        Rs {{ total_income|floatformat:2 }}
-                    </span>
+            <div class="dash-linechart-box">
+                <div class="dash-linechart-stats">
+                    <div class="dash-line-stat">
+                        <span class="dash-line-stat-lbl">Total Income</span>
+                        <strong class="text-success">Rs {{ total_income|floatformat:2 }}</strong>
+                    </div>
+                    <div class="dash-line-stat">
+                        <span class="dash-line-stat-lbl">Total Expenses</span>
+                        <strong class="text-muted">Rs {{ total_expenses|floatformat:2 }}</strong>
+                    </div>
+                    <div class="dash-line-stat">
+                        <span class="dash-line-stat-lbl">Net Balance</span>
+                        <strong class="{% if remaining_balance >= 0 %}text-success{% else %}text-danger{% endif %}">Rs {{ remaining_balance|floatformat:2 }}</strong>
+                    </div>
                 </div>
-                <div class="finance-row">
-                    <span class="finance-label">Filtered Expenses</span>
-                    <span class="finance-val text-muted">
-                        Rs {{ total_expenses|floatformat:2 }}
-                    </span>
+                <svg class="dash-linechart" viewBox="0 0 320 120" preserveAspectRatio="none" aria-label="Financial summary line chart">
+                    <defs>
+                        <linearGradient id="dashLineGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.35"/>
+                            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.02"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Income polyline (green) -->
+                    <polyline class="dash-line-inc" points="0,95 64,70 128,52 192,40 256,26 320,14"/>
+                    <!-- Expense polyline (amber) -->
+                    <polyline class="dash-line-exp" points="0,100 64,88 128,80 192,72 256,66 320,60"/>
+                </svg>
+                <div class="dash-line-labels">
+                    <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
                 </div>
-                <div class="finance-row finance-row-highlight">
-                    <span class="finance-label">Net Balance ({{ filter_label }})</span>
-                    <strong class="finance-val {% if remaining_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                        Rs {{ remaining_balance|floatformat:2 }}
-                    </strong>
-                </div>
-                <div class="finance-row" style="margin-top: 8px; border-top: 1px dashed var(--border-color, #e2e8f0); padding-top: 8px;">
-                    <span class="finance-label">All-time Net Balance</span>
-                    <span class="finance-val {% if all_time_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                        Rs {{ all_time_balance|floatformat:2 }}
-                    </span>
+                <div class="dash-line-summary-row">
+                    <span class="text-success">◆ Income</span>
+                    <span class="text-muted">◆ Expenses</span>
+                    <span class="{% if all_time_balance >= 0 %}text-success{% else %}text-danger{% endif %}">All-time Net: Rs {{ all_time_balance|floatformat:2 }}</span>
                 </div>
             </div>
         </div>
@@ -265,83 +329,73 @@
         </div>
     </div>
 
-    <!-- Recent Transactions Grid -->
-    <div class="dashboard-row-2col">
-        <!-- Recent Student Fees -->
-        <div class="panel">
-            <div class="panel-header">
-                <h3>📥 Recent Fee Receipts</h3>
-                <span class="text-muted text-sm">Latest Collections</span>
+    <!-- RECENT ACTIVITIES + QUICK SUMMARY ROW -->
+    <div class="dash-bottom-row">
+        <!-- Recent Activities Feed -->
+        <div class="dash-card dash-feed">
+            <div class="dash-card-head">
+                <h3>Recent Activities</h3>
+                <span class="dash-card-badge">Latest</span>
             </div>
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Class</th>
-                            <th>Month/Year</th>
-                            <th>Amount</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for fee in recent_fees %}
-                            <tr>
-                                <td>
-                                    <strong>{{ fee.student.name }}</strong>
-                                    <div class="text-xs text-muted">{{ fee.student.student_id }}</div>
-                                </td>
-                                <td>{{ fee.student.school_class.name }}</td>
-                                <td>{{ fee.get_fee_month_display|slice:":3" }} {{ fee.fee_year }}</td>
-                                <td class="text-success font-weight-bold">Rs {{ fee.amount|floatformat:2 }}</td>
-                                <td class="text-muted text-sm">{{ fee.payment_date|date:"Y-m-d" }}</td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">No fee payments recorded yet.</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="dash-feed-list">
+                {% for fee in recent_fees %}
+                    <div class="dash-feed-item">
+                        <span class="dash-feed-ico dash-feed-fee">💳</span>
+                        <div class="dash-feed-body">
+                            <strong>{{ fee.student.name }}</strong>
+                            <span class="dash-feed-desc">Fee payment &bull; {{ fee.get_fee_month_display|slice:":3" }} {{ fee.fee_year }}</span>
+                        </div>
+                        <span class="dash-feed-amt text-success">+Rs {{ fee.amount|floatformat:0 }}</span>
+                    </div>
+                {% empty %}
+                    <p class="text-muted text-sm" style="padding: 8px 0;">No recent fee payments.</p>
+                {% endfor %}
+                {% for sal in recent_salaries %}
+                    <div class="dash-feed-item">
+                        <span class="dash-feed-ico dash-feed-salary">💸</span>
+                        <div class="dash-feed-body">
+                            <strong>{{ sal.teacher.name }}</strong>
+                            <span class="dash-feed-txt">Salary paid &bull; {{ sal.get_salary_month_display|slice:":3" }} {{ sal.salary_year }}</span>
+                        </div>
+                        <span class="dash-feed-amount text-danger">&minus;Rs {{ sal.amount|floatformat:0 }}</span>
+                    </div>
+                {% empty %}
+                    <p class="text-muted text-sm">No recent salary disbursements.</p>
+                {% endfor %}
             </div>
         </div>
 
-        <!-- Recent Teacher Salaries -->
-        <div class="panel">
-            <div class="panel-header">
-                <h3>📤 Recent Teacher Salaries</h3>
-                <span class="text-muted text-sm">Latest Disbursements</span>
+        <!-- Quick Summary Rows -->
+        <div class="dash-card">
+            <div class="dash-card-head">
+                <h3>Quick Summary</h3>
+                <span class="dash-card-badge">{{ filter_label }}</span>
             </div>
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Teacher</th>
-                            <th>Month/Year</th>
-                            <th>Amount</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for sal in recent_salaries %}
-                            <tr>
-                                <td>
-                                    <strong>{{ sal.teacher.name }}</strong>
-                                    <div class="text-xs text-muted">{{ sal.teacher.teacher_id }}</div>
-                                </td>
-                                <td>{{ sal.get_salary_month_display|slice:":3" }} {{ sal.salary_year }}</td>
-                                <td class="text-danger font-weight-bold">Rs {{ sal.amount|floatformat:2 }}</td>
-                                <td class="text-muted text-sm">{{ sal.payment_date|date:"Y-m-d" }}</td>
-                                <td><span class="badge badge-success">{{ sal.get_status_display }}</span></td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">No teacher salaries recorded yet.</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="dash-summary-list">
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-blue">📥</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Total Income</span><strong class="text-success">Rs {{ total_income|floatformat:2 }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-violet">📤</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Total Expenses</span><strong class="text-danger">Rs {{ total_expenses|floatformat:2 }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-cyan">📋</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Today Marked</span><strong>{{ today_marked_total }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-amber">🎓</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">This Month's Income</span><strong>Rs {{ monthly_fee_income|floatformat:2 }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-green">💵</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Monthly Salaries</span><strong>Rs {{ monthly_teacher_salary|floatformat:2 }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-indigo">📊</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Yearly Net</span><strong class="{% if yearly_net_income >= 0 %}text-success{% else %}text-danger{% endif %}">Rs {{ yearly_net_income|floatformat:2 }}</strong></div>
+                </div>
             </div>
         </div>
     </div>

@@ -1,9 +1,11 @@
+import base64
+from datetime import datetime, timedelta
 from decimal import Decimal
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Q, Sum
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -12,7 +14,13 @@ from apps.accounts.decorators import admin_required
 from apps.classrooms.models import SchoolClass
 from apps.core.constants import MONTHS, MONTHS_MAP
 from .forms import TeacherForm, TeacherSalaryForm
-from .models import SalaryStatus, Teacher, TeacherSalary
+from .models import (
+    SalaryStatus,
+    Teacher,
+    TeacherAttendance,
+    TeacherAttendanceStatus,
+    TeacherSalary,
+)
 
 
 def _get_teacher(teacher_id_or_pk):
@@ -437,3 +445,130 @@ def api_teacher_salary_info(request, teacher_id):
         "paid_months": paid_months,
     }
     return JsonResponse(data)
+
+
+# ---------------------------------------------------------------------------
+# Dynamic QR — Teacher self attendance check-in
+# ---------------------------------------------------------------------------
+
+def _today_token():
+    """Generate today's signed QR payload."""
+    from apps.attendance.qr_tokens import generate_token
+
+    return generate_token(timezone.localdate())
+
+
+def _qr_png_bytes(token: str) -> bytes:
+    import io
+
+    import qrcode
+
+    buffer = io.BytesIO()
+    image = qrcode.make(token, box_size=8, border=2)
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+@admin_required
+def teacher_attendance_qr_page(request):
+    """Full-page live QR code for teacher self check-in."""
+    token = _today_token()
+    context = {
+        "qr_data_uri": "data:image/png;base64," + base64.b64encode(
+            _qr_png_bytes(token)
+        ).decode(),
+        "token": token,
+        "today": timezone.localdate(),
+    }
+    return render(request, "teachers/attendance_qr.html", context)
+
+
+@admin_required
+def teacher_attendance_qr_png(request):
+    """Raw PNG of today's QR token — embedded by the dashboard widget."""
+    response = HttpResponse(content_type="image/png")
+    response.write(_qr_png_bytes(_today_token()))
+    return response
+
+
+def _parse_iso_date(value: str):
+    """Parse a YYYY-MM-DD string into a date, or None when invalid."""
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
+
+
+@admin_required
+def teacher_attendance_list(request):
+    """Teacher Attendance Record register with date/teacher/status filters.
+
+    Supports three date modes via ``range``: ``today``, ``specific`` (with
+    ``date=YYYY-MM-DD``) and ``custom`` (with ``from``/``to``). An empty range
+    shows the full history. Also filterable by teacher and status.
+    """
+    records = TeacherAttendance.objects.select_related("teacher")
+
+    range_mode = request.GET.get("range", "").strip()
+    specific_raw = request.GET.get("date", "").strip()
+    from_raw = request.GET.get("from", "").strip()
+    to_raw = request.GET.get("to", "").strip()
+    teacher_param = request.GET.get("teacher", "").strip()
+    status_filter = request.GET.get("status", "").strip()
+
+    today = timezone.localdate()
+    date_from = _parse_iso_date(from_raw)
+    date_to = _parse_iso_date(to_raw)
+    specific_date = _parse_iso_date(specific_raw)
+
+    if range_mode == "today":
+        records = records.filter(date=today)
+        range_label = f"Today ({today.strftime('%b j, Y')})"
+    elif range_mode == "specific" and specific_date:
+        records = records.filter(date=specific_date)
+        range_label = specific_date.strftime("%b j, Y")
+    elif range_mode == "custom" and (date_from or date_to):
+        if date_from:
+            records = records.filter(date__gte=date_from)
+        if date_to:
+            records = records.filter(date__lte=date_to)
+        start_label = date_from.strftime("%b j") if date_from else "…"
+        end_label = date_to.strftime("%b j, Y") if date_to else "…"
+        range_label = f"{start_label} – {end_label}"
+    else:
+        range_mode = ""
+        range_label = "All Time"
+
+    selected_teacher_id = int(teacher_param) if teacher_param.isdigit() else None
+    if selected_teacher_id:
+        records = records.filter(teacher_id=selected_teacher_id)
+
+    valid_statuses = {c[0] for c in TeacherAttendanceStatus.choices}
+    if status_filter in valid_statuses:
+        records = records.filter(status=status_filter)
+
+    summary = records.aggregate(
+        total=models.Count("id"),
+        present=models.Count("id", filter=models.Q(status="PRESENT")),
+        absent=models.Count("id", filter=models.Q(status="ABSENT")),
+        leave=models.Count("id", filter=models.Q(status="LEAVE")),
+    )
+
+    paginator = Paginator(records.order_by("-date", "teacher__teacher_id"), 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    teachers = Teacher.objects.filter(is_active=True).order_by("name")
+
+    context = {
+        "page_obj": page_obj,
+        "teachers": teachers,
+        "range_mode": range_mode,
+        "range_label": range_label,
+        "specific_date": specific_raw,
+        "date_from": from_raw,
+        "date_to": to_raw,
+        "selected_teacher": selected_teacher_id,
+        "selected_status": status_filter,
+        **summary,
+    }
+    return render(request, "teachers/attendance_list.html", context)

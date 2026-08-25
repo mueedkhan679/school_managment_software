@@ -1270,13 +1270,27 @@ code {
 }
 
 /* ---------- Print Stylesheet ---------- */
+
+/* A4 portrait paper with tight margins for every printable document */
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
 @media print {
   body {
     background: #fff;
     color: #000;
   }
+  /* App chrome removal: sidebar, top navigation, action buttons, modals.
+     (.navbar kept for the legacy partial; .app-sidebar is the live sidebar) */
   .navbar,
+  .app-sidebar,
+  .sidebar-collapse,
+  .sidebar-user,
+  .dash-header-bar,
   .dashboard-actions,
+  .modal-overlay,
   .no-print,
   .action-btn-group,
   .btn,
@@ -1295,6 +1309,15 @@ code {
   .app-main {
     max-width: 100%;
     padding: 0;
+  }
+  .app-shell {
+    display: block;
+    min-width: 0;
+  }
+  .app-content {
+    max-width: 100%;
+    padding: 0;
+    background: #fff;
   }
 }
 
@@ -1549,3 +1572,767 @@ code {
   }
 }
 
+/* ============================================================
+   Modern UI Overhaul — Dark Royal Blue Sidebar & Dashboard
+   ============================================================ */
+.app-body { background: #f8fafc; }
+
+/* ---------- App frame shell ---------- */
+.app-frame { display: flex; min-height: 100vh; }
+
+/* ---------- Sidebar ---------- */
+.app-sidebar {
+  width: 264px;
+  flex: 0 0 264px;
+  background: #1e3a8a;
+  color: #dbeafe;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 18px 14px 14px;
+  gap: 12px;
+  transition: width 0.2s ease, flex-basis 0.2s ease;
+}
+.sidebar-top { display: flex; flex-direction: column; gap: 18px; }
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #ffffff;
+  padding: 4px 8px;
+}
+.sidebar-brand-icon { font-size: 26px; }
+.sidebar-brand-text { font-size: 18px; font-weight: 800; letter-spacing: 0.2px; }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: #bfdbfe;
+  text-decoration: none;
+  font-size: 14.5px;
+  font-weight: 600;
+  transition: all 0.16s ease;
+}
+.sidebar-link:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
+.sidebar-link.active {
+  background: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+.sidebar-ico { font-size: 16px; width: 22px; text-align: center; }
+
+/* Sidebar user card */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.sidebar-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+.sidebar-user-meta { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; flex: 1; }
+.sidebar-user-name { color: #ffffff; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user-role { font-size: 11.5px; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.04em; }
+.sidebar-user-settings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #bfdbfe;
+  text-decoration: none;
+  font-size: 16px;
+  line-height: 1;
+  padding: 5px 7px;
+  border-radius: 8px;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+.sidebar-user-settings:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.sidebar-user-actions { display: flex; align-items: center; gap: 4px; }
+.sidebar-user-logout-form { display: inline-flex; margin: 0; }
+/* Hard reset of native button chrome so no white plate shows on the dark sidebar */
+.sidebar-user-actions button.sidebar-user-logout,
+.sidebar-user-actions button.sidebar-user-logout:hover,
+.sidebar-user-actions button.sidebar-user-logout:focus {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.sidebar-user-actions button.sidebar-user-logout {
+  cursor: pointer;
+  color: #bfdbfe;
+  font-size: 16px;
+  line-height: 1;
+  padding: 5px 7px;
+  border-radius: 8px;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+.sidebar-user-actions button.sidebar-user-logout:focus-visible {
+  outline: 2px solid rgba(191, 219, 254, 0.6);
+  outline-offset: 2px;
+}
+.sidebar-user-actions button.sidebar-user-logout:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fecaca;
+  transform: translateY(-1px);
+}
+
+.sidebar-collapse { display: none; }
+
+/* ---------- Collapsed sidebar ---------- */
+body.sidebar-collapsed .app-sidebar { width: 72px; flex-basis: 72px; }
+body.sidebar-collapsed .sidebar-brand-text,
+body.sidebar-collapsed .sidebar-link span:not(.sidebar-ico),
+body.sidebar-collapsed .sidebar-user-meta,
+body.sidebar-collapsed .sidebar-user-settings,
+body.sidebar-collapsed .sidebar-user-actions { display: none; }
+body.sidebar-collapsed .sidebar-link { justify-content: center; padding: 10px 0; }
+body.sidebar-collapsed .sidebar-user { justify-content: center; padding: 12px 0; }
+
+/* ---------- Main shell ---------- */
+.app-shell { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.app-content { flex: 1; padding: 28px 30px 60px; background: #f8fafc; }
+
+/* ---------- Dashboard Header bar ---------- */
+.dash-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.dash-header-left h1 { font-size: 26px; font-weight: 800; margin: 0 0 4px; }
+.dashboard-subtitle { margin: 0; color: #64748b; font-size: 14.5px; }
+.dash-header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dash-date-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.dash-date-ico { font-size: 14px; line-height: 1; }
+.dash-date-text { letter-spacing: 0.2px; white-space: nowrap; }
+.dash-acad-form { display: flex; align-items: center; gap: 6px; }
+.dash-acad-label { font-size: 12.5px; font-weight: 600; color: #64748b; }
+.dash-acad-select {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #0f172a;
+}
+.dash-icon-btn {
+  position: relative;
+  border: none;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dash-bell-dot {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border: 2px solid #fff;
+  border-radius: 50%;
+}
+.dash-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Filter indicator */
+.dash-filter-indicator { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.dash-filter-label { font-size: 13px; color: #64748b; font-weight: 500; }
+
+/* ---------- Modern Metric Cards ---------- */
+.dash-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.dash-metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.dash-metric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1); }
+.dash-metric-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.dash-metric-icon-blue   { background: #eff6ff; }
+.dash-metric-icon-violet { background: #f3e8ff; }
+.dash-metric-icon-glass  { background: rgba(255,255,255,0.2); }
+.dash-metric-body { display: flex; flex-direction: column; min-width: 0; }
+.dash-metric-label { font-size: 12.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+.dash-metric-value { font-size: 23px; font-weight: 800; color: #0f172a; margin: 2px 0 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-metric-hint { font-size: 11.5px; color: #94a3b8; }
+
+/* Solid blue balance card */
+.dash-metric-solid {
+  background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+  border: none;
+  color: #fff;
+}
+.dash-metric-solid .dash-metric-label { color: #bfdbfe; }
+.dash-metric-solid .dash-metric-value { color: #ffffff; }
+.dash-metric-solid .dash-metric-hint { color: #dbeafe; }
+/* ---------- Small tiles ---------- */
+.dash-metrics-grid-sm { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.dash-tile {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: default;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.dash-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08); }
+.dash-tile[onclick] { cursor: pointer; }
+.dash-tile-ico {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;
+}
+.dash-tile-blue   { background: #eff6ff; }
+.dash-tile-violet { background: #f3e8ff; }
+.dash-tile-cyan   { background: #ecfeff; }
+.dash-tile-indigo { background: #e0e7ff; }
+.dash-tile-amber  { background: #fffbeb; }
+.dash-tile-green  { background: #ecfdf5; }
+.dash-tile-label { display: block; font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.dash-tile-value { display: block; font-size: 19px; font-weight: 800; color: #0f172a; }
+
+/* ---------- Chart cards ---------- */
+.dash-charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+@media (max-width: 960px) { .dash-charts-row { grid-template-columns: 1fr; } }
+
+.dash-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  padding: 20px;
+}
+.dash-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.dash-card-head h3 { font-size: 17px; font-weight: 800; margin: 0; color: #0f172a; }
+.dash-card-badge { background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px; }
+
+/* ---------- Donut chart ---------- */
+.dash-donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 6px 0; }
+.dash-donut {
+  --rate: 0%;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: conic-gradient(#10b981 0 var(--rate), #e2e8f0 var(--rate) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.dash-donut-inner {
+  width: 122px;
+  height: 122px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.dash-donut-value { font-size: 28px; font-weight: 800; color: #0f172a; line-height: 1; }
+.dash-donut-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.dash-donut-legend { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+.dash-donut-legend-row { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #475569; }
+.dash-donut-legend-row strong { margin-left: auto; color: #0f172a; }
+.lg-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.present .lg-dot { background: #10b981; }
+.absent  .lg-dot { background: #ef4444; }
+.marked  .lg-dot { background: #2563eb; }
+/* ---------- Line chart ---------- */
+.dash-linechart-box { display: flex; flex-direction: column; gap: 12px; }
+.dash-linechart-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.dash-line-stat {
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dash-line-stat-lbl { font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.dash-line-stat strong { font-size: 15px; }
+.dash-linechart { width: 100%; height: 150px; }
+.dash-line-inc { fill: none; stroke: #10b981; stroke-width: 2.5; stroke-linecap: round; }
+.dash-line-exp { fill: none; stroke: #f59e0b; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 4 3; }
+.dash-line-labels { display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; padding: 0 4px; }
+.dash-line-summary-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12.5px; font-weight: 600; }
+
+/* ---------- Bottom row: feed + summary ---------- */
+.dash-bottom-row { display: grid; grid-template-columns: 1fr 1.2fr; gap: 18px; margin-top: 4px; }
+@media (max-width: 960px) { .dash-bottom-row { grid-template-columns: 1fr; } }
+
+.dash-feed-list { display: flex; flex-direction: column; gap: 6px; }
+.dash-feed-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.dash-feed-item:last-child { border-bottom: none; }
+.dash-feed-ico {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0;
+}
+.dash-feed-fee    { background: #ecfdf5; }
+.dash-feed-salary { background: #fef2f2; }
+.dash-feed-body { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.dash-feed-body strong { font-size: 14px; color: #0f172a; }
+.dash-feed-desc, .dash-feed-txt { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-feed-amt, .dash-feed-amount { font-size: 13.5px; font-weight: 700; }
+
+.dash-summary-list { display: flex; flex-direction: column; gap: 8px; }
+.dash-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+}
+.dash-summary-info { display: flex; flex-direction: column; min-width: 0; }
+.dash-summary-lbl { font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.dash-summary-info strong { font-size: 15px; }
+.dash-summary-ico {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .app-frame { flex-direction: column; }
+  .app-sidebar { width: 100%; flex-basis: auto; height: auto; position: relative; }
+  .sidebar-collapse { display: none; }
+  .app-content { padding: 20px 16px 48px; }
+  .dash-header-bar { flex-direction: column; align-items: flex-start; }
+  .dash-bottom-row { grid-template-columns: 1fr; }
+  .dash-linechart-stats { grid-template-columns: 1fr; }
+}
+
+/* Compatibility for pages still using old .app-main wrapper (if any) */
+.app-main-old { max-width: 1200px; margin: 0 auto; }
+
+/* ============================================================
+   Dynamic School Branding (SchoolSettings via school_info)
+   ============================================================ */
+
+/* Uploaded logo inside the sidebar brand row */
+.sidebar-brand-logo-img,
+.navbar-brand-logo-img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 2px;
+  display: inline-block;
+}
+
+/* ---------- Printable document letterhead (partials/print_header.html) ---------- */
+.print-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.print-brand-logo img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+.print-brand-logo span { font-size: 40px; line-height: 1; }
+.print-brand-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--primary, #1e3a8a);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+.print-brand-phone {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}
+
+/* Print-friendly letterhead: pure black/white, no emoji clutter */
+@media print {
+  .print-brand { gap: 10px; }
+  .print-brand-logo img {
+    width: 56px;
+    height: 56px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-brand-logo span { display: none; } /* hide fallback emoji on paper */
+  .print-brand-name {
+    color: #000 !important;
+    font-size: 20pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-brand-phone { color: #333 !important; font-size: 11pt; }
+}
+
+/* Uploaded logo inside printable ID card headers */
+.id-card-school-logo-img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+/* ---------- Current-logo preview on the Settings form ---------- */
+.school-logo-preview {
+  margin-bottom: 10px;
+  padding: 10px;
+  display: inline-block;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+.school-logo-preview img {
+  display: block;
+  max-width: 140px;
+  max-height: 140px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* ============================================================
+   Student Profile — compact single-page A4 print layout
+   Scoped via .student-profile-print on templates/students/detail.html.
+   Scales down margins/padding/fonts so bio-data, fee status and
+   attendance history fit on ONE sheet alongside the letterhead.
+   ============================================================ */
+@media print {
+  /* Preserve brand colors (paid/pending badges) on paper — inherited by children */
+  .student-profile-print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    gap: 5px !important;
+    font-size: 10pt;
+  }
+
+  /* --- Letterhead strip --- */
+  .student-profile-print .print-only {
+    border-bottom: 1.5pt solid #000 !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 8px !important;
+  }
+  .student-profile-print .print-only p {
+    margin: 2px 0 0 !important;
+    font-size: 8.5pt;
+    color: #333;
+  }
+
+  /* --- Bio-data hero card --- */
+  .student-profile-print > .panel {
+    margin-bottom: 3mm !important; /* !important beats the template's inline style */
+    padding: 7px 10px !important;
+  }
+  .student-profile-print .profile-hero-card { gap: 12px !important; }
+  .student-profile-print .profile-photo-wrap { flex: 0 0 86px !important; }
+  .student-profile-print .profile-avatar-large,
+  .student-profile-print .profile-avatar-large-placeholder {
+    width: 82px !important;
+    height: 94px !important;
+    font-size: 30px !important;
+    border-width: 2px;
+  }
+  .student-profile-print .profile-section-title { margin-bottom: 5px !important; }
+  .student-profile-print .profile-section-title h3 { font-size: 10.5pt !important; }
+  .student-profile-print .profile-info-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 5px 14px !important;
+  }
+  .student-profile-print .info-label { font-size: 7.5pt !important; }
+  .student-profile-print .info-value { font-size: 9.5pt !important; }
+
+  /* --- Quick stats strip (fees & attendance summary) --- */
+  .student-profile-print > .stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important; /* beats inline style */
+    gap: 8px !important;
+    margin-bottom: 3mm !important;
+  }
+  .student-profile-print .stat-card {
+    padding: 6px 9px !important;
+    gap: 0 !important;
+    box-shadow: none;
+  }
+  .student-profile-print .stat-icon { display: none !important; } /* emoji icons stay off paper */
+  .student-profile-print .stat-label { font-size: 7pt !important; letter-spacing: 0; }
+  .student-profile-print .stat-value { font-size: 11pt !important; white-space: normal; }
+  .student-profile-print .stat-hint { font-size: 7.5pt !important; }
+
+  /* --- Fee & attendance panels: keep side by side, never split across pages --- */
+  .student-profile-print .dashboard-row-2col {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4mm !important;
+    align-items: start;
+  }
+  .student-profile-print .dashboard-row-2col .panel {
+    padding: 7px 10px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Section headers are hidden globally for batch ID-card sheets — restore here */
+  .student-profile-print .panel-header {
+    display: flex !important;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 6px !important;
+    padding-bottom: 4px !important;
+    border-bottom: 1px solid #999;
+  }
+  .student-profile-print .panel-header h3 { font-size: 10.5pt !important; }
+  .student-profile-print .panel-header p { font-size: 8pt !important; margin: 1px 0 0 !important; }
+
+  /* Month-by-month fee status calendar (inline styles need !important) */
+  .student-profile-print div[style*="minmax(65px"] {
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 3px !important;
+    margin-bottom: 6px !important;
+  }
+  .student-profile-print div[style*="minmax(65px"] > div {
+    padding: 3px 2px !important;
+    font-size: 7.5pt !important;
+    border-radius: 4px;
+  }
+
+  /* Tables */
+  .student-profile-print .table-responsive { overflow-x: visible; }
+  .student-profile-print .data-table { font-size: 8.5pt !important; }
+  .student-profile-print .data-table th {
+    padding: 3px 5px !important;
+    font-size: 7pt !important;
+    background: none !important;
+    color: #000 !important;
+    border-bottom: 1pt solid #000 !important;
+  }
+  .student-profile-print .data-table td {
+    padding: 2.5px 5px !important;
+    color: #000 !important;
+    border-bottom-color: #ccc;
+  }
+  .student-profile-print .data-table td strong,
+  .student-profile-print .data-table td code { color: #000 !important; }
+  .student-profile-print .badge {
+    font-size: 7.5pt !important;
+    padding: 2px 7px !important;
+  }
+
+  /* Receipt reference links: plain black text on paper */
+  .student-profile-print .table-link { color: #000 !important; text-decoration: none; }
+}
+
+/* ============================================================
+   Defaulter List Generator (Fees) — matrix table & A4 landscape
+   print/PDF export
+   ============================================================ */
+
+/* --- Screen: month columns & status glyphs --- */
+.dl-month-col { text-align: center; }
+.dl-due-col { text-align: center; }
+.dl-paid {
+    color: var(--success, #059669);
+    font-weight: 700;
+}
+.dl-unpaid {
+    color: var(--danger, #dc2626);
+    font-weight: 700;
+}
+
+/* --- Print / PDF export: A4 LANDSCAPE single-document layout --- */
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+
+  html, body {
+    background: #fff !important;
+    font-size: 9.5pt;
+  }
+
+  /* Letterhead (shared partial) — compact for wide paper */
+  .defaulter-print-sheet .print-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1.5pt solid #000;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+  }
+  .defaulter-print-sheet .print-brand-logo img {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+  }
+  .defaulter-print-sheet .print-brand-logo span { font-size: 30pt; }
+  .defaulter-print-sheet .print-brand-name {
+    margin: 0;
+    font-size: 15pt;
+    color: #000;
+  }
+  .defaulter-print-sheet .print-brand-phone {
+    margin: 1px 0 0;
+    font-size: 9pt;
+    color: #333;
+  }
+
+  /* Document title line under the letterhead */
+  .print-doc-line {
+    margin: 0 0 8px;
+    padding-bottom: 5px;
+    border-bottom: 0.75pt solid #999;
+    font-size: 9.5pt;
+    color: #000;
+  }
+
+  /* Sheet container */
+  .defaulter-print-sheet {
+    background: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Matrix table — compact so ~28 rows fit per landscape page */
+  .defaulter-print-sheet .dl-matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    color: #000;
+  }
+  .defaulter-print-sheet .dl-matrix-table th {
+    background: none !important;
+    color: #000 !important;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    padding: 4px 4px;
+    border-top: 1pt solid #000;
+    border-bottom: 1pt solid #000;
+    text-align: left;
+  }
+  .defaulter-print-sheet .dl-matrix-table th.dl-month-col { text-align: center; width: 22px; }
+  .defaulter-print-sheet .dl-matrix-table td {
+    padding: 3px 4px;
+    border-bottom: 0.5pt solid #ccc;
+    color: #000 !important;
+    page-break-inside: avoid;
+  }
+  .defaulter-print-sheet .dl-matrix-table td strong { color: #000 !important; }
+  .defaulter-print-sheet .dl-matrix-table tr { page-break-inside: avoid; }
+  .defaulter-print-sheet .dl-matrix-table thead { display: table-header-group; }
+
+  /* Status glyphs keep their colors on paper */
+  .defaulter-print-sheet .dl-paid,
+  .defaulter-print-sheet .dl-unpaid {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Footer summary + signature strip */
+  .print-doc-summary {
+    margin: 10px 0 18px;
+    font-size: 9pt;
+    color: #000;
+  }
+  .print-signatures {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 26px;
+    padding-top: 8px;
+    font-size: 9pt;
+    color: #000;
+  }
+}

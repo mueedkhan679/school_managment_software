@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ title }} — School Management System{% endblock %}
+{% block title %}{{ title }} — {{ school_name }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container" style="max-width: 860px; margin: 0 auto;">
@@ -102,6 +102,15 @@
                         <div class="form-error">{{ form.custom_monthly_fee.errors.0 }}</div>
                     {% endif %}
                     <small class="form-help">{{ form.custom_monthly_fee.help_text }}</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.admission_fee.id_for_label }}">{{ form.admission_fee.label }}</label>
+                    {{ form.admission_fee }}
+                    {% if form.admission_fee.errors %}
+                        <div class="form-error">{{ form.admission_fee.errors.0 }}</div>
+                    {% endif %}
+                    <small class="form-help">{{ form.admission_fee.help_text }}</small>
                 </div>
             </div>
 

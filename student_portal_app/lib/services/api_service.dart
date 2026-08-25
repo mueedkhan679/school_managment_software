@@ -152,6 +152,17 @@ class ApiService {
     return _processResponse(response);
   }
 
+  /// POSTs a scanned dashboard QR token to check the logged-in teacher in.
+  Future<Map<String, dynamic>> scanTeacherAttendance(String qrToken) async {
+    final url = Uri.parse('$baseUrl/api/v1/teacher/attendance/scan/');
+    final response = await http.post(
+      url,
+      headers: await _getHeaders(requireAuth: true),
+      body: jsonEncode({'token': qrToken}),
+    );
+    return _processResponse(response);
+  }
+
   Future<Map<String, dynamic>> getTeacherSalary({int? year}) async {
     var endpoint = '$baseUrl/api/v1/teacher/salary/';
     if (year != null) {

@@ -4,15 +4,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login — School Management System</title>
+    <title>Sign In — {{ school_name }}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <style>
+        /* ---------- Modern Login Redesign (scoped to this page) ---------- */
+        body.login-body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+        }
+        body.login-body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(600px circle at 15% 20%, rgba(96, 165, 250, 0.18), transparent 45%),
+                radial-gradient(520px circle at 85% 80%, rgba(52, 211, 153, 0.12), transparent 45%);
+            pointer-events: none;
+        }
+
+        .login-card {
+            position: relative;
+            width: 100%;
+            max-width: 430px;
+            margin: 0;
+            background: rgba(255, 255, 255, 0.98);
+            border: none;
+            border-radius: 22px;
+            box-shadow: 0 24px 64px rgba(2, 6, 23, 0.45);
+            padding: 40px 36px 30px;
+            animation: fadeUp 0.45s ease;
+        }
+
+        /* Brand header */
+        .login-brand { text-align: center; margin-bottom: 26px; }
+        .login-brand-logo {
+            width: 86px; height: 86px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            box-shadow: inset 0 0 0 1px #bfdbfe, 0 10px 24px rgba(37, 99, 235, 0.18);
+            overflow: hidden;
+        }
+        .login-brand-logo img { width: 66px; height: 66px; object-fit: contain; }
+        .login-brand .login-logo { font-size: 44px; }
+        .login-brand h1 { font-size: 21px; margin: 14px 0 4px; color: #0f172a; letter-spacing: -0.01em; }
+        .login-tagline {
+            margin: 0; display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 999px;
+            background: #eff6ff; color: #1d4ed8;
+            font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+
+        /* Floating-label icon fields */
+        .lgi-field { position: relative; margin-bottom: 16px; }
+        .lgi-input {
+            width: 100%; height: 56px;
+            padding: 20px 46px 4px 44px;
+            border: 1.5px solid #e2e8f0; border-radius: 13px;
+            background: #f8fafc; color: #0f172a; font-size: 15px;
+            outline: none;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+        .lgi-input:focus {
+            border-color: #2563eb; background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+        .lgi-icon {
+            position: absolute; left: 15px; top: 17px;
+            font-size: 16px; opacity: 0.7; pointer-events: none;
+        }
+        .lgi-label {
+            position: absolute; left: 45px; top: 16px;
+            color: #94a3b8; font-size: 14.5px; pointer-events: none;
+            transition: top 0.16s ease, font-size 0.16s ease, color 0.16s ease, letter-spacing 0.16s ease;
+        }
+        .lgi-input:focus ~ .lgi-label,
+        .lgi-input:not(:placeholder-shown) ~ .lgi-label {
+            top: 7px; font-size: 10.5px; font-weight: 700;
+            color: #2563eb; text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .lgi-input.has-error { border-color: #dc2626; }
+        .lgi-field .field-error { margin-top: 5px; font-size: 12.5px; color: #dc2626; }
+
+        /* Show/hide password toggle */
+        .lgi-toggle {
+            position: absolute; right: 9px; top: 50%;
+            transform: translateY(calc(-50% + 4px));
+            border: none; background: transparent; cursor: pointer;
+            font-size: 16px; line-height: 1; opacity: 0.65;
+            padding: 7px; border-radius: 9px;
+            transition: opacity 0.15s ease, background 0.15s ease;
+        }
+        .lgi-toggle:hover { opacity: 1; background: #eef2ff; }
+
+        /* Remember me row */
+        .lgi-row { display: flex; align-items: center; margin: 2px 0 20px; }
+        .lgi-check {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: #475569; font-size: 13.5px; font-weight: 600;
+            cursor: pointer; user-select: none;
+        }
+        .lgi-check input[type="checkbox"] {
+            width: 17px; height: 17px; accent-color: #2563eb; cursor: pointer;
+        }
+        .lgi-hint { margin-left: auto; font-size: 12px; color: #94a3b8; }
+
+        /* Sign-in button with loading state */
+        .btn-signin {
+            width: 100%; height: 52px;
+            border: none; border-radius: 13px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff; font-size: 15.5px; font-weight: 700;
+            box-shadow: 0 12px 26px rgba(37, 99, 235, 0.35);
+            transition: transform 0.15s ease, filter 0.15s ease;
+        }
+        .btn-signin:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+        .btn-signin:active:not(:disabled) { transform: translateY(0); }
+        .btn-signin:disabled { opacity: 0.75; cursor: progress; transform: none; }
+        .spinner {
+            width: 18px; height: 18px; border-radius: 50%;
+            border: 2.5px solid rgba(255, 255, 255, 0.35); border-top-color: #fff;
+            animation: lgn-spin 0.7s linear infinite; display: none;
+        }
+        .btn-signin.is-loading .spinner { display: inline-block; }
+        @keyframes lgn-spin { to { transform: rotate(360deg); } }
+
+        .login-foot { margin: 20px 0 0; text-align: center; font-size: 12px; color: #94a3b8; }
+
+        @media (max-width: 480px) {
+            .login-card { padding: 30px 22px 24px; border-radius: 18px; }
+        }
+    </style>
 </head>
 <body class="login-body">
     <div class="login-card">
         <div class="login-brand">
-            <span class="login-logo" aria-hidden="true">🎓</span>
-            <h1>School Manager</h1>
-            <p>School Management Software — Admin</p>
+            {% if school_logo %}
+                <span class="login-brand-logo"><img src="{{ school_logo.url }}" alt="{{ school_name }} logo"></span>
+            {% else %}
+                <span class="login-brand-logo"><span class="login-logo" aria-hidden="true">🎓</span></span>
+            {% endif %}
+            <h1>{{ school_name }}</h1>
+            <p class="login-tagline"><span aria-hidden="true">🛡️</span> Admin &amp; Staff Portal</p>
         </div>
 
         {% if messages %}
@@ -29,28 +167,66 @@
             </div>
         {% endif %}
 
-        <form method="post" action="{% url 'accounts:login' %}" novalidate>
+        <form method="post" action="{% url 'accounts:login' %}" id="loginForm" novalidate>
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}">
-            <div class="field">
-                <label for="id_username">Username</label>
+
+            <div class="lgi-field">
                 <input type="text" name="username" id="id_username"
                        value="{{ form.username.value|default_if_none:'' }}"
-                       class="input" autocomplete="username" autofocus required>
+                       class="lgi-input{% if form.username.errors %} has-error{% endif %}"
+                       placeholder=" " autocomplete="username" autofocus required>
+                <label class="lgi-label" for="id_username">Username</label>
+                <span class="lgi-icon" aria-hidden="true">👤</span>
                 {% if form.username.errors %}<span class="field-error">{{ form.username.errors.0 }}</span>{% endif %}
             </div>
-            <div class="field">
-                <label for="id_password">Password</label>
+            <div class="lgi-field">
                 <input type="password" name="password" id="id_password"
-                       class="input" autocomplete="current-password" required>
+                       class="lgi-input{% if form.password.errors %} has-error{% endif %}"
+                       placeholder=" " autocomplete="current-password" required>
+                <label class="lgi-label" for="id_password">Password</label>
+                <span class="lgi-icon" aria-hidden="true">🔒</span>
+                <button type="button" id="togglePassword" class="lgi-toggle"
+                        aria-label="Show password" aria-pressed="false">👁️</button>
                 {% if form.password.errors %}<span class="field-error">{{ form.password.errors.0 }}</span>{% endif %}
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+
+            <div class="lgi-row">
+                <label class="lgi-check" for="id_remember_me">
+                    <input type="checkbox" name="remember_me" id="id_remember_me">
+                    <span>Remember me for 2 weeks</span>
+                </label>
+                <span class="lgi-hint">Authorized staff only</span>
+            </div>
+
+            <button type="submit" class="btn-signin" id="signinBtn">
+                <span class="spinner" aria-hidden="true"></span>
+                <span class="btn-signin-text">Sign In</span>
+            </button>
         </form>
 
-        {% if show_default_hint %}
-            <p class="login-hint">Default credentials: <code>admin</code> / <code>admin123</code></p>
-        {% endif %}
+        <p class="login-foot"><span aria-hidden="true">🔐</span> Secured session &bull; CSRF protected</p>
     </div>
+
+    <script>
+        (function () {
+            var pwd = document.getElementById('id_password');
+            var toggle = document.getElementById('togglePassword');
+            toggle.addEventListener('click', function () {
+                var show = pwd.type === 'password';
+                pwd.type = show ? 'text' : 'password';
+                toggle.textContent = show ? '🙈' : '👁️';
+                toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
+                toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            });
+
+            document.getElementById('loginForm').addEventListener('submit', function () {
+                var btn = document.getElementById('signinBtn');
+                btn.classList.add('is-loading');
+                btn.disabled = true;
+                btn.querySelector('.btn-signin-text').textContent = 'Signing In…';
+            });
+        })();
+    </script>
 </body>
 </html>

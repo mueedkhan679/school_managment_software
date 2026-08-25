@@ -332,3 +332,102 @@ class StudentManagementTestCase(TestCase):
 
         self.student.refresh_from_db()
         self.assertTrue(self.student.is_active)
+
+
+class AdmissionFeeTests(TestCase):
+    """Optional Admission Fee field during registration + persistence/tracking."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="admin_user",
+            password="adminpassword123",
+            role=Role.ADMIN,
+        )
+        self.cls1, _ = SchoolClass.objects.get_or_create(
+            name="Class 1",
+            defaults={"order": 1, "monthly_fee": Decimal("1500.00")},
+        )
+
+    def _payload(self, **overrides):
+        data = {
+            "name": "Hassan Raza",
+            "father_name": "Raza Ali",
+            "school_class": self.cls1.id,
+            "date_of_birth": "2016-01-15",
+            "gender": "M",
+        }
+        data.update(overrides)
+        return data
+
+    def test_registration_form_includes_admission_fee_field(self):
+        """The registration form renders the optional Admission Fee input."""
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("students:create"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'name="admission_fee"')
+        self.assertContains(resp, "Admission Fee")
+
+    def test_create_with_admission_fee_records_amount_on_student(self):
+        """Entering an admission fee tracks it as a payment on the student."""
+        self.client.force_login(self.admin)
+        resp = self.client.post(
+            reverse("students:create"),
+            data=self._payload(admission_fee="5000.00"),
+        )
+        self.assertEqual(resp.status_code, 302)
+        student = Student.objects.get(name="Hassan Raza")
+        self.assertEqual(student.admission_fee, Decimal("5000.00"))
+
+    def test_admission_fee_is_optional_defaults_to_none(self):
+        """Leaving the field blank registers the student with no admission fee."""
+        self.client.force_login(self.admin)
+        resp = self.client.post(reverse("students:create"), data=self._payload())
+        self.assertEqual(resp.status_code, 302)
+        student = Student.objects.get(name="Hassan Raza")
+        self.assertIsNone(student.admission_fee)
+
+    def test_negative_admission_fee_rejected(self):
+        """Negative amounts are blocked by validation; no student is created."""
+        self.client.force_login(self.admin)
+        resp = self.client.post(
+            reverse("students:create"),
+            data=self._payload(admission_fee="-100.00"),
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("admission_fee", resp.context["form"].errors)
+        self.assertFalse(Student.objects.filter(name="Hassan Raza").exists())
+
+    # ------------------ Student Profile Display ------------------
+
+    def _create_student_with_fee(self, amount):
+        return Student.objects.create(
+            name="Profile Kid",
+            father_name="Fee Checker",
+            school_class=self.cls1,
+            date_of_birth=date(2015, 3, 3),
+            gender=Gender.MALE,
+            is_active=True,
+            admission_fee=amount,
+        )
+
+    def test_detail_page_shows_recorded_admission_fee(self):
+        """Web profile shows the amount when an admission fee exists."""
+        student = self._create_student_with_fee(Decimal("5000.00"))
+        self.client.force_login(self.admin)
+        resp = self.client.get(
+            reverse("students:detail", kwargs={"student_id": student.student_id})
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Admission Fee")
+        self.assertContains(resp, "Rs 5000.00")
+
+    def test_detail_page_shows_na_when_admission_fee_waived(self):
+        """Web profile shows N/A / Free-Waived when no fee is set."""
+        student = self._create_student_with_fee(None)
+        self.client.force_login(self.admin)
+        resp = self.client.get(
+            reverse("students:detail", kwargs={"student_id": student.student_id})
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Free / Waived")
+        self.assertContains(resp, "N/A")

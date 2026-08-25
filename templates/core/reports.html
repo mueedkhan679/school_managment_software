@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Financial Reports & Analytics — School Management System{% endblock %}
+{% block title %}Financial Reports & Analytics — {{ school_name }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
@@ -21,15 +21,9 @@
 
     <!-- Official Printable Report Header (Visible on print) -->
     <div class="print-only" style="display: none; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-            <div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 800;">SCHOOL MANAGEMENT SYSTEM</h1>
-                <p style="margin: 4px 0 0; color: #444; font-size: 13px;">Official Financial Audit & Accounts Statement &bull; Academic Year {{ selected_year }}</p>
-            </div>
-            <div style="text-align: right; font-size: 12px; color: #555;">
-                Generated on: <strong>{{ today_date|date:"F j, Y" }}</strong>
-            </div>
-        </div>
+        {% include "partials/print_header.html" %}
+        <p style="margin: 8px 0 4px; color: #444; font-size: 13px;">Official Financial Audit & Accounts Statement &bull; Academic Year {{ selected_year }}</p>
+        <div style="font-size: 12px; color: #555;">Generated on: <strong>{{ today_date|date:"F j, Y" }}</strong></div>
     </div>
 
     <!-- Filters Panel (Hidden on print) -->

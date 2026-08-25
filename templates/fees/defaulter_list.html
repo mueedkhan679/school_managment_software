@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Defaulter List {{ report_year }} — {{ school_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <a href="{% url 'fees:list' %}" class="btn btn-ghost btn-xs">&larr; Fee Management</a>
+            </div>
+            <h1 class="dashboard-title">Defaulter List {{ report_year }}</h1>
+            <p class="dashboard-subtitle">
+                Month-by-month payment matrix for <strong>{{ scope_label }}</strong> &bull;
+                <span class="dl-paid">✔</span> Paid&nbsp; / &nbsp;<span class="dl-unpaid">✖</span> Unpaid / Defaulter
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="{% url 'fees:defaulter_list_print' %}?{% if selected_class %}class_id={{ selected_class.pk }}&amp;{% endif %}year={{ report_year }}"
+               target="_blank" rel="noopener" class="btn btn-primary">
+                <span aria-hidden="true">🖨️</span> Download PDF / Print
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo-light"><span aria-hidden="true">👥</span></div>
+            <div class="stat-details">
+                <span class="stat-label">Students In Scope</span>
+                <span class="stat-value">{{ total_students }}</span>
+                <span class="stat-hint">{{ scope_label }}</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-red-light"><span aria-hidden="true">⚠️</span></div>
+            <div class="stat-details">
+                <span class="stat-label">Defaulters</span>
+                <span class="stat-value">{{ defaulter_count }}</span>
+                <span class="stat-hint">At least one unpaid month</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-emerald-light"><span aria-hidden="true">✅</span></div>
+            <div class="stat-details">
+                <span class="stat-label">Fully Paid (12/12)</span>
+                <span class="stat-value">{{ cleared_count }}</span>
+                <span class="stat-hint">No dues for {{ report_year }}</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-teal-light"><span aria-hidden="true">🗓️</span></div>
+            <div class="stat-details">
+                <span class="stat-label">Academic Year</span>
+                <span class="stat-value">{{ report_year }}</span>
+                <span class="stat-hint">January – December</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refine Filters -->
+    <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
+        <form method="get" action="{% url 'fees:defaulter_list' %}" class="filter-form">
+            <div class="filter-row">
+                <div class="filter-col">
+                    <label class="filter-lbl" for="dl-class-select">Class</label>
+                    <select name="class_id" id="dl-class-select" class="form-control">
+                        <option value="">All Classes</option>
+                        {% for c in classes %}
+                            <option value="{{ c.pk }}" {% if selected_class and selected_class.pk == c.pk %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-col">
+                    <label class="filter-lbl" for="dl-year-select">Academic Year</label>
+                    <select name="year" id="dl-year-select" class="form-control">
+                        {% for y in available_years %}
+                            <option value="{{ y }}" {% if y == report_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-col" style="align-self: flex-end;">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Month-by-Month Matrix Table -->
+    <div class="panel" style="padding: 0; overflow: hidden;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border);">
+            <h3 style="margin: 0; font-size: 16px;"><span aria-hidden="true">📊</span> Fee Status Matrix — {{ scope_label }} ({{ report_year }})</h3>
+            <span class="text-sm text-muted">{{ total_students }} student{{ total_students|pluralize }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table dl-matrix-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student Name</th>
+                        <th>Father Name</th>
+                        <th>Class</th>
+                        {% for mh in month_headers %}
+                            <th class="dl-month-col" title="{{ mh.name }} {{ report_year }}">{{ mh.name }}</th>
+                        {% endfor %}
+                        <th class="dl-due-col">Unpaid</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td class="text-muted">{{ forloop.counter }}</td>
+                            <td><strong>{{ row.student.name }}</strong></td>
+                            <td>{{ row.student.father_name }}</td>
+                            <td><span class="badge badge-outline">{{ row.student.school_class.name }}</span></td>
+                            {% for m in row.months %}
+                                <td style="text-align: center;" title="{{ m.name }} {{ report_year }}">
+                                    {% if m.paid %}<span class="dl-paid">✔</span>{% else %}<span class="dl-unpaid">✖</span>{% endif %}
+                                </td>
+                            {% endfor %}
+                            <td style="text-align: center;">
+                                {% if row.unpaid_count == 0 %}
+                                    <span class="badge badge-success">Clear</span>
+                                {% else %}
+                                    <span class="badge badge-warning">{{ row.unpaid_count }} due</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="17" class="text-center text-muted" style="padding: 40px 20px;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
+                                <p style="margin: 0 0 6px;"><strong>No active students found for this selection.</strong></p>
+                                <p class="text-sm text-muted">Try choosing “All Classes”.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

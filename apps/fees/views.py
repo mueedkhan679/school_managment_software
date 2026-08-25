@@ -16,6 +16,52 @@ from .forms import StudentFeeForm
 from .models import FeeStatus, StudentFee
 
 
+def _build_defaulter_matrix(students, year):
+    """Build month-by-month paid/unpaid matrix rows for the given students.
+
+    Every active student appears exactly once with all 12 months of ``year``
+    present: a month counts as PAID only when a PAID fee record exists,
+    otherwise it is flagged as unpaid/defaulter. Returns ``(rows, summary)``
+    where *rows* are template-ready dicts and *summary* carries aggregate
+    counts for the stat cards / print footer.
+    """
+    year_fees = StudentFee.objects.filter(
+        student__in=students, fee_year=year, status=FeeStatus.PAID
+    ).values_list("student_id", "fee_month")
+    paid_lookup = {}
+    for student_id, fee_month in year_fees:
+        paid_lookup.setdefault(student_id, set()).add(fee_month)
+
+    defaulter_count = 0
+    cleared_count = 0
+    rows = []
+    for student in students:
+        paid_months = paid_lookup.get(student.pk, set())
+        months = [
+            {"num": num, "name": MONTHS_MAP[num][:3], "paid": num in paid_months}
+            for num in range(1, 13)
+        ]
+        unpaid_count = 12 - len(paid_months)
+        if unpaid_count:
+            defaulter_count += 1
+        else:
+            cleared_count += 1
+        rows.append(
+            {
+                "student": student,
+                "months": months,
+                "unpaid_count": unpaid_count,
+            }
+        )
+
+    summary = {
+        "total_students": len(rows),
+        "defaulter_count": defaulter_count,
+        "cleared_count": cleared_count,
+    }
+    return rows, summary
+
+
 @admin_required
 def fee_list(request):
     """List all student fee records with search and multi-criteria filtering."""
@@ -181,8 +227,15 @@ def fee_update(request, pk):
 @admin_required
 @require_POST
 def fee_delete(request, pk):
-    """Delete a fee payment record."""
-    fee = get_object_or_404(StudentFee, pk=pk)
+    """Delete a fee payment record (missing records redirect with an error flash)."""
+    try:
+        fee = StudentFee.objects.select_related("student").get(pk=pk)
+    except StudentFee.DoesNotExist:
+        messages.error(
+            request,
+            f"Fee record #{pk} was not found. It may have already been deleted.",
+        )
+        return redirect("fees:list")
     student_name = fee.student.name
     month_display = fee.get_fee_month_display()
     year = fee.fee_year
@@ -249,3 +302,59 @@ def api_student_fee_info(request, student_id):
         "paid_months": paid_months,
     }
     return JsonResponse(data)
+
+
+def _defaulter_report_context(request):
+    """Shared GET parsing + matrix building for the defaulter list views."""
+    now = timezone.now()
+    year_param = request.GET.get("year", "").strip()
+    class_param = request.GET.get("class_id", "").strip()
+
+    report_year = now.year
+    if year_param.isdigit() and 2000 <= int(year_param) <= now.year + 1:
+        report_year = int(year_param)
+
+    selected_class = None
+    if class_param.isdigit():
+        selected_class = SchoolClass.objects.filter(pk=int(class_param)).first()
+
+    students = Student.objects.filter(is_active=True).select_related("school_class")
+    if selected_class:
+        students = students.filter(school_class=selected_class)
+    students = students.order_by("school_class__order", "school_class__id", "student_id")
+
+    rows, summary = _build_defaulter_matrix(students, report_year)
+
+    scope_label = selected_class.name if selected_class else "All Classes"
+    classes = SchoolClass.objects.order_by("order", "id")
+    available_years = list(range(now.year - 2, now.year + 2))
+
+    month_headers = [
+        {"num": num, "name": MONTHS_MAP[num][:3]} for num in range(1, 13)
+    ]
+
+    return {
+        "rows": rows,
+        "month_headers": month_headers,
+        "report_year": report_year,
+        "selected_class": selected_class,
+        "scope_label": scope_label,
+        "classes": classes,
+        "available_years": available_years,
+        **summary,
+    }
+
+
+@admin_required
+def defaulter_list(request):
+    """Class-wise fee defaulter matrix (Jan-Dec) for the academic year."""
+    context = _defaulter_report_context(request)
+    return render(request, "fees/defaulter_list.html", context)
+
+
+@admin_required
+def defaulter_list_print(request):
+    """Print/PDF-ready A4 landscape version of the defaulter list report."""
+    context = _defaulter_report_context(request)
+    context["generated_at"] = timezone.now()
+    return render(request, "fees/defaulter_list_print.html", context)

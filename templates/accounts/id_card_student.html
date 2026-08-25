@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}
-    {% if single %}Student ID Card — {{ students.0.name }}{% else %}Student ID Cards — Batch Print{% endif %} — School Management System
+    {% if single %}Student ID Card — {{ students.0.name }}{% else %}Student ID Cards — Batch Print{% endif %} — {{ school_name }}
 {% endblock %}
 
 {% block content %}
@@ -45,9 +45,13 @@
         <div class="id-card id-card-student">
             <!-- Card Header -->
             <div class="id-card-header">
-                <div class="id-card-school-logo">🎓</div>
+                {% if school_logo %}
+                    <img src="{{ school_logo.url }}" alt="{{ school_name }}" class="id-card-school-logo-img">
+                {% else %}
+                    <div class="id-card-school-logo">🎓</div>
+                {% endif %}
                 <div>
-                    <div class="id-card-school-name">SCHOOL MANAGEMENT SYSTEM</div>
+                    <div class="id-card-school-name">{{ school_name }}</div>
                     <div class="id-card-school-subtitle">Student Identity Card</div>
                 </div>
             </div>
