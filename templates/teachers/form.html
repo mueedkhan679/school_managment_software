@@ -24,9 +24,13 @@
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
 
-            {% if form.non_field_errors %}
-                <div class="alert alert-error">
-                    {{ form.non_field_errors }}
+            {% if form.errors %}
+                <div class="alert alert-error" role="alert">
+                    <strong>The teacher was not saved.</strong>
+                    Please correct the highlighted errors below and submit again.
+                    {% if form.non_field_errors %}
+                        <div>{{ form.non_field_errors }}</div>
+                    {% endif %}
                 </div>
             {% endif %}
 
@@ -40,7 +44,7 @@
                     <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
                     {{ form.name }}
                     {% if form.name.errors %}
-                        <div class="form-error">{{ form.name.errors.0 }}</div>
+                        <div class="alert alert-error form-error">{{ form.name.errors.0 }}</div>
                     {% endif %}
                 </div>
 
@@ -48,7 +52,7 @@
                     <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
                     {{ form.phone }}
                     {% if form.phone.errors %}
-                        <div class="form-error">{{ form.phone.errors.0 }}</div>
+                        <div class="alert alert-error form-error">{{ form.phone.errors.0 }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -58,7 +62,7 @@
                     <label for="{{ form.cnic.id_for_label }}">{{ form.cnic.label }}</label>
                     {{ form.cnic }}
                     {% if form.cnic.errors %}
-                        <div class="form-error">{{ form.cnic.errors.0 }}</div>
+                        <div class="alert alert-error form-error">{{ form.cnic.errors.0 }}</div>
                     {% endif %}
                 </div>
 
@@ -66,7 +70,7 @@
                     <label for="{{ form.monthly_salary.id_for_label }}">{{ form.monthly_salary.label }}</label>
                     {{ form.monthly_salary }}
                     {% if form.monthly_salary.errors %}
-                        <div class="form-error">{{ form.monthly_salary.errors.0 }}</div>
+                        <div class="alert alert-error form-error">{{ form.monthly_salary.errors.0 }}</div>
                     {% endif %}
                     <small class="form-help">{{ form.monthly_salary.help_text }}</small>
                 </div>
@@ -76,7 +80,7 @@
                 <label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>
                 {{ form.address }}
                 {% if form.address.errors %}
-                    <div class="form-error">{{ form.address.errors.0 }}</div>
+                    <div class="alert alert-error form-error">{{ form.address.errors.0 }}</div>
                 {% endif %}
             </div>
 
@@ -88,10 +92,19 @@
             </div>
 
             <div class="form-group">
+                <label for="{{ form.assigned_class.id_for_label }}">{{ form.assigned_class.label }}</label>
+                {{ form.assigned_class }}
+                {% if form.assigned_class.errors %}
+                    <div class="alert alert-error form-error">{{ form.assigned_class.errors }}</div>
+                {% endif %}
+                <small class="form-help">{{ form.assigned_class.help_text }}</small>
+            </div>
+
+            <div class="form-group">
                 <label for="{{ form.assigned_classes.id_for_label }}">{{ form.assigned_classes.label }}</label>
                 {{ form.assigned_classes }}
                 {% if form.assigned_classes.errors %}
-                    <div class="form-error">{{ form.assigned_classes.errors.0 }}</div>
+                    <div class="alert alert-error form-error">{{ form.assigned_classes.errors.0 }}</div>
                 {% endif %}
                 <small class="form-help">Select the classes taught by this teacher (hold Ctrl on Windows to select multiple).</small>
             </div>
@@ -113,7 +126,7 @@
                 <label for="{{ form.picture.id_for_label }}">{{ form.picture.label }}</label>
                 {{ form.picture }}
                 {% if form.picture.errors %}
-                    <div class="form-error">{{ form.picture.errors.0 }}</div>
+                    <div class="alert alert-error form-error">{{ form.picture.errors.0 }}</div>
                 {% endif %}
                 <small class="form-help">{{ form.picture.help_text }}</small>
             </div>
@@ -129,7 +142,7 @@
                     <label for="{{ form.cnic_front_pic.id_for_label }}">{{ form.cnic_front_pic.label }}</label>
                     {{ form.cnic_front_pic }}
                     {% if form.cnic_front_pic.errors %}
-                        <div class="form-error">{{ form.cnic_front_pic.errors.0 }}</div>
+                        <div class="alert alert-error form-error">{{ form.cnic_front_pic.errors.0 }}</div>
                     {% endif %}
                 </div>
 
@@ -143,7 +156,7 @@
                     <label for="{{ form.cnic_back_pic.id_for_label }}">{{ form.cnic_back_pic.label }}</label>
                     {{ form.cnic_back_pic }}
                     {% if form.cnic_back_pic.errors %}
-                        <div class="form-error">{{ form.cnic_back_pic.errors.0 }}</div>
+                        <div class="alert alert-error form-error">{{ form.cnic_back_pic.errors.0 }}</div>
                     {% endif %}
                 </div>
             </div>

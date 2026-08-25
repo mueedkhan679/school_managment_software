@@ -1,4 +1,5 @@
 import os
+import re
 from decimal import Decimal
 from django import forms
 from django.core.exceptions import ValidationError
@@ -10,6 +11,35 @@ from .models import SalaryStatus, Teacher, TeacherSalary
 
 ALLOWED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"]
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+
+CNIC_PATTERN = re.compile(r"^\d{5}-\d{7}-\d$")
+PHONE_DIGITS_PATTERN = re.compile(r"^\d{10,13}$")
+
+
+def validate_cnic_format(value):
+    """Optional CNIC: when provided, must be 13 digits formatted 00000-0000000-0.
+
+    Spaces are tolerated and stripped before validation so copy-pasted values
+    fail loudly with a clear message instead of being stored in a bad shape.
+    """
+    if not value:
+        return value
+    normalized = re.sub(r"\s+", "", str(value))
+    if not CNIC_PATTERN.match(normalized):
+        raise ValidationError(
+            "CNIC must contain exactly 13 digits formatted like 35201-1234567-1."
+        )
+    return normalized
+
+
+def validate_phone_number(value):
+    """Required phone: tolerate spaces/dashes/brackets but require 10-13 digits."""
+    digits = re.sub(r"[\s\-()+]", "", str(value or ""))
+    if not PHONE_DIGITS_PATTERN.match(digits):
+        raise ValidationError(
+            "Enter a valid phone number containing 10-13 digits (e.g. 0300-1234567)."
+        )
+    return str(value).strip()
 
 
 def validate_uploaded_image(image_file):
@@ -132,6 +162,12 @@ class TeacherForm(forms.ModelForm):
         if salary is not None and salary <= Decimal("0.00"):
             raise ValidationError("Monthly salary must be greater than zero.")
         return salary
+
+    def clean_phone(self):
+        return validate_phone_number(self.cleaned_data.get("phone"))
+
+    def clean_cnic(self):
+        return validate_cnic_format(self.cleaned_data.get("cnic"))
 
     def save(self, commit=True):
         instance = super().save(commit=commit)
