@@ -9,7 +9,7 @@ from apps.accounts.decorators import admin_required
 from apps.students.models import Student
 from apps.teachers.models import Teacher, TeacherSalary, TeacherAttendance
 from apps.classrooms.models import SchoolClass
-from apps.attendance.models import Attendance, QRToken
+from apps.attendance.models import Attendance
 from apps.fees.models import StudentFee
 from apps.core.models import Sequence
 
@@ -32,7 +32,6 @@ def system_reset(request):
                 TeacherSalary.objects.all().delete()
                 Attendance.objects.all().delete()
                 TeacherAttendance.objects.all().delete()
-                QRToken.objects.all().delete()
                 
                 Student.objects.all().delete()
                 Teacher.objects.all().delete()
