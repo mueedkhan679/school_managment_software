@@ -89,29 +89,27 @@
         </div>
 
         <!-- Metric: Teacher QR Check-in (compact live card) -->
-        <div class="dash-metric-card" id="teacherQrCard">
-            <div style="display: flex; align-items: center; gap: 14px;">
-                <a href="{% url 'teachers:attendance_qr_png' %}" target="_blank" rel="noopener" title="Open QR image">
-                    <img id="qrImgMini" src="{% url 'teachers:attendance_qr_png' %}"
-                         alt="Teacher check-in QR" width="84" height="84"
-                         style="border-radius: 10px; background: #fff; padding: 4px; border: 1px solid var(--border);">
-                </a>
-                <div class="dash-metric-body">
-                    <span class="dash-metric-label">Teacher QR Check-in
-                        <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #15803d; font-size: 10px; font-weight: 800; text-transform: uppercase;">
-                            <span id="qrLiveDot" style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block;"></span>Live
-                        </span>
+        <div class="dash-metric-card" id="teacherQrCard" style="flex-direction: column; align-items: center; text-align: center;">
+            <a href="{% url 'teachers:attendance_qr_png' %}" target="_blank" rel="noopener" title="Open QR image">
+                <img id="qrImgMini" src="{% url 'teachers:attendance_qr_png' %}"
+                     alt="Teacher check-in QR" width="140" height="140"
+                     style="border-radius: 12px; background: #fff; padding: 6px; border: 1px solid var(--border);">
+            </a>
+            <div class="dash-metric-body" style="align-items: center;">
+                <span class="dash-metric-label">Teacher QR Check-in
+                    <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #15803d; font-size: 10px; font-weight: 800; text-transform: uppercase;">
+                        <span id="qrLiveDot" style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block;"></span>Live
                     </span>
-                    <span class="dash-metric-value" style="font-size: 18px;">
-                        <span id="qrPresentCount">–</span><small style="font-size: 12px; color: var(--text-muted);">/{{ total_teachers }}</small>
-                    </span>
-                    <span class="dash-metric-hint">present today</span>
-                    <span style="display: flex; gap: 6px; margin-top: 6px;">
-                        <button type="button" class="dash-icon-btn" title="Refresh code" onclick="window.DashboardQR.refresh()">↻</button>
-                        <button type="button" class="dash-icon-btn" title="Expand / Fullscreen" onclick="window.DashboardQR.expand()">⛶</button>
-                        <a class="dash-icon-btn" title="Open full page" href="{% url 'teachers:attendance_qr' %}" style="text-decoration: none;">↗</a>
-                    </span>
-                </div>
+                </span>
+                <span class="dash-metric-value" style="font-size: 18px;">
+                    <span id="qrPresentCount">–</span><small style="font-size: 12px; color: var(--text-muted);">/{{ total_teachers }}</small>
+                </span>
+                <span class="dash-metric-hint">present today</span>
+                <span style="display: flex; justify-content: center; gap: 6px; margin-top: 8px;">
+                    <button type="button" class="dash-icon-btn" title="Refresh code" onclick="window.DashboardQR.refresh()">↻</button>
+                    <button type="button" class="dash-icon-btn" title="Expand / Fullscreen" onclick="window.DashboardQR.expand()">⛶</button>
+                    <a class="dash-icon-btn" title="Open full page" href="{% url 'teachers:attendance_qr' %}" style="text-decoration: none;">↗</a>
+                </span>
             </div>
         </div>
     </div>
