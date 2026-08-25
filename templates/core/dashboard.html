@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Dashboard — {{ school_name }}{% endblock %}
 
 {% block content %}
@@ -86,6 +87,33 @@
                 <span class="dash-metric-hint">Income &minus; Expenses</span>
             </div>
         </div>
+
+        <!-- Metric: Teacher QR Check-in (compact live card) -->
+        <div class="dash-metric-card" id="teacherQrCard">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <a href="{% url 'teachers:attendance_qr_png' %}" target="_blank" rel="noopener" title="Open QR image">
+                    <img id="qrImgMini" src="{% url 'teachers:attendance_qr_png' %}"
+                         alt="Teacher check-in QR" width="84" height="84"
+                         style="border-radius: 10px; background: #fff; padding: 4px; border: 1px solid var(--border);">
+                </a>
+                <div class="dash-metric-body">
+                    <span class="dash-metric-label">Teacher QR Check-in
+                        <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #15803d; font-size: 10px; font-weight: 800; text-transform: uppercase;">
+                            <span id="qrLiveDot" style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block;"></span>Live
+                        </span>
+                    </span>
+                    <span class="dash-metric-value" style="font-size: 18px;">
+                        <span id="qrPresentCount">–</span><small style="font-size: 12px; color: var(--text-muted);">/{{ total_teachers }}</small>
+                    </span>
+                    <span class="dash-metric-hint">present today</span>
+                    <span style="display: flex; gap: 6px; margin-top: 6px;">
+                        <button type="button" class="dash-icon-btn" title="Refresh code" onclick="window.DashboardQR.refresh()">↻</button>
+                        <button type="button" class="dash-icon-btn" title="Expand / Fullscreen" onclick="window.DashboardQR.expand()">⛶</button>
+                        <a class="dash-icon-btn" title="Open full page" href="{% url 'teachers:attendance_qr' %}" style="text-decoration: none;">↗</a>
+                    </span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- SECONDARY SUMMARY TILES -->
@@ -100,7 +128,7 @@
         </div>
         <div class="dash-tile">
             <span class="dash-tile-ico dash-tile-cyan">📋</span>
-            <div><span class="dash-tile-label">Today's Attendance</span><span class="dash-tile-value">{{ attendance_percentage }}%</span></div>
+            <div><span class="dash-tile-label">Today's Attendance</span><span class="dash-tile-value" id="tileTodayPct">{{ attendance_percentage }}%</span></div>
         </div>
         <div class="dash-tile" onclick="scrollToSection('class-statistics-section')" title="Click to view all classes">
             <span class="dash-tile-ico dash-tile-indigo">🏫</span>
@@ -162,46 +190,28 @@
         {% endif %}
     </div>
 
-    <!-- TEACHER ATTENDANCE QR WIDGET -->
-    <div class="dash-card" id="teacher-qr-section">
-        <div class="dash-card-head">
-            <h3>🧾 Teacher Attendance QR</h3>
-            <span class="dash-card-badge">Rotates daily</span>
-        </div>
-        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px;">
-            <img id="teacherQrImg"
-                 src="{% url 'teachers:attendance_qr_png' %}"
-                 alt="Teacher attendance QR code"
-                 width="150" height="150"
-                 style="border: 1px solid var(--border); border-radius: 10px; padding: 6px; background: #fff;">
-            <div style="flex: 1; min-width: 220px;">
-                <p style="margin: 0 0 8px;">
-                    Teachers scan this code in the mobile app to check in as
-                    <strong>Present</strong>. The signed token is valid only for
-                    <strong>today</strong> and expires at midnight.
-                </p>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-outline btn-sm"
-                            onclick="(function(){var i=document.getElementById('teacherQrImg');i.src=i.src.split('?')[0]+'?t='+Date.now();})()">
-                        🔄 Refresh Code
-                    </button>
-                    <a href="{% url 'teachers:attendance_qr' %}" class="btn btn-primary btn-sm">
-                        🔍 Open Full View
-                    </a>
-                </div>
+    <!-- QR Expand / Fullscreen Modal -->
+    <div id="qrExpandOverlay" style="display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.88); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: #fff; border-radius: 18px; padding: 28px; text-align: center; max-width: 430px; box-shadow: 0 30px 80px rgba(0,0,0,.5);">
+            <h3 style="margin: 0 0 6px;">🧾 Teacher Check-in QR</h3>
+            <p class="text-sm text-muted" style="margin: 0 0 14px;">
+                Live &bull; auto-syncs every few seconds &bull;
+                <span id="qrModalPresent" class="badge badge-success">–</span> present today
+            </p>
+            <img id="qrImgLarge" src="{% url 'teachers:attendance_qr_png' %}"
+                 alt="Teacher check-in QR (large)" width="320" height="320"
+                 style="border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: #fff;">
+            <div style="margin-top: 18px; display: flex; justify-content: center; gap: 10px;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="window.DashboardQR.refresh()">↻ Refresh</button>
+                <a href="{% url 'teachers:attendance_qr' %}" class="btn btn-primary btn-sm">Open Full Page</a>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="window.DashboardQR.close()">✕ Close</button>
             </div>
         </div>
     </div>
-
     <script>
-        // Auto-refresh the QR image every 5 minutes so it stays current.
-        setInterval(function () {
-            var img = document.getElementById('teacherQrImg');
-            if (img && document.getElementById('teacher-qr-section')) {
-                img.src = img.src.split('?')[0] + '?t=' + Date.now();
-            }
-        }, 5 * 60 * 1000);
+        window.DASHBOARD_QR_URL = "{% url 'teachers:attendance_qr_png' %}";
     </script>
+    <script src="{% static 'js/dashboard.js' %}?v=1"></script>
 
     <!-- CHART ROW: Attendance Donut + Financial Line -->
     <div class="dash-charts-row">

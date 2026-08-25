@@ -472,3 +472,73 @@ class TeacherAttendanceScanView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class TeacherLatestScanView(APIView):
+    """GET /api/v1/teacher/attendance/latest-scan/
+    (alias: /api/v1/teachers/attendance/latest-scan/)
+
+    Lightweight polling feed for the admin dashboard QR widget. Returns the
+    most recent QR check-in of the day plus live counters so the UI can
+    refresh itself without a full page reload.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        today = timezone.localdate()
+
+        todays_scans = (
+            TeacherAttendance.objects.filter(date=today)
+            .select_related("teacher")
+            .order_by("-created_at", "-id")
+        )
+        latest = todays_scans.first()
+
+        latest_payload = None
+        if latest:
+            latest_payload = {
+                "id": latest.id,
+                "teacher_id": latest.teacher.teacher_id,
+                "name": latest.teacher.name,
+                "status": latest.status,
+                "source": latest.source,
+                "time_in": latest.time_in.strftime("%H:%M:%S")
+                if latest.time_in
+                else None,
+                "label": latest.time_in.strftime("%I:%M %p")
+                if latest.time_in
+                else "",
+            }
+
+        teacher_stats = {
+            "present": todays_scans.filter(status="PRESENT").count(),
+            "absent": todays_scans.filter(status="ABSENT").count(),
+            "leave": todays_scans.filter(status="LEAVE").count(),
+            "active_total": Teacher.objects.filter(is_active=True).count(),
+        }
+
+        # Refresh the student "Today's Attendance" tile alongside, since the
+        # dashboard displays it next to the QR widget.
+        student_records = Attendance.objects.filter(date=today)
+        s_present = student_records.filter(status=AttendanceStatus.PRESENT).count()
+        s_absent = student_records.filter(status=AttendanceStatus.ABSENT).count()
+        s_total = s_present + s_absent
+        s_rate = round((s_present / s_total) * 100, 1) if s_total else 0.0
+
+        return Response(
+            {
+                "status": "success",
+                "payload": {
+                    "latest": latest_payload,
+                    "teacher_stats": teacher_stats,
+                    "student_today": {
+                        "percentage": s_rate,
+                        "present": s_present,
+                        "absent": s_absent,
+                        "marked": s_total,
+                    },
+                },
+            },
+            status=status.HTTP_200_OK,
+        )

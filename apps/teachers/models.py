@@ -157,7 +157,8 @@ class TeacherAttendance(models.Model):
 
     class Source(models.TextChoices):
         QR_SCAN = "QR", "QR Scan"
-        MANUAL = "MANUAL", "Manual"
+        MANUAL = "MANUAL", "Manual Entry"
+        AUTO = "AUTO", "Auto-System"
 
     teacher = models.ForeignKey(
         Teacher,

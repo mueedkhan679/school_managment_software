@@ -8,6 +8,7 @@ from .views import (
     StudentProfileView,
     TeacherAttendanceScanView,
     TeacherAttendanceView,
+    TeacherLatestScanView,
     TeacherSalaryView,
 )
 
@@ -28,5 +29,8 @@ urlpatterns = [
     # Dynamic QR self check-in for teachers (POST)
     path("teacher/attendance/scan/", TeacherAttendanceScanView.as_view(), name="teacher-attendance-scan"),
     path("teachers/attendance/scan/", TeacherAttendanceScanView.as_view(), name="teachers-attendance-scan"),
+    # Real-time polling: latest scan + live counters (GET)
+    path("teacher/attendance/latest-scan/", TeacherLatestScanView.as_view(), name="teacher-latest-scan"),
+    path("teachers/attendance/latest-scan/", TeacherLatestScanView.as_view(), name="teachers-latest-scan"),
     path("teacher/salary/", TeacherSalaryView.as_view(), name="teacher-salary"),
 ]

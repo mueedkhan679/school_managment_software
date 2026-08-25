@@ -202,3 +202,58 @@ class TeacherAttendanceScanAPITests(APITestCase):
         self.assertIn(resp.status_code, (200, 201))
         self.assertEqual(resp.json()["status"], "success")
 
+
+class TeacherLatestScanAPITests(APITestCase):
+    """GET latest-scan polling feed for the dashboard QR widget."""
+
+    def setUp(self):
+        from datetime import datetime as _dt
+
+        self.admin = User.objects.create_user(
+            username="ls_admin", password="adminpassword123", role=Role.ADMIN,
+        )
+        self.teacher_user = User.objects.create_user(
+            username="ls_teacher", password="teacherpassword123", role=Role.TEACHER,
+        )
+        self.teacher = Teacher.objects.create(
+            name="Latest Scan Teacher", phone="03003330000",
+            monthly_salary=Decimal("40000.00"), user=self.teacher_user,
+        )
+        TeacherAttendance.objects.create(
+            teacher=self.teacher, date=timezone.localdate(),
+            time_in=_dt.strptime("09:30", "%H:%M").time(),
+            status="PRESENT", source="QR",
+        )
+
+    def _login(self, username, password):
+        resp = self.client.post(
+            reverse("api:student-login"),
+            {"username": username, "password": password},
+            format="json",
+        )
+        token = resp.json()["payload"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    def test_latest_scan_returns_todays_checkin(self):
+        self._login("ls_admin", "adminpassword123")
+        resp = self.client.get(reverse("api:teacher-latest-scan"))
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()["payload"]
+        latest = payload["latest"]
+        self.assertEqual(latest["name"], "Latest Scan Teacher")
+        self.assertEqual(latest["status"], "PRESENT")
+        self.assertEqual(latest["source"], "QR")
+        self.assertEqual(latest["label"], "09:30 AM")
+        self.assertEqual(payload["teacher_stats"]["present"], 1)
+
+    def test_latest_scan_requires_auth(self):
+        resp = self.client.get(reverse("api:teacher-latest-scan"))
+        self.assertEqual(resp.status_code, 401)
+
+    def test_latest_scan_returns_empty_when_no_records(self):
+        TeacherAttendance.objects.all().delete()
+        self._login("ls_admin", "adminpassword123")
+        resp = self.client.get(reverse("api:teacher-latest-scan"))
+        self.assertIsNone(resp.json()["payload"]["latest"])
+        self.assertEqual(resp.json()["payload"]["teacher_stats"]["present"], 0)
+

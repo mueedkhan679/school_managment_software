@@ -506,7 +506,15 @@ def teacher_attendance_list(request):
     Supports three date modes via ``range``: ``today``, ``specific`` (with
     ``date=YYYY-MM-DD``) and ``custom`` (with ``from``/``to``). An empty range
     shows the full history. Also filterable by teacher and status.
+
+    When today's closing time has passed, missing active teachers are
+    automatically marked Absent (Auto-System) before the page renders.
     """
+    # Friendly safety: trigger the auto-absent pass for today after cut-off.
+    from apps.teachers.auto_absent import mark_auto_absent
+
+    mark_auto_absent()
+
     records = TeacherAttendance.objects.select_related("teacher")
 
     range_mode = request.GET.get("range", "").strip()
