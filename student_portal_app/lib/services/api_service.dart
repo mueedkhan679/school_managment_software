@@ -120,11 +120,16 @@ class ApiService {
     return _authenticatedGet('$baseUrl/api/v1/students/fees/');
   }
 
-  Future<Map<String, dynamic>> getTeacherAttendance({int? month, int? year, String? date}) async {
+  Future<Map<String, dynamic>> getTeacherClasses() async {
+    return _authenticatedGet('$baseUrl/api/v1/teacher/classes/');
+  }
+
+  Future<Map<String, dynamic>> getTeacherAttendance({int? month, int? year, String? date, int? classId}) async {
     var endpoint = '$baseUrl/api/v1/teacher/attendance/';
     final params = <String>[];
     if (date != null) params.add('date=$date');
     if (year != null) params.add('year=$year');
+    if (classId != null) params.add('class_id=$classId');
     if (params.isNotEmpty) {
       endpoint += '?${params.join('&')}';
     }

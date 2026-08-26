@@ -22,6 +22,7 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final tc = context.read<TeacherController>();
+      tc.fetchAvailableClasses();
       tc.fetchTeacherAttendance();
       tc.fetchTeacherSalary(year: _selectedSalaryYear);
     });
@@ -141,6 +142,8 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                             backgroundColor: success ? Colors.green : Colors.red,
                           ),
                         );
+                        if (!context.mounted) return;
+                        if (success) tc.fetchTeacherAttendance();
                       },
                 icon: const Icon(Icons.save),
                 label: const Text('Submit'),
@@ -149,15 +152,72 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
           ),
         ),
 
+        // Class Selector — every active school class, tap one to open it.
+        if (tc.isLoadingClasses)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: LinearProgressIndicator(minHeight: 2),
+          )
+        else if (tc.classesError != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, size: 16, color: theme.colorScheme.error),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    tc.classesError!,
+                    style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => tc.fetchAvailableClasses(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          )
+        else if (tc.availableClasses.isNotEmpty)
+          SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: tc.availableClasses.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                // Leading "All" chip clears the filter.
+                if (index == 0) {
+                  final isSelected = tc.selectedClassId == null;
+                  return ChoiceChip(
+                    label: const Text('All Classes'),
+                    selected: isSelected,
+                    onSelected: (_) => tc.selectClass(null),
+                  );
+                }
+                final schoolClass = tc.availableClasses[index - 1];
+                final isSelected = tc.selectedClassId == schoolClass.id;
+                return ChoiceChip(
+                  label: Text('${schoolClass.name} (${schoolClass.studentCount})'),
+                  selected: isSelected,
+                  onSelected: (_) => tc.selectClass(schoolClass.id),
+                );
+              },
+            ),
+          ),
+
         // Roster List
         Expanded(
           child: tc.isLoadingAttendance
               ? const Center(child: CircularProgressIndicator())
               : tc.attendanceError != null
                   ? Center(child: Text(tc.attendanceError!, style: TextStyle(color: theme.colorScheme.error)))
-                  : tc.attendanceRoster.isEmpty
-                      ? const Center(child: Text('No students assigned or loaded.'))
-                      : ListView.builder(
+                  : tc.selectedClassIsEmpty
+                      ? _buildEmptyClassState(theme)
+                      : tc.attendanceRoster.isEmpty
+                          ? const Center(child: Text('No students assigned or loaded.'))
+                          : ListView.builder(
                           itemCount: tc.attendanceRoster.length,
                           itemBuilder: (context, index) {
                             final student = tc.attendanceRoster[index];
@@ -198,6 +258,41 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                         ),
         ),
       ],
+    );
+  }
+
+  /// Friendly empty state shown when the opened class has no enrolled students.
+  Widget _buildEmptyClassState(ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.school_outlined,
+              size: 56,
+              color: theme.colorScheme.outlineVariant,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Is class mein filhal koi student enrolled nahi hai.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Please select another class from the list above.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

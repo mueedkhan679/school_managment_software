@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.attendance.models import Attendance, AttendanceStatus
+from apps.classrooms.models import SchoolClass
 from apps.core.constants import MONTHS
 from apps.fees.models import FeeStatus
 from apps.students.models import Student
@@ -247,26 +248,16 @@ class StudentFeeView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class TeacherAttendanceView(APIView):
-    """GET/POST /api/v1/teacher/attendance/
-    - GET:  List students of the teacher's assigned classes (with optional date).
-    - POST: Save daily attendance for students.
+class TeacherClassListView(APIView):
+    """GET /api/v1/teacher/classes/
+    Returns ALL active school classes so any teacher can pick a class,
+    view its enrolled students and take attendance for it.
     """
     permission_classes = [IsAuthenticated]
 
-    def _get_assigned_class_ids(self, teacher):
-        """Return assigned class ids for a teacher, tolerating unset relations."""
-        if not teacher:
-            return []
-        primary_id = getattr(teacher, "assigned_class_id", None)
-        if primary_id:
-            return [primary_id]
-        assigned_classes = getattr(teacher, "assigned_classes", None)
-        if assigned_classes is None:
-            return []
-        return list(assigned_classes.values_list("id", flat=True))
-
     def get(self, request, *args, **kwargs):
+        from django.db.models import Count
+
         teacher = _get_teacher_profile(request.user)
         if not teacher:
             return Response(
@@ -276,29 +267,89 @@ class TeacherAttendanceView(APIView):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
-        assigned_class_ids = self._get_assigned_class_ids(teacher)
-        if not assigned_class_ids:
-            return Response(
-                {"status": "success", "message": "No classes assigned", "payload": {"date": timezone.now().date().strftime("%Y-%m-%d"), "roster": []}},
-                status=status.HTTP_200_OK,
+
+        classes = (
+            SchoolClass.objects.annotate(
+                active_student_count=Count(
+                    "students", filter=models.Q(students__is_active=True)
+                )
             )
-        date_str = request.GET.get("date", timezone.now().date().strftime("%Y-%m-%d"))
+            .order_by("order", "id")
+        )
+
+        payload = [
+            {
+                "id": c.id,
+                "name": c.name,
+                "student_count": c.active_student_count,
+                # Keep the field name the Flutter model already parses.
+                "monthly_fee": str(c.monthly_fee),
+            }
+            for c in classes
+        ]
+        return Response(
+            {
+                "status": "success",
+                "message": "All active classes",
+                "payload": {"classes": payload},
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class TeacherAttendanceView(APIView):
+    """GET/POST /api/v1/teacher/attendance/
+    - GET:  List students from any class (optionally filtered by class_id & date).
+    - POST: Save daily attendance for students in any class.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_teacher_or_403(self, request):
+        """Return active teacher profile or None (caller handles 403)."""
+        return _get_teacher_profile(request.user)
+
+    def get(self, request, *args, **kwargs):
+        teacher = self._get_teacher_or_403(request)
+        if not teacher:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Active teacher profile not found for this account.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Allow teachers to view ALL active classes in the school
+        all_classes = SchoolClass.objects.all()
         class_id = request.GET.get("class_id")
-        students = Student.objects.filter(
-            school_class__in=assigned_class_ids, is_active=True
-        ).order_by("student_id")
+
+        # If class_id is specified, filter students to that class;
+        # otherwise, when no class is selected, return all active students
         if class_id and class_id.isdigit():
-            students = students.filter(school_class_id=int(class_id))
+            students = Student.objects.filter(
+                school_class__id=int(class_id), is_active=True
+            ).order_by("student_id")
+        else:
+            students = Student.objects.filter(
+                is_active=True
+            ).order_by("student_id")
+
+        date_str = request.GET.get("date", timezone.now().date().strftime("%Y-%m-%d"))
         try:
             attendance_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except (ValueError, TypeError):
             attendance_date = timezone.now().date()
+
         existing = {
             att.student_id: att.status
             for att in Attendance.objects.filter(
                 student__in=students, date=attendance_date
             )
         }
+
         roster = []
         for s in students:
             roster.append({
@@ -308,15 +359,20 @@ class TeacherAttendanceView(APIView):
                 "date_of_birth": s.date_of_birth.strftime("%Y-%m-%d"),
                 "gender_display": s.get_gender_display(),
                 "school_class_name": s.school_class.name if s.school_class else "",
+                "school_class_id": s.school_class_id,
                 "status": existing.get(s.id, AttendanceStatus.PRESENT),
             })
+
         return Response(
-            {"status": "success", "message": "Attendance roster", "payload": {"date": attendance_date.strftime("%Y-%m-%d"), "roster": roster}},
+            {"status": "success", "message": "Attendance roster",
+             "payload": {"date": attendance_date.strftime("%Y-%m-%d"),
+                          "classes": [{"id": c.id, "name": c.name} for c in all_classes],
+                          "roster": roster}},
             status=status.HTTP_200_OK,
         )
 
     def post(self, request, *args, **kwargs):
-        teacher = _get_teacher_profile(request.user)
+        teacher = self._get_teacher_or_403(request)
         if not teacher:
             return Response(
                 {
@@ -334,25 +390,41 @@ class TeacherAttendanceView(APIView):
                 {"status": "error", "message": "Invalid date format."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        assigned_class_ids = self._get_assigned_class_ids(teacher)
-        students = Student.objects.filter(
-            school_class__in=assigned_class_ids, is_active=True
-        ).order_by("student_id")
+
+        # Allow teachers to mark attendance for ANY class, not just assigned ones
+        class_id = request.data.get("class_id")
+        if class_id and str(class_id).isdigit():
+            students = Student.objects.filter(
+                school_class__id=int(class_id), is_active=True
+            ).order_by("student_id")
+        else:
+            students = Student.objects.filter(
+                is_active=True
+            ).order_by("student_id")
+
         marked_count = 0
         for student in students:
             status_val = submissions.get(str(student.id), AttendanceStatus.PRESENT)
             if status_val in [AttendanceStatus.PRESENT, AttendanceStatus.ABSENT]:
+                # ``marked_by`` stores the requesting user; the audit trail
+                # resolves the Teacher profile via ``Attendance.marked_by_teacher``
+                # so every record always tracks who took the attendance.
                 Attendance.objects.update_or_create(
                     student=student,
                     date=attendance_date,
                     defaults={"status": status_val, "marked_by": request.user},
                 )
                 marked_count += 1
+
         return Response(
             {
                 "status": "success",
                 "message": f"Attendance saved for {marked_count} student(s) on {attendance_date}.",
-                                "payload": {"marked_count": marked_count, "date": attendance_date.strftime("%Y-%m-%d")},
+                "payload": {
+                    "marked_count": marked_count,
+                    "date": attendance_date.strftime("%Y-%m-%d"),
+                    "marked_by_teacher_id": teacher.teacher_id,
+                },
             },
             status=status.HTTP_200_OK,
         )

@@ -5,6 +5,27 @@ import '../models/teacher_scan_result.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
 
+/// A school class shown on the teacher's attendance screen.
+class TeacherAvailableClass {
+  final int id;
+  final String name;
+  final int studentCount;
+
+  TeacherAvailableClass({
+    required this.id,
+    required this.name,
+    required this.studentCount,
+  });
+
+  factory TeacherAvailableClass.fromJson(Map<String, dynamic> json) {
+    return TeacherAvailableClass(
+      id: json['id'] as int? ?? 0,
+      name: json['name']?.toString() ?? '',
+      studentCount: (json['student_count'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class TeacherController extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
@@ -16,6 +37,12 @@ class TeacherController extends ChangeNotifier {
   bool _isLoadingAttendance = false;
   String? _attendanceError;
   DateTime _selectedDate = DateTime.now();
+
+  // All school classes the teacher can pick from.
+  List<TeacherAvailableClass> _availableClasses = [];
+  bool _isLoadingClasses = false;
+  String? _classesError;
+  int? _selectedClassId;
 
   TeacherSalaryData? _salaryData;
   bool _isLoadingSalary = false;
@@ -41,6 +68,24 @@ class TeacherController extends ChangeNotifier {
   String? get attendanceError => _attendanceError;
   DateTime get selectedDate => _selectedDate;
   Map<String, String> get attendanceSubmissions => Map.unmodifiable(_attendanceSubmissions);
+
+  List<TeacherAvailableClass> get availableClasses => _availableClasses;
+  bool get isLoadingClasses => _isLoadingClasses;
+  String? get classesError => _classesError;
+  int? get selectedClassId => _selectedClassId;
+
+  /// The currently selected class object, or null when "All classes".
+  TeacherAvailableClass? get selectedClass {
+    if (_selectedClassId == null) return null;
+    for (final c in _availableClasses) {
+      if (c.id == _selectedClassId) return c;
+    }
+    return null;
+  }
+
+  /// True when a class is selected and it has no enrolled students.
+  bool get selectedClassIsEmpty =>
+      _selectedClassId != null && !_isLoadingAttendance && _attendanceRoster.isEmpty;
 
   TeacherSalaryData? get salaryData => _salaryData;
   bool get isLoadingSalary => _isLoadingSalary;
@@ -89,6 +134,9 @@ class TeacherController extends ChangeNotifier {
     _salaryData = null;
     _attendanceError = null;
     _salaryError = null;
+    _availableClasses = [];
+    _classesError = null;
+    _selectedClassId = null;
     notifyListeners();
   }
 
@@ -107,20 +155,77 @@ class TeacherController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchTeacherAttendance({DateTime? date}) async {
-    _isLoadingAttendance = true;
-    _attendanceError = null;
+  /// Loads every active school class so the teacher can pick any of them.
+  Future<void> fetchAvailableClasses() async {
+    _isLoadingClasses = true;
+    _classesError = null;
     notifyListeners();
 
-    final selectedDateStr = (date ?? _selectedDate).toLocal();
-    final dateStr = '${selectedDateStr.year}-${selectedDateStr.month.toString().padLeft(2, '0')}-${selectedDateStr.day.toString().padLeft(2, '0')}';
-    final res = await _apiService.getTeacherAttendance(date: dateStr);
+    final res = await _apiService.getTeacherClasses();
+    if (res['status'] == 'error') {
+      _classesError = res['message'] ?? 'Failed to load classes';
+      _availableClasses = [];
+    } else {
+      final payload = res['payload'] != null
+          ? res['payload'] as Map<String, dynamic>
+          : <String, dynamic>{};
+      final classList = payload['classes'] as List? ?? [];
+      _availableClasses = classList
+          .map((e) => TeacherAvailableClass.fromJson(e as Map<String, dynamic>))
+          .toList();
+      // Drop the selection if the chosen class no longer exists.
+      if (_selectedClassId != null &&
+          !_availableClasses.any((c) => c.id == _selectedClassId)) {
+        _selectedClassId = null;
+      }
+    }
+    _isLoadingClasses = false;
+    notifyListeners();
+  }
+
+  /// Picks a class (null = all students from every class) and reloads its roster.
+  void selectClass(int? classId) {
+    if (_selectedClassId == classId) return;
+    _selectedClassId = classId;
+    notifyListeners();
+    fetchTeacherAttendance(classId: classId);
+  }
+
+  String get _formattedSelectedDate {
+    final d = _selectedDate.toLocal();
+    final mm = d.month.toString().padLeft(2, '0');
+    final dd = d.day.toString().padLeft(2, '0');
+    return '${d.year}-$mm-$dd';
+  }
+
+  Future<void> fetchTeacherAttendance({DateTime? date, int? classId}) async {
+    _isLoadingAttendance = true;
+    _attendanceError = null;
+    if (date != null) _selectedDate = date;
+
+    final effectiveClassId = classId ?? _selectedClassId;
+    final dateStr = _formattedSelectedDate;
+    notifyListeners();
+
+    final res = await _apiService.getTeacherAttendance(
+      date: dateStr,
+      classId: effectiveClassId,
+    );
     if (res['status'] == 'error') {
       _attendanceError = res['message'] ?? 'Failed to load attendance roster';
       _attendanceRoster = [];
     } else {
       final payload = res['payload'] != null ? res['payload'] as Map<String, dynamic> : res;
       final rosterList = payload['roster'] as List? ?? [];
+      // Keep any classes list returned inline in sync (defensive; the
+      // dedicated /teacher/classes/ endpoint is normally used instead).
+      if (effectiveClassId == null &&
+          _availableClasses.isEmpty &&
+          payload['classes'] is List) {
+        _availableClasses = (payload['classes'] as List)
+            .map((e) => TeacherAvailableClass.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
       _attendanceRoster = rosterList
           .map((e) => TeacherAttendanceStudent.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -160,11 +265,12 @@ class TeacherController extends ChangeNotifier {
 
   Future<bool> submitAttendance() async {
     if (_attendanceRoster.isEmpty) return false;
-    final selectedDateStr = _selectedDate.toLocal();
-    final dateStr = '${selectedDateStr.year}-${selectedDateStr.month.toString().padLeft(2, '0')}-${selectedDateStr.day.toString().padLeft(2, '0')}';
+    final dateStr = _formattedSelectedDate;
     final res = await _apiService.submitTeacherAttendance(
       date: dateStr,
       submissions: _attendanceSubmissions,
+      // When a specific class is open, scope the save to it.
+      classId: _selectedClassId?.toString(),
     );
     if (res['status'] == 'error') {
       _attendanceError = res['message'] ?? 'Failed to submit attendance';
