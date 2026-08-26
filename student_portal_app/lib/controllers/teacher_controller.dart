@@ -30,7 +30,7 @@ class TeacherController extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   TeacherProfile? _profile;
-  final bool _isLoadingProfile = false;
+  bool _isLoadingProfile = false;
   String? _profileError;
 
   List<TeacherAttendanceStudent> _attendanceRoster = [];
@@ -82,6 +82,16 @@ class TeacherController extends ChangeNotifier {
     }
     return null;
   }
+
+  // ---- Live class summary (today's counts for the open roster) ----
+
+  int get totalStudents => _attendanceRoster.length;
+  int get presentCount =>
+      _attendanceSubmissions.values.where((s) => s == 'PRESENT').length;
+  int get absentCount =>
+      _attendanceSubmissions.values.where((s) => s == 'ABSENT').length;
+  int get leaveCount =>
+      _attendanceSubmissions.values.where((s) => s == 'LEAVE').length;
 
   /// True when a class is selected and it has no enrolled students.
   bool get selectedClassIsEmpty =>
@@ -180,6 +190,44 @@ class TeacherController extends ChangeNotifier {
       }
     }
     _isLoadingClasses = false;
+    notifyListeners();
+  }
+
+  /// Loads the logged-in teacher's full profile (Digital ID Card data).
+  /// Falls back silently to session data on failure so the card still shows.
+  Future<void> fetchTeacherProfile() async {
+    _isLoadingProfile = true;
+    _profileError = null;
+    notifyListeners();
+
+    final res = await _apiService.getTeacherProfile();
+    if (res['status'] == 'error') {
+      _profileError = res['message'];
+      // Keep whatever session-based profile exists; never blank the card.
+    } else {
+      final payload = res['payload'] != null
+          ? res['payload'] as Map<String, dynamic>
+          : <String, dynamic>{};
+      final fetched = TeacherProfile.fromProfileApi(payload);
+      // Prefer backend data, but keep session values when the API omits them.
+      final fallback = _profile;
+      _profile = TeacherProfile(
+        id: fetched.id,
+        teacherId:
+            fetched.teacherId.isNotEmpty ? fetched.teacherId : (fallback?.teacherId ?? ''),
+        name: fetched.name.isNotEmpty ? fetched.name : (fallback?.name ?? ''),
+        designation: fetched.designation,
+        phone: fetched.phone.isNotEmpty ? fetched.phone : (fallback?.phone ?? ''),
+        address: fetched.address,
+        photoUrl: fetched.photoUrl ?? fallback?.photoUrl,
+        monthlySalary: fallback?.monthlySalary ?? '0.00',
+        yearlySalary: fallback?.yearlySalary ?? '0.00',
+        assignedClasses: fetched.assignedClasses.isNotEmpty
+            ? fetched.assignedClasses
+            : (fallback?.assignedClasses ?? []),
+      );
+    }
+    _isLoadingProfile = false;
     notifyListeners();
   }
 

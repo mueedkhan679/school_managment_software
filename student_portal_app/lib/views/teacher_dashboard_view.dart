@@ -25,6 +25,7 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
       tc.fetchAvailableClasses();
       tc.fetchTeacherAttendance();
       tc.fetchTeacherSalary(year: _selectedSalaryYear);
+      tc.fetchTeacherProfile();
     });
   }
 
@@ -136,14 +137,42 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                     : () async {
                         final success = await tc.submitAttendance();
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(success ? 'Attendance submitted successfully' : (tc.attendanceError ?? 'Failed to submit')),
-                            backgroundColor: success ? Colors.green : Colors.red,
-                          ),
-                        );
-                        if (!context.mounted) return;
-                        if (success) tc.fetchTeacherAttendance();
+                        if (success) {
+                          // Clear confirmation dialog on successful submission.
+                          await showDialog<void>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              icon: Icon(
+                                Icons.check_circle_rounded,
+                                color: Colors.green.shade600,
+                                size: 48,
+                              ),
+                              title: const Text('Success'),
+                              content: const Text(
+                                'Attendance submitted successfully!',
+                                textAlign: TextAlign.center,
+                              ),
+                              actionsAlignment: MainAxisAlignment.center,
+                              actions: [
+                                FilledButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(),
+                                  child: const Text('Okay'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (!context.mounted) return;
+                          tc.fetchTeacherAttendance();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  tc.attendanceError ?? 'Failed to submit'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       },
                 icon: const Icon(Icons.save),
                 label: const Text('Submit'),
@@ -207,6 +236,9 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
             ),
           ),
 
+        // Today's class-wise attendance summary (live counts).
+        _buildClassSummaryCard(tc, theme),
+
         // Roster List
         Expanded(
           child: tc.isLoadingAttendance
@@ -218,8 +250,16 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                       : tc.attendanceRoster.isEmpty
                           ? const Center(child: Text('No students assigned or loaded.'))
                           : ListView.builder(
-                          itemCount: tc.attendanceRoster.length,
+                          itemCount: tc.attendanceRoster.length + 1,
                           itemBuilder: (context, index) {
+                            // Footer item: the teacher's Digital ID Card.
+                            if (index == tc.attendanceRoster.length) {
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                                child: _buildDigitalIdCard(tc, theme),
+                              );
+                            }
                             final student = tc.attendanceRoster[index];
                             final currentStatus = tc.attendanceSubmissions[student.id.toString()] ?? student.status;
                             return Card(
@@ -228,29 +268,52 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                                 leading: CircleAvatar(
                                   child: Text(student.name.isNotEmpty ? student.name[0] : '?'),
                                 ),
-                                title: Text(student.name),
-                                subtitle: Text('${student.studentId} • ${student.schoolClassName}'),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ChoiceChip(
-                                      label: const Text('P'),
-                                      selected: currentStatus == 'PRESENT',
-                                      selectedColor: Colors.green.withValues(alpha: 0.3),
-                                      onSelected: (val) {
-                                        if (val) tc.updateAttendanceStatus(student.id, 'PRESENT');
-                                      },
-                                    ),
-                                    const SizedBox(width: 8),
-                                    ChoiceChip(
-                                      label: const Text('A'),
-                                      selected: currentStatus == 'ABSENT',
-                                      selectedColor: Colors.red.withValues(alpha: 0.3),
-                                      onSelected: (val) {
-                                        if (val) tc.updateAttendanceStatus(student.id, 'ABSENT');
-                                      },
-                                    ),
-                                  ],
+                                title: Text(
+                                  student.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Text(
+                                  '${student.studentId} • ${student.schoolClassName}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                // FittedBox guarantees the three toggles can
+                                // never trigger a RenderFlex overflow on
+                                // narrow screens — they shrink instead.
+                                trailing: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _statusChip(
+                                        tc,
+                                        student.id,
+                                        label: 'P',
+                                        value: 'PRESENT',
+                                        currentStatus: currentStatus,
+                                        activeColor: Colors.green,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _statusChip(
+                                        tc,
+                                        student.id,
+                                        label: 'A',
+                                        value: 'ABSENT',
+                                        currentStatus: currentStatus,
+                                        activeColor: Colors.red,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _statusChip(
+                                        tc,
+                                        student.id,
+                                        label: 'L',
+                                        value: 'LEAVE',
+                                        currentStatus: currentStatus,
+                                        activeColor: Colors.orange,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
@@ -291,6 +354,245 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Compact Present/Absent/Leave toggle for one student.
+  Widget _statusChip(
+    TeacherController tc,
+    int studentId, {
+    required String label,
+    required String value,
+    required String currentStatus,
+    required MaterialColor activeColor,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: currentStatus == value,
+      selectedColor: activeColor.withValues(alpha: 0.35),
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: currentStatus == value ? activeColor.shade900 : null,
+      ),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      onSelected: (val) {
+        if (val) tc.updateAttendanceStatus(studentId, value);
+      },
+    );
+  }
+
+  /// Today's quick stats card for the currently open class roster:
+  /// Total / Present / Absent / Leave — updates live as statuses toggle.
+  Widget _buildClassSummaryCard(TeacherController tc, ThemeData theme) {
+    Widget stat(String label, String value, Color color) => Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
+            ],
+          ),
+        );
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          stat('Total', '${tc.totalStudents}', theme.colorScheme.primary),
+          stat('Present', '${tc.presentCount}', Colors.green.shade700),
+          stat('Absent', '${tc.absentCount}', Colors.red.shade700),
+          stat('Leave', '${tc.leaveCount}', Colors.orange.shade800),
+        ],
+      ),
+    );
+  }
+
+  /// Digital ID Card for the logged-in teacher, rendered at the bottom of the
+  /// dashboard. Data comes live from GET /api/v1/teacher/profile/.
+  Widget _buildDigitalIdCard(TeacherController tc, ThemeData theme) {
+    final profile = tc.profile;
+
+    if (tc.isLoadingProfile && profile == null) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    final photoUrl = profile?.photoUrl;
+    final name = profile?.displayName ?? 'Teacher';
+    final teacherId = profile?.teacherId ?? '';
+    final designation = profile?.designation ?? 'Teacher';
+    final phone = profile?.phone ?? '';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primaryContainer,
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.55),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(alpha: 0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.badge_rounded,
+                  size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'DIGITAL ID CARD',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: photoUrl != null && photoUrl.isNotEmpty
+                    ? Image.network(
+                        photoUrl,
+                        width: 76,
+                        height: 76,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _idInitials(name, theme),
+                      )
+                    : _idInitials(name, theme),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (teacherId.isNotEmpty)
+                      Text(
+                        teacherId,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color:
+                            theme.colorScheme.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        designation,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (phone.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.phone_rounded,
+                    size: 15, color: theme.colorScheme.outline),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    phone,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _idInitials(String name, ThemeData theme) {
+    final initial = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
+    return Container(
+      width: 76,
+      height: 76,
+      alignment: Alignment.center,
+      color: theme.colorScheme.primary.withValues(alpha: 0.2),
+      child: Text(
+        initial,
+        style: theme.textTheme.headlineMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.primary,
         ),
       ),
     );
@@ -401,11 +703,18 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      data.name.toString().isNotEmpty ? data.name.toString() : 'Teacher',
-                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    // Expanded keeps long teacher names from overflowing.
+                    Expanded(
+                      child: Text(
+                        data.name.toString().isNotEmpty ? data.name.toString() : 'Teacher',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     if (data.teacherId.toString().isNotEmpty)
                       Chip(
                         label: Text(
@@ -442,10 +751,15 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                 const Divider(height: 20),
                 Row(
                   children: [
-                    Text(
-                      'Disbursements for Year $_selectedSalaryYear: ',
-                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                    Flexible(
+                      child: Text(
+                        'Disbursements for Year $_selectedSalaryYear:',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                      ),
                     ),
+                    const SizedBox(width: 6),
                     Text(
                       '$paidCount of $totalCount Paid',
                       style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade800),

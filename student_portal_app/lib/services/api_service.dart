@@ -124,6 +124,11 @@ class ApiService {
     return _authenticatedGet('$baseUrl/api/v1/teacher/classes/');
   }
 
+  /// Full profile of the logged-in teacher (Digital ID Card data).
+  Future<Map<String, dynamic>> getTeacherProfile() async {
+    return _authenticatedGet('$baseUrl/api/v1/teacher/profile/');
+  }
+
   Future<Map<String, dynamic>> getTeacherAttendance({int? month, int? year, String? date, int? classId}) async {
     var endpoint = '$baseUrl/api/v1/teacher/attendance/';
     final params = <String>[];
