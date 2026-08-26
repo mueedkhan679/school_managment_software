@@ -134,6 +134,107 @@
         </div>
     </div>
 
+    <!-- TEACHER ATTENDANCE OVERVIEW SECTION -->
+    <div class="dash-card" id="teacher-attendance-section">
+        <div class="dash-card-head">
+            <h3>👨‍🏫 Teacher Attendance Overview</h3>
+            <span class="dash-card-badge">{{ today_date|date:"M j, Y" }}</span>
+        </div>
+
+        <!-- Live counters -->
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 18px;">
+            <div class="stat-card" style="flex: 1; min-width: 160px; margin: 0;">
+                <div class="stat-icon bg-indigo-light"><span>👨‍🏫</span></div>
+                <div class="stat-details">
+                    <span class="stat-label">Total Teachers</span>
+                    <span class="stat-value">{{ total_teachers }}</span>
+                    <span class="stat-hint">Active faculty</span>
+                </div>
+            </div>
+            <div class="stat-card" style="flex: 1; min-width: 160px; margin: 0;">
+                <div class="stat-icon bg-emerald-light"><span>✅</span></div>
+                <div class="stat-details">
+                    <span class="stat-label">Present Today</span>
+                    <span class="stat-value" style="color: #16a34a;">{{ teacher_present_count }}</span>
+                    <span class="stat-hint">Checked in before 10:00 AM</span>
+                </div>
+            </div>
+            <div class="stat-card" style="flex: 1; min-width: 160px; margin: 0;">
+                <div class="stat-icon bg-rose-light"><span>❌</span></div>
+                <div class="stat-details">
+                    <span class="stat-label">Absent Today</span>
+                    <span class="stat-value" style="color: #dc2626;">{{ teacher_absent_count }}</span>
+                    <span class="stat-hint">No check-in</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Present teachers -->
+            <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden;">
+                <div style="padding: 10px 16px; background: #ecfdf5; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="color: #15803d;">🟢 Present</strong>
+                    <span class="badge" style="background:#dcfce7;color:#15803d;">{{ teacher_present_count }}</span>
+                </div>
+                <ul style="list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto;">
+                    {% for item in present_teachers %}
+                        <li style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border);">
+                            {% if item.teacher.picture %}
+                                <img src="{{ item.teacher.picture.url }}" alt="{{ item.teacher.name }}" style="width: 42px; height: 42px; object-fit: cover; border-radius: 50%;">
+                            {% else %}
+                                <div style="width: 42px; height: 42px; border-radius: 50%; background: #dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-weight:800;">{{ item.teacher.name|first|upper }}</div>
+                            {% endif %}
+                            <div style="flex: 1; min-width: 0;">
+                                <strong style="display:block;">{{ item.teacher.name }}</strong>
+                                <span class="text-muted text-xs"><code>{{ item.teacher.teacher_id }}</code></span>
+                            </div>
+                            <div style="text-align:right;">
+                                {% if item.time_in %}
+                                    <span style="font-weight:700; color:#15803d;">{{ item.time_in|time:"g:i A" }}</span>
+                                {% else %}
+                                    <span class="text-muted text-sm">—</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% empty %}
+                        <li class="text-muted text-sm" style="padding: 20px 16px;">No teachers marked present yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Absent teachers -->
+            <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden;">
+                <div style="padding: 10px 16px; background: #fef2f2; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="color: #b91c1c;">🔴 Absent</strong>
+                    <span class="badge" style="background:#fee2e2;color:#b91c1c;">{{ teacher_absent_count }}</span>
+                </div>
+                <ul style="list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto;">
+                    {% for item in absent_teachers %}
+                        <li style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border);">
+                            {% if item.teacher.picture %}
+                                <img src="{{ item.teacher.picture.url }}" alt="{{ item.teacher.name }}" style="width: 42px; height: 42px; object-fit: cover; border-radius: 50%;">
+                            {% else %}
+                                <div style="width: 42px; height: 42px; border-radius: 50%; background: #fee2e2; color:#b91c1c; display:flex; align-items:center; justify-content:center; font-weight:800;">{{ item.teacher.name|first|upper }}</div>
+                            {% endif %}
+                            <div style="flex: 1; min-width: 0;">
+                                <strong style="display:block;">{{ item.teacher.name }}</strong>
+                                <div class="text-muted text-xs"><code>{{ item.teacher.teacher_id }}</code></div>
+                            </div>
+                            <span class="badge" style="background:#fee2e2;color:#b91c1c;">Absent</span>
+                        </li>
+                    {% empty %}
+                        <li class="text-muted text-sm" style="padding: 20px 16px;">No absent teachers today.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Pending note + link to full register -->
+        <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <span class="text-sm text-muted">Attendance closes daily at <strong>10:00 AM</strong>.</span>
+            <a href="{% url 'teachers:attendance_list' %}?range=today" class="btn btn-ghost btn-xs">Open Teacher Register &rarr;</a>
+        </div>
+    </div>
+
     <!-- ADMISSION FEES REPORT WIDGET -->
     <div class="dash-card" id="admission-fees-section">
         <div class="dash-card-head">

@@ -54,3 +54,21 @@ class Attendance(models.Model):
         """Convenience accessor for the student's class."""
         return self.student.school_class
 
+    @property
+    def marked_by_teacher(self):
+        """The Teacher profile tied to the user who recorded this attendance.
+
+        Returns None when the record was created by an admin/system without a
+        linked teacher profile (e.g. auto-absent runs or non-teacher users).
+        """
+        user = self.marked_by
+        if user is None:
+            return None
+        try:
+            teacher = getattr(user, "teacher_profile", None)
+        except Exception:
+            return None
+        if teacher is None or not teacher.is_active:
+            return None
+        return teacher
+

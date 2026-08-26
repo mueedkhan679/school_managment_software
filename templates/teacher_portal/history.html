@@ -85,6 +85,7 @@
                         <th>Student Name</th>
                         <th>Class</th>
                         <th>Status</th>
+                        <th>Time</th>
                         <th>Marked By</th>
                     </tr>
                 </thead>
@@ -93,26 +94,50 @@
                         <tr>
                             <td><strong>{{ att.date|date:"Y-m-d" }}</strong></td>
                             <td><code>{{ att.student.student_id }}</code></td>
-                            <td><strong>{{ att.student.name }}</strong></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    {% if att.student.photo %}
+                                        <img src="{{ att.student.photo.url }}" alt="" style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;">
+                                    {% else %}
+                                        <div style="width: 30px; height: 30px; border-radius: 50%; background: #e2e8f0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">{{ att.student.name|first|upper }}</div>
+                                    {% endif %}
+                                    <strong>{{ att.student.name }}</strong>
+                                </div>
+                            </td>
                             <td><span class="badge badge-outline">{{ att.student.school_class.name }}</span></td>
                             <td>
                                 {% if att.status == "PRESENT" %}
                                     <span class="badge badge-success">Present</span>
+                                {% elif att.status == "LEAVE" %}
+                                    <span class="badge badge-warning">Leave</span>
                                 {% else %}
                                     <span class="badge badge-danger">Absent</span>
                                 {% endif %}
                             </td>
+                            <td class="text-muted text-sm">{{ att.created_at|date:"g:i A" }}</td>
                             <td>
-                                {% if att.marked_by %}
+                                {% if att.marked_by_teacher %}
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        {% if att.marked_by_teacher.picture %}
+                                            <img src="{{ att.marked_by_teacher.picture.url }}" alt="" style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;">
+                                        {% else %}
+                                            <div style="width: 30px; height: 30px; border-radius: 50%; background: #e2e8f0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">{{ att.marked_by_teacher.name|first|upper }}</div>
+                                        {% endif %}
+                                        <div>
+                                            <strong class="text-sm">{{ att.marked_by_teacher.name }}</strong>
+                                            <div class="text-muted text-xs"><code>{{ att.marked_by_teacher.teacher_id }}</code></div>
+                                        </div>
+                                    </div>
+                                {% elif att.marked_by %}
                                     <span class="text-sm">👤 {{ att.marked_by.username }}</span>
                                 {% else %}
-                                    <span class="text-muted text-sm">—</span>
+                                    <span class="text-muted text-sm">System</span>
                                 {% endif %}
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted" style="padding: 40px 20px;">
+                            <td colspan="7" class="text-center text-muted" style="padding: 40px 20px;">
                                 <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
                                 <p style="font-size: 15px; margin: 0 0 4px;"><strong>No attendance history found.</strong></p>
                                 <p class="text-sm text-muted">Use "Mark Attendance" to log daily class attendance.</p>

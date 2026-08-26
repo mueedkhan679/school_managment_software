@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/teacher_attendance_model.dart';
 import '../models/teacher_profile.dart';
+import '../models/teacher_scan_result.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
 
@@ -22,6 +23,11 @@ class TeacherController extends ChangeNotifier {
 
   bool _isScanningSelf = false;
   String? _selfScanMessage;
+  TeacherScanResult _selfScan = const TeacherScanResult(
+    success: false,
+    duplicate: false,
+    message: '',
+  );
 
   // In-progress attendance submissions (studentId -> status)
   final Map<String, String> _attendanceSubmissions = {};
@@ -42,21 +48,25 @@ class TeacherController extends ChangeNotifier {
 
   bool get isScanningSelf => _isScanningSelf;
   String? get selfScanMessage => _selfScanMessage;
+  TeacherScanResult get selfScan => _selfScan;
 
   /// Sends a scanned dashboard QR token to check this teacher in as Present.
   ///
   /// Returns `true` when the backend reports success (including the
-  /// idempotent "already marked" case). The human-readable result message is
-  /// exposed via [selfScanMessage].
+  /// idempotent "Attendance Already Marked" case). The full result — teacher
+  /// details, photo, check-in time and duplicate flag — is exposed via
+  /// [selfScan] and [selfScanMessage].
   Future<bool> markOwnAttendanceViaQr(String token) async {
     _isScanningSelf = true;
     notifyListeners();
 
     final res = await _apiService.scanTeacherAttendance(token);
     final ok = res['status'] == 'success';
+    _selfScan = TeacherScanResult.fromResponse(res);
     _isScanningSelf = false;
-    _selfScanMessage =
-        (res['message'] ?? (ok ? 'Attendance marked.' : 'Scan failed.'))
+    _selfScanMessage = _selfScan.message.isNotEmpty
+        ? _selfScan.message
+        : (res['message'] ?? (ok ? 'Attendance marked.' : 'Scan failed.'))
             .toString();
     notifyListeners();
     return ok;
@@ -64,6 +74,11 @@ class TeacherController extends ChangeNotifier {
 
   void clearSelfScanMessage() {
     _selfScanMessage = null;
+    _selfScan = const TeacherScanResult(
+      success: false,
+      duplicate: false,
+      message: '',
+    );
     notifyListeners();
   }
 

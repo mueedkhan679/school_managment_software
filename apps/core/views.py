@@ -11,7 +11,14 @@ from apps.classrooms.models import SchoolClass
 from apps.core.constants import MONTHS_MAP
 from apps.fees.models import FeeStatus, StudentFee
 from apps.students.models import Student
-from apps.teachers.models import SalaryStatus, Teacher, TeacherSalary
+from apps.teachers.auto_absent import mark_auto_absent
+from apps.teachers.models import (
+    SalaryStatus,
+    Teacher,
+    TeacherAttendance,
+    TeacherAttendanceStatus,
+    TeacherSalary,
+)
 
 
 def index(request):
@@ -85,6 +92,41 @@ def dashboard(request):
     total_students = Student.objects.filter(is_active=True).count()
     total_classes = SchoolClass.objects.count()
     total_teachers = Teacher.objects.filter(is_active=True).count()
+
+    # Teacher Attendance Overview (per the daily 10:00 AM deadline).
+    # Running the auto-absent pass here means the dashboard reflects absences
+    # as soon as the deadline has passed — no manual refresh required.
+    mark_auto_absent(target_date=today)
+
+    todays_teacher_entries = (
+        TeacherAttendance.objects.filter(date=today)
+        .select_related("teacher")
+        .order_by("-created_at", "teacher__name")
+    )
+    teacher_present_today = todays_teacher_entries.filter(
+        status=TeacherAttendanceStatus.PRESENT
+    )
+    teacher_absent_today = todays_teacher_entries.filter(
+        status=TeacherAttendanceStatus.ABSENT
+    )
+    teacher_present_count = teacher_present_today.count()
+    teacher_absent_count = teacher_absent_today.count()
+
+    # Teacher present/absent lists with profile details for the dashboard view.
+    present_teachers = []
+    for entry in teacher_present_today:
+        present_teachers.append(
+            {
+                "teacher": entry.teacher,
+                "time_in": entry.time_in,
+                "source": entry.source,
+            }
+        )
+
+    absent_teachers = [
+        {"teacher": entry.teacher, "source": entry.source}
+        for entry in teacher_absent_today
+    ]
 
     # All-time / Monthly / Yearly Reference Metrics
     all_time_income = StudentFee.objects.filter(status=FeeStatus.PAID).aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
@@ -243,6 +285,13 @@ def dashboard(request):
         "admission_total": admission_total,
         "admission_count": admission_count,
         "admission_breakdown": admission_breakdown,
+        # Teacher Attendance Overview (today)
+        "teacher_present_count": teacher_present_count,
+        "teacher_absent_count": teacher_absent_count,
+        "teacher_attendance_marked": teacher_present_count + teacher_absent_count,
+        "present_teachers": present_teachers,
+        "absent_teachers": absent_teachers,
+        "TeacherAttendanceStatus": TeacherAttendanceStatus,
     }
     return render(request, "core/dashboard.html", context)
 

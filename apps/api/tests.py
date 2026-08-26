@@ -141,9 +141,13 @@ class TeacherAttendanceScanAPITests(APITestCase):
         self.assertEqual(resp.status_code, 201)
         body = resp.json()
         self.assertEqual(body["status"], "success")
-        self.assertTrue(
-            body["message"].startswith("Attendance marked successfully at")
-        )
+        self.assertEqual(body["message"], "Attendance Marked Successfully")
+        # Full teacher details now surface on the confirmation payload.
+        self.assertEqual(body["payload"]["teacher_id"], self.teacher.teacher_id)
+        self.assertEqual(body["payload"]["name"], self.teacher.name)
+        self.assertEqual(body["payload"]["phone"], self.teacher.phone)
+        self.assertIn("time_in", body["payload"])
+        self.assertIsNone(body["payload"]["photo_url"])
         record = TeacherAttendance.objects.get(teacher=self.teacher)
         self.assertEqual(record.status, "PRESENT")
         self.assertIsNotNone(record.time_in)
@@ -157,8 +161,11 @@ class TeacherAttendanceScanAPITests(APITestCase):
 
         second = self._scan(generate_token(timezone.localdate()))
         self.assertEqual(second.status_code, 200)
-        self.assertIn("already marked", second.json()["message"])
+        self.assertTrue(
+            second.json()["message"].startswith("Attendance Already Marked")
+        )
         self.assertTrue(second.json()["payload"]["duplicate"])
+        self.assertEqual(second.json()["payload"]["name"], self.teacher.name)
         self.assertEqual(TeacherAttendance.objects.count(), 1)
         self.assertEqual(
             TeacherAttendance.objects.first().time_in.strftime("%H:%M:%S"),

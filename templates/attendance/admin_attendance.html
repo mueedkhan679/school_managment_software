@@ -197,9 +197,14 @@
                                 </a>
                             </td>
                             <td>
-                                <a href="{% url 'students:detail' student_id=att.student.student_id %}" class="table-link">
-                                    <strong>{{ att.student.name }}</strong>
-                                </a>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    {% if att.student.photo %}
+                                        <img src="{{ att.student.photo.url }}" alt="" style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;">
+                                    {% endif %}
+                                    <a href="{% url 'students:detail' student_id=att.student.student_id %}" class="table-link">
+                                        <strong>{{ att.student.name }}</strong>
+                                    </a>
+                                </div>
                             </td>
                             <td>
                                 <span class="badge badge-outline">{{ att.student.school_class.name }}</span>
@@ -207,15 +212,29 @@
                             <td>
                                 {% if att.status == "PRESENT" %}
                                     <span class="badge badge-success">Present</span>
+                                {% elif att.status == "LEAVE" %}
+                                    <span class="badge badge-warning">Leave</span>
                                 {% else %}
                                     <span class="badge badge-danger">Absent</span>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if att.marked_by %}
+                                {% if att.marked_by_teacher %}
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        {% if att.marked_by_teacher.picture %}
+                                            <img src="{{ att.marked_by_teacher.picture.url }}" alt="" style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;">
+                                        {% else %}
+                                            <div style="width: 30px; height: 30px; border-radius: 50%; background: #e2e8f0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">{{ att.marked_by_teacher.name|first|upper }}</div>
+                                        {% endif %}
+                                        <div>
+                                            <strong class="text-sm">{{ att.marked_by_teacher.name }}</strong>
+                                            <div class="text-muted text-xs"><code>{{ att.marked_by_teacher.teacher_id }}</code></div>
+                                        </div>
+                                    </div>
+                                {% elif att.marked_by %}
                                     <span class="text-sm">👤 {{ att.marked_by.username }}</span>
                                 {% else %}
-                                    <span class="text-muted text-sm">—</span>
+                                    <span class="text-muted text-sm">System</span>
                                 {% endif %}
                             </td>
                             <td class="text-muted text-sm">

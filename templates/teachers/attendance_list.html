@@ -123,7 +123,16 @@
                     {% for record in page_obj %}
                         <tr>
                             <td class="text-muted">{{ forloop.counter0|add:page_obj.start_index }}</td>
-                            <td><strong>{{ record.teacher.name }}</strong></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    {% if record.teacher.picture %}
+                                        <img src="{{ record.teacher.picture.url }}" alt="" style="width: 32px; height: 32px; object-fit: cover; border-radius: 50%;">
+                                    {% else %}
+                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #e2e8f0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">{{ record.teacher.name|first|upper }}</div>
+                                    {% endif %}
+                                    <strong>{{ record.teacher.name }}</strong>
+                                </div>
+                            </td>
                             <td><code>{{ record.teacher.teacher_id }}</code></td>
                             <td>{{ record.date|date:"D, M j, Y" }}</td>
                             <td>

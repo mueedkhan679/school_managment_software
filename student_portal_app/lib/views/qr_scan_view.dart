@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../controllers/teacher_controller.dart';
@@ -36,28 +38,97 @@ class _QrScanViewState extends State<QrScanView> {
     final ok = await tc.markOwnAttendanceViaQr(code.trim());
     if (!mounted) return;
 
+    final result = tc.selfScan;
+
+    // Play a short confirmation sound on a successful (or already-marked)
+    // scan, so the teacher gets instant audio feedback.
+    if (ok) {
+      unawaited(SystemSound.play(SystemSoundType.alert));
+    }
+
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        icon: Icon(
-          ok ? Icons.check_circle_rounded : Icons.error_rounded,
-          color: ok ? Colors.green : Colors.redAccent,
-          size: 48,
-        ),
-        title: Text(ok ? 'Check-in Successful' : 'Scan Failed'),
-        content: Text(
-          tc.selfScanMessage ?? '',
-          textAlign: TextAlign.center,
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Okay'),
+      builder: (dialogContext) {
+        final iconColor = ok ? Colors.green : Colors.redAccent;
+        final icon = ok
+            ? (result.duplicate
+                ? Icons.verified_user_rounded
+                : Icons.check_circle_rounded)
+            : Icons.error_rounded;
+        final title = ok
+            ? (result.duplicate
+                ? 'Attendance Already Marked'
+                : 'Attendance Marked Successfully')
+            : 'Invalid QR Code';
+
+        return AlertDialog(
+          icon: Icon(icon, color: iconColor, size: 44),
+          title: Text(title, textAlign: TextAlign.center),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (ok && result.name.isNotEmpty) ...[
+                  // Teacher photo (or initials placeholder)
+                  ClipOval(
+                    child: result.photoUrl != null && result.photoUrl!.isNotEmpty
+                        ? Image.network(
+                            result.photoUrl!,
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _initialCircle(result),
+                          )
+                        : _initialCircle(result),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    result.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  Text(
+                    '@${result.teacherId}',
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                  if (result.phone.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text('📞 ${result.phone}'),
+                  ],
+                  if (result.address.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text('📍 ${result.address}'),
+                  ],
+                  const Divider(height: 24),
+                  _statusRow(
+                    'Attendance Status',
+                    result.isPresent ? 'Present' : result.status,
+                    result.isPresent ? Colors.green : Colors.orange,
+                  ),
+                  if (result.timeInLabel.isNotEmpty)
+                    _statusRow('Check-in Time', result.timeInLabel, Colors.black87),
+                ] else ...[
+                  Text(
+                    tc.selfScanMessage ?? '',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
           ),
-        ],
-      ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Okay'),
+            ),
+          ],
+        );
+      },
     );
     if (!mounted) return;
     // Success closes the scanner and returns to the dashboard; failures let
@@ -67,6 +138,40 @@ class _QrScanViewState extends State<QrScanView> {
     } else {
       setState(() => _handled = false);
     }
+  }
+
+  Widget _statusRow(String label, String value, Color valueColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.black54)),
+          Text(
+            value,
+            style: TextStyle(fontWeight: FontWeight.w600, color: valueColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _initialCircle(dynamic result) {
+    final name = result.name is String ? result.name as String : '';
+    return Container(
+      width: 72,
+      height: 72,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: Colors.green.shade100, shape: BoxShape.circle),
+      child: Text(
+        name.isEmpty ? '?' : name.substring(0, 1).toUpperCase(),
+        style: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: Colors.green.shade800,
+        ),
+      ),
+    );
   }
 
   @override

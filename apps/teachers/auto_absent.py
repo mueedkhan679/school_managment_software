@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Reusable auto-absent logic used by the ``mark_auto_absent`` command and the
-Teacher Attendance Register view (which triggers it after the closing gate).
+"""Reusable auto-absent logic used by the ``mark_auto_absent`` command, the
+Teacher Attendance Register view, and the admin dashboard.
+
+Teachers who have not checked in / scanned their QR code by the daily deadline
+(10:00 AM) are automatically marked as Absent for that day.
 """
 
 from datetime import time
@@ -13,8 +16,9 @@ from apps.teachers.models import (
     TeacherAttendanceStatus,
 )
 
-# School closing time — after this, a missing check-in counts as Absent.
-CUTOFF_HOUR = 14  # 02:00 PM
+# 10:00 AM — daily attendance deadline. After this time, a missing check-in
+# counts as Absent for the day.
+CUTOFF_HOUR = 10
 CUTOFF_MINUTE = 0
 
 

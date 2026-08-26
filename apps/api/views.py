@@ -14,7 +14,12 @@ from apps.attendance.models import Attendance, AttendanceStatus
 from apps.core.constants import MONTHS
 from apps.fees.models import FeeStatus
 from apps.students.models import Student
-from apps.teachers.models import Teacher, TeacherAttendance, SalaryStatus
+from apps.teachers.models import (
+    Teacher,
+    TeacherAttendance,
+    TeacherAttendanceStatus,
+    SalaryStatus,
+)
 
 from .serializers import (
     AttendanceRecordSerializer,
@@ -435,6 +440,29 @@ class TeacherAttendanceScanView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        def _teacher_payload(record=None, duplicate=False):
+            """Full teacher details surfaced on the scan confirmation screen."""
+            return {
+                "duplicate": duplicate,
+                "teacher_id": teacher.teacher_id,
+                "name": teacher.name,
+                "phone": teacher.phone or "",
+                "address": teacher.address or "",
+                "photo_url": (
+                    request.build_absolute_uri(teacher.picture.url)
+                    if teacher.picture and hasattr(teacher.picture, "url")
+                    else None
+                ),
+                "date": today.strftime("%Y-%m-%d"),
+                "status": record.status if record else TeacherAttendanceStatus.PRESENT,
+                "time_in": record.time_in.strftime("%H:%M:%S")
+                if record and record.time_in
+                else None,
+                "time_in_label": record.time_in.strftime("%I:%M %p")
+                if record and record.time_in
+                else "",
+            }
+
         today = timezone.localdate()
         existing = TeacherAttendance.objects.filter(teacher=teacher, date=today).first()
         if existing:
@@ -446,14 +474,8 @@ class TeacherAttendanceScanView(APIView):
             return Response(
                 {
                     "status": "success",
-                    "message": f"Attendance already marked at {check_in}.",
-                    "payload": {
-                        "duplicate": True,
-                        "date": today.strftime("%Y-%m-%d"),
-                        "time_in": existing.time_in.strftime("%H:%M:%S")
-                        if existing.time_in
-                        else None,
-                    },
+                    "message": f"Attendance Already Marked at {check_in}.",
+                    "payload": _teacher_payload(existing, True),
                 },
                 status=status.HTTP_200_OK,
             )
@@ -466,18 +488,11 @@ class TeacherAttendanceScanView(APIView):
             source="QR",
             recorded_by=request.user,
         )
-        check_in_label = record.time_in.strftime("%I:%M %p")
         return Response(
             {
                 "status": "success",
-                "message": f"Attendance marked successfully at {check_in_label}",
-                "payload": {
-                    "duplicate": False,
-                    "teacher_id": teacher.teacher_id,
-                    "name": teacher.name,
-                    "date": today.strftime("%Y-%m-%d"),
-                    "time_in": record.time_in.strftime("%H:%M:%S"),
-                },
+                "message": "Attendance Marked Successfully",
+                "payload": _teacher_payload(record, False),
             },
             status=status.HTTP_201_CREATED,
         )
