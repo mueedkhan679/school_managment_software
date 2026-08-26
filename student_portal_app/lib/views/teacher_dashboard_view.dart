@@ -25,7 +25,6 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
       tc.fetchAvailableClasses();
       tc.fetchTeacherAttendance();
       tc.fetchTeacherSalary(year: _selectedSalaryYear);
-      tc.fetchTeacherProfile();
     });
   }
 
@@ -250,16 +249,8 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                       : tc.attendanceRoster.isEmpty
                           ? const Center(child: Text('No students assigned or loaded.'))
                           : ListView.builder(
-                          itemCount: tc.attendanceRoster.length + 1,
+                          itemCount: tc.attendanceRoster.length,
                           itemBuilder: (context, index) {
-                            // Footer item: the teacher's Digital ID Card.
-                            if (index == tc.attendanceRoster.length) {
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                                child: _buildDigitalIdCard(tc, theme),
-                              );
-                            }
                             final student = tc.attendanceRoster[index];
                             final currentStatus = tc.attendanceSubmissions[student.id.toString()] ?? student.status;
                             return Card(
@@ -427,173 +418,6 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
           stat('Absent', '${tc.absentCount}', Colors.red.shade700),
           stat('Leave', '${tc.leaveCount}', Colors.orange.shade800),
         ],
-      ),
-    );
-  }
-
-  /// Digital ID Card for the logged-in teacher, rendered at the bottom of the
-  /// dashboard. Data comes live from GET /api/v1/teacher/profile/.
-  Widget _buildDigitalIdCard(TeacherController tc, ThemeData theme) {
-    final profile = tc.profile;
-
-    if (tc.isLoadingProfile && profile == null) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-
-    final photoUrl = profile?.photoUrl;
-    final name = profile?.displayName ?? 'Teacher';
-    final teacherId = profile?.teacherId ?? '';
-    final designation = profile?.designation ?? 'Teacher';
-    final phone = profile?.phone ?? '';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primaryContainer,
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.55),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.35),
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withValues(alpha: 0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.badge_rounded,
-                  size: 18, color: theme.colorScheme.primary),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'DIGITAL ID CARD',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.1,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: photoUrl != null && photoUrl.isNotEmpty
-                    ? Image.network(
-                        photoUrl,
-                        width: 76,
-                        height: 76,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _idInitials(name, theme),
-                      )
-                    : _idInitials(name, theme),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    if (teacherId.isNotEmpty)
-                      Text(
-                        teacherId,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color:
-                            theme.colorScheme.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        designation,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (phone.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(Icons.phone_rounded,
-                    size: 15, color: theme.colorScheme.outline),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    phone,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _idInitials(String name, ThemeData theme) {
-    final initial = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
-    return Container(
-      width: 76,
-      height: 76,
-      alignment: Alignment.center,
-      color: theme.colorScheme.primary.withValues(alpha: 0.2),
-      child: Text(
-        initial,
-        style: theme.textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.primary,
-        ),
       ),
     );
   }
