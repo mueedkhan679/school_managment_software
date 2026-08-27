@@ -205,6 +205,47 @@ class ApiService {
     return _authenticatedGet(endpoint);
   }
 
+  /// Create a new student (admin/teacher only)
+  Future<Map<String, dynamic>> createStudent({
+    required String name,
+    required String fatherName,
+    required String classId,
+    required String dateOfBirth,
+    required String gender,
+    String? admissionFee,
+    String? monthlyFee,
+  }) async {
+    const endpoint = '$baseUrl/api/v1/teacher/students/add/';
+    final url = Uri.parse(endpoint);
+    
+    try {
+      final response = await http.post(
+        url,
+        headers: await _getHeaders(requireAuth: true),
+        body: jsonEncode({
+          'name': name,
+          'father_name': fatherName,
+          'class': classId,
+          'date_of_birth': dateOfBirth,
+          'gender': gender,
+          if (admissionFee != null) 'admission_fee': admissionFee,
+          if (monthlyFee != null) 'monthly_fee': monthlyFee,
+        }),
+      );
+      
+      debugPrint('Create Student Status Code: ${response.statusCode}');
+      debugPrint('Create Student Response Body: ${response.body}');
+      
+      return _processResponse(response);
+    } catch (e) {
+      debugPrint('Network error on $endpoint: $e');
+      return {
+        'status': 'error',
+        'message': 'Network or server error: $e',
+      };
+    }
+  }
+
   Future<Map<String, dynamic>> _authenticatedGet(String urlStr) async {
     final url = Uri.parse(urlStr);
     var response = await http.get(url, headers: await _getHeaders(requireAuth: true));
