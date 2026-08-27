@@ -58,16 +58,14 @@ class ApiService {
       debugPrint('Login Status Code ($endpoint): ${response.statusCode}');
       debugPrint('Login Response Body ($endpoint): ${response.body}');
       
-      if (response.body.trim().toLowerCase().startsWith('<!doctype html>') || response.body.trim().toLowerCase().startsWith('<html')) {
-        return {
-          'status': 'error',
-          'message': 'Server returned an HTML error page (Status ${response.statusCode}).',
-        };
+      // Process response with robust error handling
+      final result = _processResponse(response);
+      
+      if (result['status'] != 'error' && response.statusCode >= 200 && response.statusCode < 300) {
+        debugPrint('✓ Login successful on exact URL: $endpoint');
       }
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        debugPrint('Login successful on exact URL: $endpoint');
-      }
-      return _processResponse(response);
+      
+      return result;
     } catch (e) {
       debugPrint('Network error on $endpoint: $e');
       return {
@@ -230,22 +228,86 @@ class ApiService {
   }
 
   Map<String, dynamic> _processResponse(http.Response response) {
+    // Log response details for debugging
+    debugPrint('Response Status Code: ${response.statusCode}');
+    debugPrint('Response Content-Type: ${response.headers['content-type']}');
+    final bodyPreview = response.body.length > 500 
+        ? '${response.body.substring(0, 500)}...' 
+        : response.body;
+    debugPrint('Response Body (first 500 chars): $bodyPreview');
+    
+    // Check if response is HTML (common for error pages, redirects, or server issues)
+    final trimmedBody = response.body.trim().toLowerCase();
+    if (trimmedBody.startsWith('<!doctype html>') || 
+        trimmedBody.startsWith('<html') || 
+        trimmedBody.startsWith('<?xml')) {
+      debugPrint('⚠️ Server returned HTML instead of JSON');
+      return {
+        'status': 'error',
+        'message': 'Server returned an HTML page (Status ${response.statusCode}). This usually indicates a server error, incorrect endpoint, or maintenance mode.',
+        'statusCode': response.statusCode,
+        'rawBody': response.body,
+        'isHtmlResponse': true,
+      };
+    }
+    
+    // Check content-type header to verify JSON response
+    final contentType = response.headers['content-type'] ?? '';
+    if (!contentType.contains('application/json') && !contentType.contains('text/json')) {
+      debugPrint('⚠️ Response Content-Type is not JSON: $contentType');
+      // If it's not JSON content-type, try to parse anyway but with warning
+      if (!contentType.contains('text/') && !contentType.contains('application/')) {
+        return {
+          'status': 'error',
+          'message': 'Unexpected content type: $contentType (Status ${response.statusCode})',
+          'statusCode': response.statusCode,
+          'rawBody': response.body,
+        };
+      }
+    }
+    
+    // Attempt to parse JSON
     try {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
+      
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        debugPrint('✓ Request successful with status ${response.statusCode}');
         return body;
       } else {
-        final msg = body['message'] ?? body['detail'] ?? 'Request failed with status ${response.statusCode}';
+        // Extract error message from response
+        final msg = body['message'] ?? 
+                   body['detail'] ?? 
+                   body['error'] ?? 
+                   'Request failed with status ${response.statusCode}';
+        
+        debugPrint('✗ Request failed: $msg');
         return {
           'status': 'error',
           'message': msg,
+          'statusCode': response.statusCode,
           'errors': body['errors'] ?? body,
         };
       }
-    } catch (e) {
+    } on FormatException catch (e) {
+      // JSON parsing failed - response is not valid JSON
+      debugPrint('✗ JSON parsing failed: ${e.toString()}');
+      debugPrint('Response body: ${response.body}');
+      
       return {
         'status': 'error',
-        'message': 'Failed to parse server response: ${e.toString()}',
+        'message': 'Server returned invalid JSON (Status ${response.statusCode}). ${e.toString()}',
+        'statusCode': response.statusCode,
+        'rawBody': response.body,
+        'parseError': e.toString(),
+      };
+    } catch (e) {
+      // Other unexpected errors during parsing
+      debugPrint('✗ Unexpected error processing response: ${e.toString()}');
+      return {
+        'status': 'error',
+        'message': 'Failed to process server response: ${e.toString()}',
+        'statusCode': response.statusCode,
+        'rawBody': response.body,
       };
     }
   }
