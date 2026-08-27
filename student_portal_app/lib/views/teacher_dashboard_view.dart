@@ -60,6 +60,11 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
             },
           ),
           IconButton(
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+            tooltip: 'Add Student',
+            onPressed: () => _openAddStudentDialog(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _onLogout,
             tooltip: 'Logout',
@@ -343,6 +348,160 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.outline,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+/// Opens a form to add a new student for the selected class.
+  Future<void> _openAddStudentDialog(BuildContext context) async {
+    final tc = context.read<TeacherController>();
+
+    if (tc.availableClasses.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No classes available yet.')),
+      );
+      return;
+    }
+
+    final nameCtrl = TextEditingController();
+    final rollCtrl = TextEditingController();
+    final fatherCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    var selectedClassId = tc.selectedClassId ?? tc.availableClasses.first.id;
+    var submitting = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dCtx, setDialogState) => AlertDialog(
+          title: const Text('Add New Student'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Student Name *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: rollCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Roll Number',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  initialValue: selectedClassId,
+                  decoration: const InputDecoration(
+                    labelText: 'Class *',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: tc.availableClasses
+                      .map(
+                        (c) => DropdownMenuItem<int>(
+                          value: c.id,
+                          child: Text(c.name, overflow: TextOverflow.ellipsis),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setDialogState(() => selectedClassId = v);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: fatherCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Father Name *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Contact Phone (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      final name = nameCtrl.text.trim();
+                      final father = fatherCtrl.text.trim();
+                      if (name.isEmpty || father.isEmpty) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('Name and father name are required.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      setDialogState(() => submitting = true);
+                      final ok = await tc.addStudent(
+                        fullName: name,
+                        rollNumber: rollCtrl.text.trim(),
+                        classId: selectedClassId,
+                        fatherName: father,
+                        phone: phoneCtrl.text.trim(),
+                      );
+                      if (!dialogContext.mounted) return;
+                      Navigator.of(dialogContext).pop();
+                      if (!context.mounted) return;
+                      if (ok) {
+                        await showDialog<void>(
+                          context: context,
+                          builder: (sCtx) => AlertDialog(
+                            icon: Icon(
+                              Icons.check_circle_rounded,
+                              color: Colors.green.shade600,
+                              size: 48,
+                            ),
+                            title: const Text('Success'),
+                            content: const Text(
+                              'Student added successfully!',
+                              textAlign: TextAlign.center,
+                            ),
+                            actionsAlignment: MainAxisAlignment.center,
+                            actions: [
+                              FilledButton(
+                                onPressed: () => Navigator.of(sCtx).pop(),
+                                child: const Text('Okay'),
+                              ),
+                            ],
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                tc.attendanceError ?? 'Failed to add student'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              child: const Text('Add'),
             ),
           ],
         ),

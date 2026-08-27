@@ -311,6 +311,38 @@ class TeacherController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Registers a new student via POST /teacher/students/add/ then refreshes
+  /// the roster for the current class. Returns true on success.
+  Future<bool> addStudent({
+    required String fullName,
+    required String rollNumber,
+    required int classId,
+    required String fatherName,
+    String phone = '',
+  }) async {
+    final res = await _apiService.addTeacherStudent(
+      fullName: fullName,
+      rollNumber: rollNumber,
+      classId: classId,
+      fatherName: fatherName,
+      phone: phone,
+    );
+    if (res['status'] == 'error') {
+      _attendanceError = res['message'] ?? 'Failed to add student';
+      notifyListeners();
+      return false;
+    }
+    // If the new student landed in the currently open class, refresh.
+    if (_selectedClassId == classId || classId == _selectedClassId) {
+      await fetchTeacherAttendance();
+    } else if (_selectedClassId == null) {
+      await fetchTeacherAttendance();
+    }
+    _attendanceError = null;
+    notifyListeners();
+    return true;
+  }
+
   Future<bool> submitAttendance() async {
     if (_attendanceRoster.isEmpty) return false;
     final dateStr = _formattedSelectedDate;

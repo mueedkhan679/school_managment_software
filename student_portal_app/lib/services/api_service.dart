@@ -129,6 +129,32 @@ class ApiService {
     return _authenticatedGet('$baseUrl/api/v1/teacher/profile/');
   }
 
+  /// Registers a new student on behalf of a teacher.
+  Future<Map<String, dynamic>> addTeacherStudent({
+    required String fullName,
+    required String rollNumber,
+    required int classId,
+    required String fatherName,
+    String phone = '',
+    String? admissionDate,
+  }) async {
+    final url = Uri.parse('$baseUrl/api/v1/teacher/students/add/');
+    final body = <String, dynamic>{
+      'full_name': fullName,
+      'roll_number': rollNumber,
+      'classroom_id': classId,
+      'father_name': fatherName,
+      'phone_number': phone,
+      if (admissionDate != null) 'admission_date': admissionDate,
+    };
+    final response = await http.post(
+      url,
+      headers: await _getHeaders(requireAuth: true),
+      body: jsonEncode(body),
+    );
+    return _processResponse(response);
+  }
+
   Future<Map<String, dynamic>> getTeacherAttendance({int? month, int? year, String? date, int? classId}) async {
     var endpoint = '$baseUrl/api/v1/teacher/attendance/';
     final params = <String>[];
