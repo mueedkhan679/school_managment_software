@@ -114,27 +114,6 @@
         </div>
     </div>
 
-    <!-- SECONDARY SUMMARY TILES -->
-    <div class="dash-metrics-grid dash-metrics-grid-sm">
-        <div class="dash-tile" onclick="scrollToSection('class-statistics-section')" title="Click to view class & student statistics">
-            <span class="dash-tile-ico dash-tile-blue">🎓</span>
-            <div><span class="dash-tile-label">Students</span><span class="dash-tile-value">{{ total_students }}</span></div>
-        </div>
-        <div class="dash-tile">
-            <span class="dash-tile-ico dash-tile-violet">👨‍🏫</span>
-            <div><span class="dash-tile-label">Teachers</span><span class="dash-tile-value">{{ total_teachers }}</span></div>
-        </div>
-        <div class="dash-tile">
-            <span class="dash-tile-ico dash-tile-cyan">📋</span>
-            <div><span class="dash-tile-label">Today's Attendance</span><span class="dash-tile-value" id="tileTodayPct">{{ attendance_percentage }}%</span></div>
-        </div>
-        <div class="dash-tile" onclick="scrollToSection('class-statistics-section')" title="Click to view all classes">
-            <span class="dash-tile-ico dash-tile-indigo">🏫</span>
-            <div><span class="dash-tile-label">Classes</span><span class="dash-tile-value">{{ total_classes }}</span></div>
-        </div>
-    </div>
-
-
     <!-- ADMISSION FEES REPORT WIDGET -->
     <div class="dash-card" id="admission-fees-section">
         <div class="dash-card-head">
@@ -188,6 +167,27 @@
         </p>
         {% endif %}
     </div>
+
+    <!-- SECONDARY SUMMARY TILES -->
+    <div class="dash-metrics-grid dash-metrics-grid-sm">
+        <div class="dash-tile" onclick="scrollToSection('class-statistics-section')" title="Click to view class & student statistics">
+            <span class="dash-tile-ico dash-tile-blue">🎓</span>
+            <div><span class="dash-tile-label">Students</span><span class="dash-tile-value">{{ total_students }}</span></div>
+        </div>
+        <div class="dash-tile">
+            <span class="dash-tile-ico dash-tile-violet">👨‍🏫</span>
+            <div><span class="dash-tile-label">Teachers</span><span class="dash-tile-value">{{ total_teachers }}</span></div>
+        </div>
+        <div class="dash-tile">
+            <span class="dash-tile-ico dash-tile-cyan">📋</span>
+            <div><span class="dash-tile-label">Today's Attendance</span><span class="dash-tile-value" id="tileTodayPct">{{ attendance_percentage }}%</span></div>
+        </div>
+        <div class="dash-tile" onclick="scrollToSection('class-statistics-section')" title="Click to view all classes">
+            <span class="dash-tile-ico dash-tile-indigo">🏫</span>
+            <div><span class="dash-tile-label">Classes</span><span class="dash-tile-value">{{ total_classes }}</span></div>
+        </div>
+    </div>
+
 
     <!-- TEACHER ATTENDANCE OVERVIEW SECTION -->
     <div class="dash-card" id="teacher-attendance-section">

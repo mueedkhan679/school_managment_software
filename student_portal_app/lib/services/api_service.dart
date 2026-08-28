@@ -128,6 +128,12 @@ class ApiService {
   }
 
   /// Registers a new student on behalf of a teacher.
+  ///
+  /// POST https://mueed563.pythonanywhere.com/api/v1/teacher/students/add/
+  /// with the exact keys: full_name, roll_number, classroom_id, father_name,
+  /// phone_number. On success the payload includes the auto-generated login
+  /// credentials (`username` and `default_password`) for the student's new
+  /// User account.
   Future<Map<String, dynamic>> addTeacherStudent({
     required String fullName,
     required String rollNumber,
@@ -136,7 +142,8 @@ class ApiService {
     String phone = '',
     String? admissionDate,
   }) async {
-    final url = Uri.parse('$baseUrl/api/v1/teacher/students/add/');
+    const endpoint = '$baseUrl/api/v1/teacher/students/add/';
+    final url = Uri.parse(endpoint);
     final body = <String, dynamic>{
       'full_name': fullName,
       'roll_number': rollNumber,
@@ -145,12 +152,21 @@ class ApiService {
       'phone_number': phone,
       if (admissionDate != null) 'admission_date': admissionDate,
     };
-    final response = await http.post(
-      url,
-      headers: await _getHeaders(requireAuth: true),
-      body: jsonEncode(body),
-    );
-    return _processResponse(response);
+    try {
+      final response = await http.post(
+        url,
+        headers: await _getHeaders(requireAuth: true),
+        body: jsonEncode(body),
+      );
+      debugPrint('Add Student Status Code ($endpoint): ${response.statusCode}');
+      return _processResponse(response);
+    } catch (e) {
+      debugPrint('Network error on $endpoint: $e');
+      return {
+        'status': 'error',
+        'message': 'Network or server error: $e',
+      };
+    }
   }
 
   Future<Map<String, dynamic>> getTeacherAttendance({int? month, int? year, String? date, int? classId}) async {

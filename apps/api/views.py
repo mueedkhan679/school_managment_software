@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
-from django.db import models
+from django.contrib.auth import get_user_model
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -10,6 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.models import Role
 from apps.attendance.models import Attendance, AttendanceStatus
 from apps.classrooms.models import SchoolClass
 from apps.core.constants import MONTHS
@@ -28,6 +30,8 @@ from .serializers import (
     FeeRecordSerializer,
     StudentProfileSerializer,
 )
+
+User = get_user_model()
 
 
 def _get_student(request):
@@ -297,6 +301,227 @@ class TeacherClassListView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+class TeacherProfileApiView(APIView):
+    """GET /api/v1/teacher/profile/
+    Full profile of the logged-in teacher — powers the in-app Digital ID Card
+    (photo, full name, teacher ID, designation, contact details) and any other
+    profile surfaces in the mobile app.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        teacher = _get_teacher_profile(request.user)
+        if not teacher:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Active teacher profile not found for this account.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        photo_url = None
+        if teacher.picture:
+            try:
+                photo_url = teacher.picture.url
+            except ValueError:
+                photo_url = None
+
+        assigned_classes = [
+            {"id": c.id, "name": c.name}
+            for c in teacher.assigned_classes.all().order_by("order", "id")
+        ]
+
+        payload = {
+            "teacher_id": teacher.teacher_id,
+            "name": teacher.name,
+            # The model has no dedicated designation column; every linked
+            # account holds the TEACHER role so this is the canonical title.
+            "designation": "Teacher",
+            "phone": teacher.phone or "",
+            "address": teacher.address or "",
+            "cnic": teacher.cnic or "",
+            "photo_url": photo_url,
+            "date_joined": teacher.date_joined.strftime("%Y-%m-%d")
+            if teacher.date_joined
+            else None,
+            "assigned_classes": assigned_classes,
+            "primary_class_name": teacher.assigned_class.name
+            if teacher.assigned_class
+            else "",
+        }
+        return Response(
+            {
+                "status": "success",
+                "message": "Teacher profile",
+                "payload": payload,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class TeacherStudentCreateView(APIView):
+    """POST /api/v1/teacher/students/add/
+    Lets an authenticated teacher register a new student directly from the app.
+
+    Accepts: full_name (or name), roll_number (unique within the class),
+    classroom_id (or class_id), father_name, phone_number (optional),
+    admission_date (defaults to today). ``date_of_birth``/``gender`` are not
+    collected on this lightweight form, so they default to today / M.
+
+    A Django ``User`` login account is provisioned automatically for every new
+    student: username ``stu_<roll_number>`` (falling back to the permanent
+    student_id when no roll number is supplied, with a numeric suffix added if
+    the username is already taken) and default password ``Student@123``. The
+    account is linked via ``Student.user`` and the credentials are returned in
+    the 201 payload as ``username`` / ``default_password`` so the teacher can
+    hand them to the student right away.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        teacher = _get_teacher_profile(request.user)
+        if not teacher:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Active teacher profile not found for this account.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        name = (request.data.get("full_name") or request.data.get("name") or "").strip()
+        father_name = (request.data.get("father_name") or "").strip()
+        roll_number = (request.data.get("roll_number") or "").strip()
+        phone = (request.data.get("phone_number") or "").strip()
+        class_id = request.data.get("classroom_id", request.data.get("class_id"))
+        admission_date_str = request.data.get("admission_date") or ""
+
+        # --- Required field validation ---
+        if not name:
+            return Response(
+                {"status": "error", "message": "Student full name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not father_name:
+            return Response(
+                {"status": "error", "message": "Father name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not str(class_id or "").isdigit():
+            return Response(
+                {"status": "error", "message": "A valid classroom_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        school_class = SchoolClass.objects.filter(id=int(class_id)).first()
+        if not school_class:
+            return Response(
+                {"status": "error", "message": "The selected class does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # --- admission date (defaults to today) ---
+        admission_date = timezone.localdate()
+        if admission_date_str:
+            try:
+                admission_date = datetime.strptime(admission_date_str, "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                return Response(
+                    {"status": "error",
+                     "message": "Invalid admission_date format (expected YYYY-MM-DD)."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # --- roll number uniqueness within the class ---
+        if roll_number and Student.objects.filter(
+            school_class=school_class,
+            roll_number__iexact=roll_number,
+            is_active=True,
+        ).exists():
+            return Response(
+                {"status": "error",
+                 "message": f"A student with roll number '{roll_number}' already exists in this class."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # --- create the student + auto-provision a login account ---
+        try:
+            with transaction.atomic():
+                student = Student.objects.create(
+                    name=name,
+                    father_name=father_name,
+                    school_class=school_class,
+                    roll_number=roll_number,
+                    phone=phone,
+                    date_of_birth=admission_date,
+                    gender="M",
+                    is_active=True,
+                )
+                # admission_date is auto_now_add so it must be set after creation
+                # when the caller supplied a custom value.
+                if admission_date_str:
+                    student.admission_date = admission_date
+                    student.save(update_fields=["admission_date"])
+
+                # --- automatic User account creation ---
+                # Username: stu_<roll_number> (or stu_<student_id> when no roll
+                # number was supplied), uniquified with a suffix when taken.
+                safe_roll = roll_number.strip().replace(" ", "_")
+                base_username = (
+                    f"stu_{safe_roll}" if safe_roll else f"stu_{student.student_id}"
+                )
+                username = base_username
+                suffix = 2
+                while User.objects.filter(username__iexact=username).exists():
+                    username = f"{base_username}_{suffix}"
+                    suffix += 1
+
+                default_password = "Student@123"
+                account = User.objects.create_user(
+                    username=username,
+                    password=default_password,
+                    role=Role.STUDENT,
+                    is_active=True,
+                    first_name=name,
+                    phone=phone,
+                )
+                student.user = account
+                student.save(update_fields=["user"])
+        except Exception:
+            return Response(
+                {"status": "error", "message": "Could not create the student. Please try again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {
+                "status": "success",
+                "message": "Student added successfully!",
+                "payload": {
+                    "id": student.id,
+                    "student_id": student.student_id,
+                    "name": student.name,
+                    "roll_number": student.roll_number,
+                    "father_name": student.father_name,
+                    "class_id": school_class.id,
+                    "class_name": school_class.name,
+                    "phone": student.phone,
+                    "admission_date": student.admission_date.strftime("%Y-%m-%d"),
+                    # Login credentials for the auto-provisioned account
+                    "username": account.username,
+                    "default_password": default_password,
+                },
+                # Also duplicated at the top level so thin clients can read
+                # them without digging into the payload.
+                "username": account.username,
+                "default_password": default_password,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TeacherAttendanceView(APIView):
@@ -405,7 +630,11 @@ class TeacherAttendanceView(APIView):
         marked_count = 0
         for student in students:
             status_val = submissions.get(str(student.id), AttendanceStatus.PRESENT)
-            if status_val in [AttendanceStatus.PRESENT, AttendanceStatus.ABSENT]:
+            if status_val in [
+                AttendanceStatus.PRESENT,
+                AttendanceStatus.ABSENT,
+                AttendanceStatus.LEAVE,
+            ]:
                 # ``marked_by`` stores the requesting user; the audit trail
                 # resolves the Teacher profile via ``Attendance.marked_by_teacher``
                 # so every record always tracks who took the attendance.

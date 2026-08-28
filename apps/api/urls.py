@@ -10,7 +10,9 @@ from .views import (
     TeacherAttendanceScanView,
     TeacherAttendanceView,
     TeacherLatestScanView,
+    TeacherProfileApiView,
     TeacherSalaryView,
+    TeacherStudentCreateView,
 )
 
 app_name = "api"
@@ -27,6 +29,8 @@ urlpatterns = [
 
     # Teacher portal endpoints
     path("teacher/classes/", TeacherClassListView.as_view(), name="teacher-classes"),
+    path("teacher/profile/", TeacherProfileApiView.as_view(), name="teacher-profile"),
+    path("teacher/students/add/", TeacherStudentCreateView.as_view(), name="teacher-student-add"),
     path("teacher/attendance/", TeacherAttendanceView.as_view(), name="teacher-attendance"),
     # Dynamic QR self check-in for teachers (POST)
     path("teacher/attendance/scan/", TeacherAttendanceScanView.as_view(), name="teacher-attendance-scan"),

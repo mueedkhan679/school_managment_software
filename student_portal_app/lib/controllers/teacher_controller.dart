@@ -311,9 +311,14 @@ class TeacherController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Registers a new student via POST /teacher/students/add/ then refreshes
-  /// the roster for the current class. Returns true on success.
-  Future<bool> addStudent({
+  /// Registers a new student via POST /teacher/students/add/ then
+  /// auto-refreshes the open class roster and the class list (student counts
+  /// change).
+  ///
+  /// Returns the full API response; on success its payload carries the
+  /// auto-generated login credentials (`username` and `default_password`) for
+  /// the student's new User account.
+  Future<Map<String, dynamic>> addStudent({
     required String fullName,
     required String rollNumber,
     required int classId,
@@ -330,17 +335,17 @@ class TeacherController extends ChangeNotifier {
     if (res['status'] == 'error') {
       _attendanceError = res['message'] ?? 'Failed to add student';
       notifyListeners();
-      return false;
-    }
-    // If the new student landed in the currently open class, refresh.
-    if (_selectedClassId == classId || classId == _selectedClassId) {
-      await fetchTeacherAttendance();
-    } else if (_selectedClassId == null) {
-      await fetchTeacherAttendance();
+      return res;
     }
     _attendanceError = null;
+    // Auto-refresh: the open roster (covers "All classes" and the matching
+    // class) plus the class list so student counts stay current.
+    if (_selectedClassId == null || _selectedClassId == classId) {
+      await fetchTeacherAttendance();
+    }
+    await fetchAvailableClasses();
     notifyListeners();
-    return true;
+    return res;
   }
 
   Future<bool> submitAttendance() async {

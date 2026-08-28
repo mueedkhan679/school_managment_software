@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/teacher_controller.dart';
@@ -458,7 +459,7 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                         return;
                       }
                       setDialogState(() => submitting = true);
-                      final ok = await tc.addStudent(
+                      final res = await tc.addStudent(
                         fullName: name,
                         rollNumber: rollCtrl.text.trim(),
                         classId: selectedClassId,
@@ -468,34 +469,27 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                       if (!dialogContext.mounted) return;
                       Navigator.of(dialogContext).pop();
                       if (!context.mounted) return;
-                      if (ok) {
-                        await showDialog<void>(
-                          context: context,
-                          builder: (sCtx) => AlertDialog(
-                            icon: Icon(
-                              Icons.check_circle_rounded,
-                              color: Colors.green.shade600,
-                              size: 48,
-                            ),
-                            title: const Text('Success'),
-                            content: const Text(
-                              'Student added successfully!',
-                              textAlign: TextAlign.center,
-                            ),
-                            actionsAlignment: MainAxisAlignment.center,
-                            actions: [
-                              FilledButton(
-                                onPressed: () => Navigator.of(sCtx).pop(),
-                                child: const Text('Okay'),
-                              ),
-                            ],
-                          ),
+                      if (res['status'] != 'error') {
+                        // Pull the auto-generated login credentials out of the
+                        // API response (payload first, top-level fallback).
+                        final payload = res['payload'] is Map<String, dynamic>
+                            ? res['payload'] as Map<String, dynamic>
+                            : <String, dynamic>{};
+                        final username =
+                            (payload['username'] ?? res['username'] ?? '').toString();
+                        final defaultPassword =
+                            (payload['default_password'] ?? res['default_password'] ?? '')
+                                .toString();
+                        await _showAccountCreatedDialog(
+                          context,
+                          username: username,
+                          defaultPassword: defaultPassword,
                         );
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                                tc.attendanceError ?? 'Failed to add student'),
+                                res['message']?.toString() ?? 'Failed to add student'),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -505,6 +499,95 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Success dialog shown after a student (and their login account) are
+  /// created. Displays the auto-generated credentials and lets the teacher
+  /// copy them to the clipboard before closing.
+  Future<void> _showAccountCreatedDialog(
+    BuildContext context, {
+    required String username,
+    required String defaultPassword,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (sCtx) => AlertDialog(
+        icon: Icon(
+          Icons.check_circle_rounded,
+          color: Colors.green.shade600,
+          size: 48,
+        ),
+        title: const Text(
+          'Student Account Created Successfully!',
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Save these login details — the student needs them to sign in to the portal.',
+              textAlign: TextAlign.center,
+              style: Theme.of(sCtx).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            _credentialRow(sCtx, 'Username', username),
+            const SizedBox(height: 10),
+            _credentialRow(sCtx, 'Default Password', defaultPassword),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Clipboard.setData(
+                ClipboardData(
+                  text: 'Username: $username\nDefault Password: $defaultPassword',
+                ),
+              );
+              ScaffoldMessenger.of(sCtx).showSnackBar(
+                const SnackBar(
+                  content: Text('Login details copied to clipboard.'),
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            label: const Text('Copy Login Details'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(sCtx).pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A labelled read-out row for one credential value (long-press to copy).
+  Widget _credentialRow(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 2),
+          SelectableText(
+            value.isNotEmpty ? value : '—',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }

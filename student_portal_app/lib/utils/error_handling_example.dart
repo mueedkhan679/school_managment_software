@@ -6,7 +6,7 @@ import '../services/api_service.dart';
 import 'api_error_handler.dart';
 
 class ErrorHandlingExample extends StatefulWidget {
-  const ErrorHandlingExample({Key? key}) : super(key: key);
+  const ErrorHandlingExample({super.key});
 
   @override
   State<ErrorHandlingExample> createState() => _ErrorHandlingExampleState();
