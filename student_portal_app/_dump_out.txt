@@ -1,0 +1,367 @@
+===== lib\views\fee_view.dart [88-250] =====
+88:                               FittedBox(
+89:                                 fit: BoxFit.scaleDown,
+90:                                 alignment: Alignment.centerRight,
+91:                                 child: Text(
+92:                                   Format.rupees(feeData?.currYearPaid),
+93:                                   maxLines: 1,
+94:                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+95:                                 ),
+96:                               ),
+97:                             ],
+98:                           ),
+99:                         ),
+100:                       ],
+101:                     ),
+102:                     const Divider(height: 24),
+103:                     // Vertical layout + FittedBox: amounts scale down instead
+104:                     // of causing "RIGHT OVERFLOWED BY …" on narrow screens.
+105:                     Column(
+106:                       crossAxisAlignment: CrossAxisAlignment.start,
+107:                       children: [
+108:                         const Text('Outstanding Balance:', style: TextStyle(fontWeight: FontWeight.bold)),
+109:                         const SizedBox(height: 4),
+110:                         FittedBox(
+111:                           fit: BoxFit.scaleDown,
+112:                           alignment: Alignment.centerLeft,
+113:                           child: Text(
+114:                             Format.rupees(feeData?.yearlyPending),
+115:                             maxLines: 1,
+116:                             style: TextStyle(
+117:                               fontSize: 24,
+118:                               fontWeight: FontWeight.bold,
+119:                               color: (feeData?.yearlyPending != '0.00' && feeData?.yearlyPending != '0')
+120:                                   ? Colors.red
+121:                                   : Colors.green,
+122:                             ),
+123:                           ),
+124:                         ),
+125:                       ],
+126:                     ),
+127:                     const SizedBox(height: 14),
+128:                     Column(
+129:                       crossAxisAlignment: CrossAxisAlignment.start,
+130:                       children: [
+131:                         const Text('Total Paid:', style: TextStyle(fontWeight: FontWeight.bold)),
+132:                         const SizedBox(height: 4),
+133:                         FittedBox(
+134:                           fit: BoxFit.scaleDown,
+135:                           alignment: Alignment.centerLeft,
+136:                           child: Text(
+137:                             Format.rupees(feeData?.totalPaidFees),
+138:                             maxLines: 1,
+139:                             style: const TextStyle(
+140:                               fontWeight: FontWeight.bold,
+141:                               color: Colors.green,
+142:                             ),
+143:                           ),
+144:                         ),
+145:                       ],
+146:                     ),
+147:                     const SizedBox(height: 12),
+148:                     // One-time Admission Fee badge (sourced from the
+149:                     // student-profile API; N/A when waived or not charged).
+150:                     Align(
+151:                       alignment: Alignment.centerLeft,
+152:                       child: Container(
+153:                         padding: const EdgeInsets.symmetric(
+154:                           horizontal: 12,
+155:                           vertical: 8,
+156:                         ),
+157:                         decoration: BoxDecoration(
+158:                           color: (profile?.hasAdmissionFee ?? false)
+159:                               ? Colors.amber.withValues(alpha: 0.18)
+160:                               : theme.colorScheme.surfaceContainerHighest
+161:                                   .withValues(alpha: 0.6),
+162:                           borderRadius: BorderRadius.circular(12),
+163:                         ),
+164:                         child: Row(
+165:                           mainAxisSize: MainAxisSize.min,
+166:                           children: [
+167:                             const Text('🧾', style: TextStyle(fontSize: 14)),
+168:                             const SizedBox(width: 6),
+169:                             Text(
+170:                               'Admission Fee:',
+171:                               style: TextStyle(
+172:                                 fontSize: 13,
+173:                                 color: Colors.grey[700],
+174:                               ),
+175:                             ),
+176:                             const SizedBox(width: 4),
+177:                             Text(
+178:                               (profile?.hasAdmissionFee ?? false)
+179:                                   ? Format.rupees(profile!.admissionFee)
+180:                                   : 'N/A (Free / Waived)',
+181:                               style: TextStyle(
+182:                                 fontSize: 13,
+183:                                 fontWeight: FontWeight.bold,
+184:                                 color: (profile?.hasAdmissionFee ?? false)
+185:                                     ? Colors.amber.shade900
+186:                                     : Colors.grey,
+187:                               ),
+188:                             ),
+189:                           ],
+190:                         ),
+191:                       ),
+192:                     ),
+193:                   ],
+194:                 ),
+195:               ),
+196:             ).animate().fadeIn().slideY(begin: -0.1, end: 0),
+197:           ),
+198: 
+199:           // Tab Bar for Switching between 12-Month Schedule and Payment History
+200:           TabBar(
+201:             controller: _tabController,
+202:             tabs: const [
+203:               Tab(text: 'Current Year Schedule'),
+204:               Tab(text: 'Payment Receipts Log'),
+205:             ],
+206:           ),
+207: 
+208:           Expanded(
+209:             child: TabBarView(
+210:               controller: _tabController,
+211:               children: [
+212:                 // 12-Month Schedule List
+213:                 _buildScheduleTab(
+214:                   feeData?.monthlySchedule ?? const [],
+215:                   studentCtrl.isLoadingFees,
+216:                   theme,
+217:                 ),
+218: 
+219:                 // Payment History Ledger List
+220:                 _buildHistoryTab(feeData?.results ?? const [], studentCtrl.isLoadingFees, theme),
+221:               ],
+222:             ),
+223:           ),
+224:         ],
+225:       ),
+226:     );
+227:   }
+228: 
+229:   Widget _buildScheduleTab(List<MonthlyScheduleItem> schedule, bool isLoading, ThemeData theme) {
+230:     if (isLoading) {
+231:       return const Center(child: CircularProgressIndicator());
+232:     }
+233:     if (schedule.isEmpty) {
+234:       return const Center(child: Text('No fee schedule available'));
+235:     }
+236:     return ListView.builder(
+237:       padding: const EdgeInsets.all(16),
+238:       itemCount: schedule.length,
+239:       itemBuilder: (context, index) {
+240:         final item = schedule[index];
+241:         final isPaid = item.isPaid;
+242: 
+243:         return Card(
+244:           margin: const EdgeInsets.only(bottom: 10),
+245:           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+246:           child: ListTile(
+247:             leading: CircleAvatar(
+248:               backgroundColor: isPaid ? Colors.green.withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
+249:               child: Icon(
+250:                 isPaid ? Icons.check_circle_rounded : Icons.schedule_rounded,
+===== lib\views\digital_id_card_view.dart [109-242] =====
+109: 
+110:   Widget _buildCardFront(BuildContext context, profile, ThemeData theme) {
+111:     return Container(
+112:       width: double.infinity,
+113:       height: 440,
+114:       decoration: BoxDecoration(
+115:         borderRadius: BorderRadius.circular(24),
+116:         gradient: LinearGradient(
+117:           begin: Alignment.topLeft,
+118:           end: Alignment.bottomRight,
+119:           colors: [
+120:             theme.colorScheme.primary,
+121:             theme.colorScheme.primaryContainer,
+122:           ],
+123:         ),
+124:         boxShadow: [
+125:           BoxShadow(
+126:             color: theme.colorScheme.primary.withValues(alpha: 0.3),
+127:             blurRadius: 16,
+128:             offset: const Offset(0, 8),
+129:           ),
+130:         ],
+131:       ),
+132:       child: Padding(
+133:         padding: const EdgeInsets.all(24.0),
+134:         child: Column(
+135:           children: [
+136:             // School Header
+137:             const Row(
+138:               children: [
+139:                 Icon(Icons.school_rounded, color: Colors.white, size: 36),
+140:                 SizedBox(width: 12),
+141:                 Expanded(
+142:                   child: Column(
+143:                     crossAxisAlignment: CrossAxisAlignment.start,
+144:                     children: [
+145:                       Text(
+146:                         'EXCELLENCE ACADEMY',
+147:                         style: TextStyle(
+148:                           color: Colors.white,
+149:                           fontSize: 16,
+150:                           fontWeight: FontWeight.bold,
+151:                           letterSpacing: 1.1,
+152:                         ),
+153:                       ),
+154:                       Text(
+155:                         'Official Student Identity Card',
+156:                         style: TextStyle(color: Colors.white70, fontSize: 11),
+157:                       ),
+158:                     ],
+159:                   ),
+160:                 ),
+161:               ],
+162:             ),
+163:             const Divider(color: Colors.white30, height: 28),
+164: 
+165:             // Profile Photo – falls back to the placeholder icon when the
+166:             // URL is missing or the network image fails to load.
+167:             StudentAvatar(
+168:               imageUrl: profile?.photoUrl,
+169:               radius: 46,
+170:               innerPadding: 3,
+171:               backgroundColor: Colors.white,
+172:               iconColor: theme.colorScheme.primary,
+173:               iconSize: 50,
+174:             ),
+175:             const SizedBox(height: 14),
+176: 
+177:             // Name — auto-shrinks to a single line so long names can never
+178:             // push the card contents past its fixed height (bottom overflow).
+179:             Padding(
+180:               padding: const EdgeInsets.symmetric(horizontal: 4),
+181:               child: FittedBox(
+182:                 fit: BoxFit.scaleDown,
+183:                 child: Text(
+184:                   profile?.fullName ?? 'Student Name',
+185:                   maxLines: 1,
+186:                   style: const TextStyle(
+187:                     color: Colors.white,
+188:                     fontSize: 22,
+189:                     fontWeight: FontWeight.bold,
+190:                   ),
+191:                 ),
+192:               ),
+193:             ),
+194:             Text(
+195:               'Reg ID: ${profile?.studentId ?? 'N/A'}',
+196:               style: const TextStyle(
+197:                 color: Colors.amberAccent,
+198:                 fontSize: 14,
+199:                 fontWeight: FontWeight.w600,
+200:               ),
+201:             ),
+202:             const Spacer(),
+203: 
+204:             // Bio Details Grid
+205:             Container(
+206:               padding: const EdgeInsets.all(12),
+207:               decoration: BoxDecoration(
+208:                 color: Colors.black.withValues(alpha: 0.15),
+209:                 borderRadius: BorderRadius.circular(14),
+210:               ),
+211:               // Bio Details Grid – three equal columns so Class / Gender /
+212:               // DOB each get the same width and never overflow the card.
+213:               child: Row(
+214:                 children: [
+215:                   Expanded(
+216:                     child: _buildInfoColumn(
+217:                       'Class',
+218:                       (profile?.className.isNotEmpty ?? false) ? profile!.className : 'N/A',
+219:                     ),
+220:                   ),
+221:                   Expanded(
+222:                     child: _buildInfoColumn(
+223:                       'Gender',
+224:                       (profile?.genderLabel.isNotEmpty ?? false) ? profile!.genderLabel : 'N/A',
+225:                     ),
+226:                   ),
+227:                   Expanded(
+228:                     child: _buildInfoColumn(
+229:                       'DOB',
+230:                       (profile?.dob.isNotEmpty ?? false) ? profile!.dob : 'N/A',
+231:                     ),
+232:                   ),
+233:                 ],
+234:               ),
+235:             ),
+236:           ],
+237:         ),
+238:       ),
+239:     );
+240:   }
+241: 
+242:   Widget _buildCardBack(BuildContext context, profile, ThemeData theme) {
+===== lib\views\login_view.dart [99-165] =====
+99:                     Icon(
+100:                       Icons.school_rounded,
+101:                       size: 80,
+102:                       color: theme.colorScheme.primary,
+103:                     )
+104:                         .animate()
+105:                         .scale(duration: 500.ms, curve: Curves.easeOutBack)
+106:                         .fade(duration: 400.ms),
+107:                     const SizedBox(height: 16),
+108:                     Text(
+109:                       'School Student Portal',
+110:                       textAlign: TextAlign.center,
+111:                       style: theme.textTheme.headlineMedium?.copyWith(
+112:                         fontWeight: FontWeight.bold,
+113:                         color: theme.colorScheme.onSurface,
+114:                       ),
+115:                     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+116:                     const SizedBox(height: 8),
+117:                     Text(
+118:                       'Sign in with your Student ID or Username',
+119:                       textAlign: TextAlign.center,
+120:                       style: theme.textTheme.bodyMedium?.copyWith(
+121:                         color: theme.colorScheme.onSurfaceVariant,
+122:                       ),
+123:                     ).animate().fadeIn(delay: 300.ms),
+124:                     const SizedBox(height: 36),
+125: 
+126:                     // Username / Student ID Input
+127:                     TextFormField(
+128:                       controller: _usernameController,
+129:                       keyboardType: TextInputType.text,
+130:                       decoration: InputDecoration(
+131:                         labelText: 'Username or Student Registration ID',
+132:                         hintText: 'e.g. STU-000001',
+133:                         prefixIcon: const Icon(Icons.person_outline_rounded),
+134:                         border: OutlineInputBorder(
+135:                           borderRadius: BorderRadius.circular(14),
+136:                         ),
+137:                         filled: true,
+138:                         fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+139:                       ),
+140:                       validator: (val) {
+141:                         if (val == null || val.trim().isEmpty) {
+142:                           return 'Please enter your username or Student ID';
+143:                         }
+144:                         return null;
+145:                       },
+146:                     ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
+147:                     const SizedBox(height: 18),
+148: 
+149:                     // Password Input
+150:                     TextFormField(
+151:                       controller: _passwordController,
+152:                       obscureText: _obscurePassword,
+153:                       decoration: InputDecoration(
+154:                         labelText: 'Password',
+155:                         prefixIcon: const Icon(Icons.lock_outline_rounded),
+156:                         suffixIcon: IconButton(
+157:                           icon: Icon(
+158:                             _obscurePassword ? Icons.visibility_off : Icons.visibility,
+159:                           ),
+160:                           onPressed: () {
+161:                             setState(() {
+162:                               _obscurePassword = !_obscurePassword;
+163:                             });
+164:                           },
+165:                         ),

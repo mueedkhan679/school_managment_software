@@ -1,0 +1,892 @@
+﻿1: import 'package:flutter/material.dart';
+2: import 'package:flutter/services.dart';
+3: import 'package:provider/provider.dart';
+4: import '../controllers/auth_controller.dart';
+5: import '../controllers/teacher_controller.dart';
+6: import 'login_view.dart';
+7: import 'qr_scan_view.dart';
+8: import 'package:intl/intl.dart';
+9: 
+10: class TeacherDashboardView extends StatefulWidget {
+11:   const TeacherDashboardView({super.key});
+12: 
+13:   @override
+14:   State<TeacherDashboardView> createState() => _TeacherDashboardViewState();
+15: }
+16: 
+17: class _TeacherDashboardViewState extends State<TeacherDashboardView> {
+18:   int _currentIndex = 0;
+19:   int _selectedSalaryYear = DateTime.now().year;
+20: 
+21:   @override
+22:   void initState() {
+23:     super.initState();
+24:     WidgetsBinding.instance.addPostFrameCallback((_) {
+25:       final tc = context.read<TeacherController>();
+26:       tc.fetchAvailableClasses();
+27:       tc.fetchTeacherAttendance();
+28:       tc.fetchTeacherSalary(year: _selectedSalaryYear);
+29:     });
+30:   }
+31: 
+32:   void _onLogout() {
+33:     context.read<TeacherController>().clearAllData();
+34:     context.read<AuthController>().logout();
+35:     Navigator.of(context).pushReplacement(
+36:       MaterialPageRoute(builder: (_) => const LoginView()),
+37:     );
+38:   }
+39: 
+40:   @override
+41:   Widget build(BuildContext context) {
+42:     final theme = Theme.of(context);
+43:     final tc = context.watch<TeacherController>();
+44: 
+45:     final screens = [
+46:       _buildAttendanceScreen(context, tc, theme),
+47:       _buildSalaryScreen(context, tc, theme),
+48:     ];
+49: 
+50:     return Scaffold(
+51:       appBar: AppBar(
+52:         title: const Text('Teacher Dashboard'),
+53:         actions: [
+54:           IconButton(
+55:             icon: const Icon(Icons.qr_code_scanner_rounded),
+56:             tooltip: 'Scan Attendance QR',
+57:             onPressed: () {
+58:               Navigator.of(context).push(
+59:                 MaterialPageRoute(builder: (_) => const QrScanView()),
+60:               );
+61:             },
+62:           ),
+63:           IconButton(
+64:             icon: const Icon(Icons.person_add_alt_1_rounded),
+65:             tooltip: 'Add Student',
+66:             onPressed: () => _openAddStudentDialog(context),
+67:           ),
+68:           IconButton(
+69:             icon: const Icon(Icons.logout),
+70:             onPressed: _onLogout,
+71:             tooltip: 'Logout',
+72:           ),
+73:         ],
+74:       ),
+75:       body: screens[_currentIndex],
+76:       bottomNavigationBar: NavigationBar(
+77:         selectedIndex: _currentIndex,
+78:         onDestinationSelected: (idx) {
+79:           setState(() {
+80:             _currentIndex = idx;
+81:           });
+82:         },
+83:         destinations: const [
+84:           NavigationDestination(
+85:             icon: Icon(Icons.fact_check_outlined),
+86:             selectedIcon: Icon(Icons.fact_check),
+87:             label: 'Attendance',
+88:           ),
+89:           NavigationDestination(
+90:             icon: Icon(Icons.payments_outlined),
+91:             selectedIcon: Icon(Icons.payments),
+92:             label: 'Salary',
+93:           ),
+94:         ],
+95:       ),
+96:     );
+97:   }
+98: 
+99:   Widget _buildAttendanceScreen(BuildContext context, TeacherController tc, ThemeData theme) {
+100:     return Column(
+101:       children: [
+102:         // Date Selector & Submit Button
+103:         Padding(
+104:           padding: const EdgeInsets.all(16.0),
+105:           child: Row(
+106:             children: [
+107:               Expanded(
+108:                 child: InkWell(
+109:                   onTap: () async {
+110:                     final date = await showDatePicker(
+111:                       context: context,
+112:                       initialDate: tc.selectedDate,
+113:                       firstDate: DateTime.now().subtract(const Duration(days: 365)),
+114:                       lastDate: DateTime.now(),
+115:                     );
+116:                     if (date != null) {
+117:                       tc.setSelectedDate(date);
+118:                     }
+119:                   },
+120:                   child: InputDecorator(
+121:                     decoration: InputDecoration(
+122:                       labelText: 'Attendance Date',
+123:                       border: OutlineInputBorder(
+124:                         borderRadius: BorderRadius.circular(12),
+125:                       ),
+126:                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+127:                     ),
+128:                     child: Row(
+129:                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+130:                       children: [
+131:                         Text(DateFormat('yyyy-MM-dd').format(tc.selectedDate)),
+132:                         const Icon(Icons.calendar_today, size: 20),
+133:                       ],
+134:                     ),
+135:                   ),
+136:                 ),
+137:               ),
+138:               const SizedBox(width: 16),
+139:               FilledButton.icon(
+140:                 onPressed: tc.isLoadingAttendance
+141:                     ? null
+142:                     : () async {
+143:                         final success = await tc.submitAttendance();
+144:                         if (!context.mounted) return;
+145:                         if (success) {
+146:                           // Clear confirmation dialog on successful submission.
+147:                           await showDialog<void>(
+148:                             context: context,
+149:                             builder: (dialogContext) => AlertDialog(
+150:                               icon: Icon(
+151:                                 Icons.check_circle_rounded,
+152:                                 color: Colors.green.shade600,
+153:                                 size: 48,
+154:                               ),
+155:                               title: const Text('Success'),
+156:                               content: const Text(
+157:                                 'Attendance submitted successfully!',
+158:                                 textAlign: TextAlign.center,
+159:                               ),
+160:                               actionsAlignment: MainAxisAlignment.center,
+161:                               actions: [
+162:                                 FilledButton(
+163:                                   onPressed: () =>
+164:                                       Navigator.of(dialogContext).pop(),
+165:                                   child: const Text('Okay'),
+166:                                 ),
+167:                               ],
+168:                             ),
+169:                           );
+170:                           if (!context.mounted) return;
+171:                           tc.fetchTeacherAttendance();
+172:                         } else {
+173:                           ScaffoldMessenger.of(context).showSnackBar(
+174:                             SnackBar(
+175:                               content: Text(
+176:                                   tc.attendanceError ?? 'Failed to submit'),
+177:                               backgroundColor: Colors.red,
+178:                             ),
+179:                           );
+180:                         }
+181:                       },
+182:                 icon: const Icon(Icons.save),
+183:                 label: const Text('Submit'),
+184:               ),
+185:             ],
+186:           ),
+187:         ),
+188: 
+189:         // Class Selector â€” every active school class, tap one to open it.
+190:         if (tc.isLoadingClasses)
+191:           const Padding(
+192:             padding: EdgeInsets.symmetric(horizontal: 16),
+193:             child: LinearProgressIndicator(minHeight: 2),
+194:           )
+195:         else if (tc.classesError != null)
+196:           Padding(
+197:             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+198:             child: Row(
+199:               children: [
+200:                 Icon(Icons.error_outline, size: 16, color: theme.colorScheme.error),
+201:                 const SizedBox(width: 6),
+202:                 Expanded(
+203:                   child: Text(
+204:                     tc.classesError!,
+205:                     style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+206:                   ),
+207:                 ),
+208:                 TextButton(
+209:                   onPressed: () => tc.fetchAvailableClasses(),
+210:                   child: const Text('Retry'),
+211:                 ),
+212:               ],
+213:             ),
+214:           )
+215:         else if (tc.availableClasses.isNotEmpty)
+216:           SizedBox(
+217:             height: 44,
+218:             child: ListView.separated(
+219:               scrollDirection: Axis.horizontal,
+220:               padding: const EdgeInsets.symmetric(horizontal: 16),
+221:               itemCount: tc.availableClasses.length + 1,
+222:               separatorBuilder: (_, __) => const SizedBox(width: 8),
+223:               itemBuilder: (context, index) {
+224:                 // Leading "All" chip clears the filter.
+225:                 if (index == 0) {
+226:                   final isSelected = tc.selectedClassId == null;
+227:                   return ChoiceChip(
+228:                     label: const Text('All Classes'),
+229:                     selected: isSelected,
+230:                     onSelected: (_) => tc.selectClass(null),
+231:                   );
+232:                 }
+233:                 final schoolClass = tc.availableClasses[index - 1];
+234:                 final isSelected = tc.selectedClassId == schoolClass.id;
+235:                 return ChoiceChip(
+236:                   label: Text('${schoolClass.name} (${schoolClass.studentCount})'),
+237:                   selected: isSelected,
+238:                   onSelected: (_) => tc.selectClass(schoolClass.id),
+239:                 );
+240:               },
+241:             ),
+242:           ),
+243: 
+244:         // Today's class-wise attendance summary (live counts).
+245:         _buildClassSummaryCard(tc, theme),
+246: 
+247:         // Roster List
+248:         Expanded(
+249:           child: tc.isLoadingAttendance
+250:               ? const Center(child: CircularProgressIndicator())
+251:               : tc.attendanceError != null
+252:                   ? Center(child: Text(tc.attendanceError!, style: TextStyle(color: theme.colorScheme.error)))
+253:                   : tc.selectedClassIsEmpty
+254:                       ? _buildEmptyClassState(theme)
+255:                       : tc.attendanceRoster.isEmpty
+256:                           ? const Center(child: Text('No students assigned or loaded.'))
+257:                           : ListView.builder(
+258:                           itemCount: tc.attendanceRoster.length,
+259:                           itemBuilder: (context, index) {
+260:                             final student = tc.attendanceRoster[index];
+261:                             final currentStatus = tc.attendanceSubmissions[student.id.toString()] ?? student.status;
+262:                             return Card(
+263:                               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+264:                               child: ListTile(
+265:                                 leading: CircleAvatar(
+266:                                   child: Text(student.name.isNotEmpty ? student.name[0] : '?'),
+267:                                 ),
+268:                                 title: Text(
+269:                                   student.name,
+270:                                   maxLines: 1,
+271:                                   overflow: TextOverflow.ellipsis,
+272:                                 ),
+273:                                 subtitle: Text(
+274:                                   '${student.studentId} â€¢ ${student.schoolClassName}',
+275:                                   maxLines: 1,
+276:                                   overflow: TextOverflow.ellipsis,
+277:                                 ),
+278:                                 // FittedBox guarantees the three toggles can
+279:                                 // never trigger a RenderFlex overflow on
+280:                                 // narrow screens â€” they shrink instead.
+281:                                 trailing: FittedBox(
+282:                                   fit: BoxFit.scaleDown,
+283:                                   child: Row(
+284:                                     mainAxisSize: MainAxisSize.min,
+285:                                     children: [
+286:                                       _statusChip(
+287:                                         tc,
+288:                                         student.id,
+289:                                         label: 'P',
+290:                                         value: 'PRESENT',
+291:                                         currentStatus: currentStatus,
+292:                                         activeColor: Colors.green,
+293:                                       ),
+294:                                       const SizedBox(width: 6),
+295:                                       _statusChip(
+296:                                         tc,
+297:                                         student.id,
+298:                                         label: 'A',
+299:                                         value: 'ABSENT',
+300:                                         currentStatus: currentStatus,
+301:                                         activeColor: Colors.red,
+302:                                       ),
+303:                                       const SizedBox(width: 6),
+304:                                       _statusChip(
+305:                                         tc,
+306:                                         student.id,
+307:                                         label: 'L',
+308:                                         value: 'LEAVE',
+309:                                         currentStatus: currentStatus,
+310:                                         activeColor: Colors.orange,
+311:                                       ),
+312:                                     ],
+313:                                   ),
+314:                                 ),
+315:                               ),
+316:                             );
+317:                           },
+318:                         ),
+319:         ),
+320:       ],
+321:     );
+322:   }
+323: 
+324:   /// Friendly empty state shown when the opened class has no enrolled students.
+325:   Widget _buildEmptyClassState(ThemeData theme) {
+326:     return Center(
+327:       child: Padding(
+328:         padding: const EdgeInsets.all(24.0),
+329:         child: Column(
+330:           mainAxisSize: MainAxisSize.min,
+331:           children: [
+332:             Icon(
+333:               Icons.school_outlined,
+334:               size: 56,
+335:               color: theme.colorScheme.outlineVariant,
+336:             ),
+337:             const SizedBox(height: 12),
+338:             Text(
+339:               'Is class mein filhal koi student enrolled nahi hai.',
+340:               textAlign: TextAlign.center,
+341:               style: theme.textTheme.titleSmall?.copyWith(
+342:                 fontWeight: FontWeight.w600,
+343:               ),
+344:             ),
+345:             const SizedBox(height: 6),
+346:             Text(
+347:               'Please select another class from the list above.',
+348:               textAlign: TextAlign.center,
+349:               style: theme.textTheme.bodySmall?.copyWith(
+350:                 color: theme.colorScheme.outline,
+351:               ),
+352:             ),
+353:           ],
+354:         ),
+355:       ),
+356:     );
+357:   }
+358: 
+359: /// Opens a form to add a new student for the selected class.
+360:   Future<void> _openAddStudentDialog(BuildContext context) async {
+361:     final tc = context.read<TeacherController>();
+362: 
+363:     if (tc.availableClasses.isEmpty) {
+364:       ScaffoldMessenger.of(context).showSnackBar(
+365:         const SnackBar(content: Text('No classes available yet.')),
+366:       );
+367:       return;
+368:     }
+369: 
+370:     final nameCtrl = TextEditingController();
+371:     final rollCtrl = TextEditingController();
+372:     final fatherCtrl = TextEditingController();
+373:     final phoneCtrl = TextEditingController();
+374:     var selectedClassId = tc.selectedClassId ?? tc.availableClasses.first.id;
+375:     var submitting = false;
+376: 
+377:     await showDialog<void>(
+378:       context: context,
+379:       builder: (dialogContext) => StatefulBuilder(
+380:         builder: (dCtx, setDialogState) => AlertDialog(
+381:           title: const Text('Add New Student'),
+382:           content: SingleChildScrollView(
+383:             child: Column(
+384:               mainAxisSize: MainAxisSize.min,
+385:               children: [
+386:                 TextField(
+387:                   controller: nameCtrl,
+388:                   decoration: const InputDecoration(
+389:                     labelText: 'Student Name *',
+390:                     border: OutlineInputBorder(),
+391:                   ),
+392:                 ),
+393:                 const SizedBox(height: 12),
+394:                 TextField(
+395:                   controller: rollCtrl,
+396:                   decoration: const InputDecoration(
+397:                     labelText: 'Roll Number',
+398:                     border: OutlineInputBorder(),
+399:                   ),
+400:                 ),
+401:                 const SizedBox(height: 12),
+402:                 DropdownButtonFormField<int>(
+403:                   initialValue: selectedClassId,
+404:                   decoration: const InputDecoration(
+405:                     labelText: 'Class *',
+406:                     border: OutlineInputBorder(),
+407:                   ),
+408:                   items: tc.availableClasses
+409:                       .map(
+410:                         (c) => DropdownMenuItem<int>(
+411:                           value: c.id,
+412:                           child: Text(c.name, overflow: TextOverflow.ellipsis),
+413:                         ),
+414:                       )
+415:                       .toList(),
+416:                   onChanged: (v) {
+417:                     if (v != null) setDialogState(() => selectedClassId = v);
+418:                   },
+419:                 ),
+420:                 const SizedBox(height: 12),
+421:                 TextField(
+422:                   controller: fatherCtrl,
+423:                   decoration: const InputDecoration(
+424:                     labelText: 'Father Name *',
+425:                     border: OutlineInputBorder(),
+426:                   ),
+427:                 ),
+428:                 const SizedBox(height: 12),
+429:                 TextField(
+430:                   controller: phoneCtrl,
+431:                   keyboardType: TextInputType.phone,
+432:                   decoration: const InputDecoration(
+433:                     labelText: 'Contact Phone (optional)',
+434:                     border: OutlineInputBorder(),
+435:                   ),
+436:                 ),
+437:               ],
+438:             ),
+439:           ),
+440:           actionsAlignment: MainAxisAlignment.center,
+441:           actions: [
+442:             TextButton(
+443:               onPressed: () => Navigator.of(dialogContext).pop(),
+444:               child: const Text('Cancel'),
+445:             ),
+446:             FilledButton(
+447:               onPressed: submitting
+448:                   ? null
+449:                   : () async {
+450:                       final name = nameCtrl.text.trim();
+451:                       final father = fatherCtrl.text.trim();
+452:                       if (name.isEmpty || father.isEmpty) {
+453:                         ScaffoldMessenger.of(dialogContext).showSnackBar(
+454:                           const SnackBar(
+455:                             content: Text('Name and father name are required.'),
+456:                             backgroundColor: Colors.red,
+457:                           ),
+458:                         );
+459:                         return;
+460:                       }
+461:                       setDialogState(() => submitting = true);
+462:                       final res = await tc.addStudent(
+463:                         fullName: name,
+464:                         rollNumber: rollCtrl.text.trim(),
+465:                         classId: selectedClassId,
+466:                         fatherName: father,
+467:                         phone: phoneCtrl.text.trim(),
+468:                       );
+469:                       if (!dialogContext.mounted) return;
+470:                       Navigator.of(dialogContext).pop();
+471:                       if (!context.mounted) return;
+472:                       if (res['status'] != 'error') {
+473:                         // Pull the auto-generated login credentials out of the
+474:                         // API response (payload first, top-level fallback).
+475:                         final payload = res['payload'] is Map<String, dynamic>
+476:                             ? res['payload'] as Map<String, dynamic>
+477:                             : <String, dynamic>{};
+478:                         final username =
+479:                             (payload['username'] ?? res['username'] ?? '').toString();
+480:                         final defaultPassword =
+481:                             (payload['default_password'] ?? res['default_password'] ?? '')
+482:                                 .toString();
+483:                         await _showAccountCreatedDialog(
+484:                           context,
+485:                           username: username,
+486:                           defaultPassword: defaultPassword,
+487:                         );
+488:                       } else {
+489:                         ScaffoldMessenger.of(context).showSnackBar(
+490:                           SnackBar(
+491:                             content: Text(
+492:                                 res['message']?.toString() ?? 'Failed to add student'),
+493:                             backgroundColor: Colors.red,
+494:                           ),
+495:                         );
+496:                       }
+497:                     },
+498:               child: const Text('Add'),
+499:             ),
+500:           ],
+501:         ),
+502:       ),
+503:     );
+504:   }
+505: 
+506:   /// Success dialog shown after a student (and their login account) are
+507:   /// created. Displays the auto-generated credentials and lets the teacher
+508:   /// copy them to the clipboard before closing.
+509:   Future<void> _showAccountCreatedDialog(
+510:     BuildContext context, {
+511:     required String username,
+512:     required String defaultPassword,
+513:   }) async {
+514:     await showDialog<void>(
+515:       context: context,
+516:       barrierDismissible: false,
+517:       builder: (sCtx) => AlertDialog(
+518:         icon: Icon(
+519:           Icons.check_circle_rounded,
+520:           color: Colors.green.shade600,
+521:           size: 48,
+522:         ),
+523:         title: const Text(
+524:           'Student Account Created Successfully!',
+525:           textAlign: TextAlign.center,
+526:         ),
+527:         content: Column(
+528:           mainAxisSize: MainAxisSize.min,
+529:           children: [
+530:             Text(
+531:               'Save these login details â€” the student needs them to sign in to the portal.',
+532:               textAlign: TextAlign.center,
+533:               style: Theme.of(sCtx).textTheme.bodySmall,
+534:             ),
+535:             const SizedBox(height: 16),
+536:             _credentialRow(sCtx, 'Username', username),
+537:             const SizedBox(height: 10),
+538:             _credentialRow(sCtx, 'Default Password', defaultPassword),
+539:           ],
+540:         ),
+541:         actionsAlignment: MainAxisAlignment.center,
+542:         actions: [
+543:           TextButton.icon(
+544:             onPressed: () {
+545:               Clipboard.setData(
+546:                 ClipboardData(
+547:                   text: 'Username: $username\nDefault Password: $defaultPassword',
+548:                 ),
+549:               );
+550:               ScaffoldMessenger.of(sCtx).showSnackBar(
+551:                 const SnackBar(
+552:                   content: Text('Login details copied to clipboard.'),
+553:                 ),
+554:               );
+555:             },
+556:             icon: const Icon(Icons.copy_rounded, size: 18),
+557:             label: const Text('Copy Login Details'),
+558:           ),
+559:           FilledButton(
+560:             onPressed: () => Navigator.of(sCtx).pop(),
+561:             child: const Text('Done'),
+562:           ),
+563:         ],
+564:       ),
+565:     );
+566:   }
+567: 
+568:   /// A labelled read-out row for one credential value (long-press to copy).
+569:   Widget _credentialRow(BuildContext context, String label, String value) {
+570:     final theme = Theme.of(context);
+571:     return Container(
+572:       width: double.infinity,
+573:       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+574:       decoration: BoxDecoration(
+575:         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+576:         borderRadius: BorderRadius.circular(10),
+577:       ),
+578:       child: Column(
+579:         crossAxisAlignment: CrossAxisAlignment.start,
+580:         children: [
+581:           Text(
+582:             label,
+583:             style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+584:           ),
+585:           const SizedBox(height: 2),
+586:           SelectableText(
+587:             value.isNotEmpty ? value : 'â€”',
+588:             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+589:           ),
+590:         ],
+591:       ),
+592:     );
+593:   }
+594: 
+595:   /// Compact Present/Absent/Leave toggle for one student.
+596:   Widget _statusChip(
+597:     TeacherController tc,
+598:     int studentId, {
+599:     required String label,
+600:     required String value,
+601:     required String currentStatus,
+602:     required MaterialColor activeColor,
+603:   }) {
+604:     return ChoiceChip(
+605:       label: Text(label),
+606:       selected: currentStatus == value,
+607:       selectedColor: activeColor.withValues(alpha: 0.35),
+608:       labelStyle: TextStyle(
+609:         fontWeight: FontWeight.bold,
+610:         color: currentStatus == value ? activeColor.shade900 : null,
+611:       ),
+612:       visualDensity: VisualDensity.compact,
+613:       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+614:       onSelected: (val) {
+615:         if (val) tc.updateAttendanceStatus(studentId, value);
+616:       },
+617:     );
+618:   }
+619: 
+620:   /// Today's quick stats card for the currently open class roster:
+621:   /// Total / Present / Absent / Leave â€” updates live as statuses toggle.
+622:   Widget _buildClassSummaryCard(TeacherController tc, ThemeData theme) {
+623:     Widget stat(String label, String value, Color color) => Expanded(
+624:           child: Column(
+625:             mainAxisSize: MainAxisSize.min,
+626:             children: [
+627:               Text(
+628:                 value,
+629:                 style: theme.textTheme.titleMedium?.copyWith(
+630:                   fontWeight: FontWeight.bold,
+631:                   color: color,
+632:                 ),
+633:               ),
+634:               const SizedBox(height: 2),
+635:               Text(
+636:                 label,
+637:                 textAlign: TextAlign.center,
+638:                 maxLines: 1,
+639:                 overflow: TextOverflow.ellipsis,
+640:                 style: theme.textTheme.bodySmall?.copyWith(
+641:                   color: theme.colorScheme.outline,
+642:                 ),
+643:               ),
+644:             ],
+645:           ),
+646:         );
+647: 
+648:     return Container(
+649:       margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+650:       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+651:       decoration: BoxDecoration(
+652:         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+653:         borderRadius: BorderRadius.circular(14),
+654:         border: Border.all(color: theme.colorScheme.outlineVariant),
+655:       ),
+656:       child: Row(
+657:         children: [
+658:           stat('Total', '${tc.totalStudents}', theme.colorScheme.primary),
+659:           stat('Present', '${tc.presentCount}', Colors.green.shade700),
+660:           stat('Absent', '${tc.absentCount}', Colors.red.shade700),
+661:           stat('Leave', '${tc.leaveCount}', Colors.orange.shade800),
+662:         ],
+663:       ),
+664:     );
+665:   }
+666: 
+667:   Widget _buildSalaryScreen(BuildContext context, TeacherController tc, ThemeData theme) {
+668:     final currentYear = DateTime.now().year;
+669:     final availableYears = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2];
+670: 
+671:     return Column(
+672:       children: [
+673:         // Year Filter Header Row
+674:         Padding(
+675:           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+676:           child: Row(
+677:             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+678:             children: [
+679:               Text(
+680:                 'Salary Records',
+681:                 style: theme.textTheme.titleMedium?.copyWith(
+682:                   fontWeight: FontWeight.bold,
+683:                 ),
+684:               ),
+685:               Container(
+686:                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+687:                 decoration: BoxDecoration(
+688:                   border: Border.all(color: theme.colorScheme.outlineVariant),
+689:                   borderRadius: BorderRadius.circular(10),
+690:                 ),
+691:                 child: DropdownButtonHideUnderline(
+692:                   child: DropdownButton<int>(
+693:                     value: _selectedSalaryYear,
+694:                     isDense: true,
+695:                     icon: const Icon(Icons.arrow_drop_down),
+696:                     items: availableYears.map((y) {
+697:                       return DropdownMenuItem<int>(
+698:                         value: y,
+699:                         child: Text('Year $y', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+700:                       );
+701:                     }).toList(),
+702:                     onChanged: (newYear) {
+703:                       if (newYear != null && newYear != _selectedSalaryYear) {
+704:                         setState(() {
+705:                           _selectedSalaryYear = newYear;
+706:                         });
+707:                         tc.fetchTeacherSalary(year: newYear);
+708:                       }
+709:                     },
+710:                   ),
+711:                 ),
+712:               ),
+713:             ],
+714:           ),
+715:         ),
+716: 
+717:         // Body Content
+718:         Expanded(
+719:           child: tc.isLoadingSalary
+720:               ? const Center(child: CircularProgressIndicator())
+721:               : tc.salaryError != null
+722:                   ? Center(
+723:                       child: Column(
+724:                         mainAxisAlignment: MainAxisAlignment.center,
+725:                         children: [
+726:                           Text(tc.salaryError!, style: TextStyle(color: theme.colorScheme.error)),
+727:                           const SizedBox(height: 16),
+728:                           ElevatedButton(
+729:                             onPressed: () => tc.fetchTeacherSalary(year: _selectedSalaryYear),
+730:                             child: const Text('Retry'),
+731:                           ),
+732:                         ],
+733:                       ),
+734:                     )
+735:                   : tc.salaryData == null
+736:                       ? const Center(child: Text('No salary data available.'))
+737:                       : _buildSalaryDetails(tc.salaryData!, theme),
+738:         ),
+739:       ],
+740:     );
+741:   }
+742: 
+743:   Widget _buildSalaryDetails(dynamic data, ThemeData theme) {
+744:     final paidCount = (data.monthlyStatuses as List).where((m) => m.isPaid).length;
+745:     final totalCount = (data.monthlyStatuses as List).length;
+746: 
+747:     return SingleChildScrollView(
+748:       child: Column(
+749:         children: [
+750:           // Teacher Profile & Summary Header Card
+751:           Container(
+752:             width: double.infinity,
+753:             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+754:             padding: const EdgeInsets.all(16.0),
+755:             decoration: BoxDecoration(
+756:               gradient: LinearGradient(
+757:                 colors: [
+758:                   theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
+759:                   theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+760:                 ],
+761:                 begin: Alignment.topLeft,
+762:                 end: Alignment.bottomRight,
+763:               ),
+764:               borderRadius: BorderRadius.circular(16),
+765:               border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+766:             ),
+767:             child: Column(
+768:               crossAxisAlignment: CrossAxisAlignment.start,
+769:               children: [
+770:                 Row(
+771:                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+772:                   crossAxisAlignment: CrossAxisAlignment.center,
+773:                   children: [
+774:                     // Expanded keeps long teacher names from overflowing.
+775:                     Expanded(
+776:                       child: Text(
+777:                         data.name.toString().isNotEmpty ? data.name.toString() : 'Teacher',
+778:                         maxLines: 2,
+779:                         overflow: TextOverflow.ellipsis,
+780:                         style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+781:                       ),
+782:                     ),
+783:                     const SizedBox(width: 8),
+784:                     if (data.teacherId.toString().isNotEmpty)
+785:                       Chip(
+786:                         label: Text(
+787:                           data.teacherId.toString(),
+788:                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+789:                         ),
+790:                         visualDensity: VisualDensity.compact,
+791:                       ),
+792:                   ],
+793:                 ),
+794:                 const SizedBox(height: 12),
+795:                 Row(
+796:                   children: [
+797:                     Expanded(
+798:                       child: Column(
+799:                         crossAxisAlignment: CrossAxisAlignment.start,
+800:                         children: [
+801:                           Text('Base Monthly Salary', style: theme.textTheme.bodySmall),
+802:                           Text('Rs ${data.monthlySalary}', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.green.shade800)),
+803:                         ],
+804:                       ),
+805:                     ),
+806:                     Expanded(
+807:                       child: Column(
+808:                         crossAxisAlignment: CrossAxisAlignment.start,
+809:                         children: [
+810:                           Text('Yearly Salary', style: theme.textTheme.bodySmall),
+811:                           Text('Rs ${data.yearlySalary}', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+812:                         ],
+813:                       ),
+814:                     ),
+815:                   ],
+816:                 ),
+817:                 const Divider(height: 20),
+818:                 Row(
+819:                   children: [
+820:                     Flexible(
+821:                       child: Text(
+822:                         'Disbursements for Year $_selectedSalaryYear:',
+823:                         overflow: TextOverflow.ellipsis,
+824:                         maxLines: 1,
+825:                         style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+826:                       ),
+827:                     ),
+828:                     const SizedBox(width: 6),
+829:                     Text(
+830:                       '$paidCount of $totalCount Paid',
+831:                       style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade800),
+832:                     ),
+833:                   ],
+834:                 ),
+835:               ],
+836:             ),
+837:           ),
+838: 
+839:           // Monthly Breakdown Cards
+840:           ListView.builder(
+841:             shrinkWrap: true,
+842:             physics: const NeverScrollableScrollPhysics(),
+843:             itemCount: data.monthlyStatuses.length,
+844:             itemBuilder: (context, index) {
+845:               final m = data.monthlyStatuses[index];
+846:               final isPaid = m.isPaid;
+847:               return Card(
+848:                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+849:                 shape: RoundedRectangleBorder(
+850:                   side: BorderSide(
+851:                     color: isPaid ? Colors.green.withValues(alpha: 0.5) : Colors.orange.withValues(alpha: 0.5),
+852:                     width: 1.2,
+853:                   ),
+854:                   borderRadius: BorderRadius.circular(12),
+855:                 ),
+856:                 child: ListTile(
+857:                   leading: CircleAvatar(
+858:                     backgroundColor: isPaid ? Colors.green.shade50 : Colors.orange.shade50,
+859:                     child: Icon(
+860:                       isPaid ? Icons.check_circle : Icons.pending,
+861:                       color: isPaid ? Colors.green.shade700 : Colors.orange.shade700,
+862:                       size: 22,
+863:                     ),
+864:                   ),
+865:                   title: Text(m.monthName, style: const TextStyle(fontWeight: FontWeight.bold)),
+866:                   subtitle: Text(
+867:                     isPaid && m.paymentDate != null
+868:                         ? 'Paid on ${m.paymentDate} â€¢ Rs ${m.amount}'
+869:                         : 'Amount: Rs ${m.amount} (Pending)',
+870:                   ),
+871:                   trailing: Chip(
+872:                     label: Text(
+873:                       m.status,
+874:                       style: TextStyle(
+875:                         color: isPaid ? Colors.green.shade900 : Colors.orange.shade900,
+876:                         fontWeight: FontWeight.bold,
+877:                         fontSize: 12,
+878:                       ),
+879:                     ),
+880:                     backgroundColor: isPaid ? Colors.green.shade100 : Colors.orange.shade100,
+881:                     visualDensity: VisualDensity.compact,
+882:                   ),
+883:                 ),
+884:               );
+885:             },
+886:           ),
+887:           const SizedBox(height: 20),
+888:         ],
+889:       ),
+890:     );
+891:   }
+892: }

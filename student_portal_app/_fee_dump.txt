@@ -1,0 +1,339 @@
+﻿1: import 'package:flutter/material.dart';
+2: import 'package:flutter_animate/flutter_animate.dart';
+3: import 'package:provider/provider.dart';
+4: import '../controllers/student_controller.dart';
+5: import '../models/fee_model.dart';
+6: import '../utils/formatters.dart';
+7: 
+8: class FeeView extends StatefulWidget {
+9:   const FeeView({super.key});
+10: 
+11:   @override
+12:   State<FeeView> createState() => _FeeViewState();
+13: }
+14: 
+15: class _FeeViewState extends State<FeeView> with SingleTickerProviderStateMixin {
+16:   late TabController _tabController;
+17: 
+18:   @override
+19:   void initState() {
+20:     super.initState();
+21:     // Default to the monthly breakdown tab so the paid/pending schedule is
+22:     // visible immediately when opening the Fee Management screen.
+23:     _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
+24:   }
+25: 
+26:   @override
+27:   void dispose() {
+28:     _tabController.dispose();
+29:     super.dispose();
+30:   }
+31: 
+32:   @override
+33:   Widget build(BuildContext context) {
+34:     final theme = Theme.of(context);
+35:     final studentCtrl = context.watch<StudentController>();
+36:     final feeData = studentCtrl.feeData;
+37:     final profile = studentCtrl.profile;
+38: 
+39:     return RefreshIndicator(
+40:       onRefresh: () async {
+41:         await studentCtrl.fetchFees();
+42:       },
+43:       child: Column(
+44:         children: [
+45:           // Header Financial Balance Summary Card
+46:           Padding(
+47:             padding: const EdgeInsets.all(16.0),
+48:             child: Card(
+49:               elevation: 4,
+50:               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+51:               color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+52:               child: Padding(
+53:                 padding: const EdgeInsets.all(20.0),
+54:                 child: Column(
+55:                   children: [
+56:                     Row(
+57:                       crossAxisAlignment: CrossAxisAlignment.start,
+58:                       children: [
+59:                         Expanded(
+60:                           child: Column(
+61:                             crossAxisAlignment: CrossAxisAlignment.start,
+62:                             children: [
+63:                               const Text('Yearly Expected', style: TextStyle(fontSize: 12, color: Colors.grey)),
+64:                               const SizedBox(height: 2),
+65:                               FittedBox(
+66:                                 fit: BoxFit.scaleDown,
+67:                                 alignment: Alignment.centerLeft,
+68:                                 child: Text(
+69:                                   Format.rupees(feeData?.yearlyExpected),
+70:                                   maxLines: 1,
+71:                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+72:                                 ),
+73:                               ),
+74:                             ],
+75:                           ),
+76:                         ),
+77:                         const SizedBox(width: 12),
+78:                         Expanded(
+79:                           child: Column(
+80:                             crossAxisAlignment: CrossAxisAlignment.end,
+81:                             children: [
+82:                               const Text(
+83:                                 'Current Year Paid',
+84:                                 textAlign: TextAlign.right,
+85:                                 style: TextStyle(fontSize: 12, color: Colors.grey),
+86:                               ),
+87:                               const SizedBox(height: 2),
+88:                               FittedBox(
+89:                                 fit: BoxFit.scaleDown,
+90:                                 alignment: Alignment.centerRight,
+91:                                 child: Text(
+92:                                   Format.rupees(feeData?.currYearPaid),
+93:                                   maxLines: 1,
+94:                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+95:                                 ),
+96:                               ),
+97:                             ],
+98:                           ),
+99:                         ),
+100:                       ],
+101:                     ),
+102:                     const Divider(height: 24),
+103:                     // Vertical layout + FittedBox: amounts scale down instead
+104:                     // of causing "RIGHT OVERFLOWED BY â€¦" on narrow screens.
+105:                     Column(
+106:                       crossAxisAlignment: CrossAxisAlignment.start,
+107:                       children: [
+108:                         const Text('Outstanding Balance:', style: TextStyle(fontWeight: FontWeight.bold)),
+109:                         const SizedBox(height: 4),
+110:                         FittedBox(
+111:                           fit: BoxFit.scaleDown,
+112:                           alignment: Alignment.centerLeft,
+113:                           child: Text(
+114:                             Format.rupees(feeData?.yearlyPending),
+115:                             maxLines: 1,
+116:                             style: TextStyle(
+117:                               fontSize: 24,
+118:                               fontWeight: FontWeight.bold,
+119:                               color: (feeData?.yearlyPending != '0.00' && feeData?.yearlyPending != '0')
+120:                                   ? Colors.red
+121:                                   : Colors.green,
+122:                             ),
+123:                           ),
+124:                         ),
+125:                       ],
+126:                     ),
+127:                     const SizedBox(height: 14),
+128:                     Column(
+129:                       crossAxisAlignment: CrossAxisAlignment.start,
+130:                       children: [
+131:                         const Text('Total Paid:', style: TextStyle(fontWeight: FontWeight.bold)),
+132:                         const SizedBox(height: 4),
+133:                         FittedBox(
+134:                           fit: BoxFit.scaleDown,
+135:                           alignment: Alignment.centerLeft,
+136:                           child: Text(
+137:                             Format.rupees(feeData?.totalPaidFees),
+138:                             maxLines: 1,
+139:                             style: const TextStyle(
+140:                               fontWeight: FontWeight.bold,
+141:                               color: Colors.green,
+142:                             ),
+143:                           ),
+144:                         ),
+145:                       ],
+146:                     ),
+147:                     const SizedBox(height: 12),
+148:                     // One-time Admission Fee badge (sourced from the
+149:                     // student-profile API; N/A when waived or not charged).
+150:                     Align(
+151:                       alignment: Alignment.centerLeft,
+152:                       child: Container(
+153:                         padding: const EdgeInsets.symmetric(
+154:                           horizontal: 12,
+155:                           vertical: 8,
+156:                         ),
+157:                         decoration: BoxDecoration(
+158:                           color: (profile?.hasAdmissionFee ?? false)
+159:                               ? Colors.amber.withValues(alpha: 0.18)
+160:                               : theme.colorScheme.surfaceContainerHighest
+161:                                   .withValues(alpha: 0.6),
+162:                           borderRadius: BorderRadius.circular(12),
+163:                         ),
+164:                         child: Row(
+165:                           mainAxisSize: MainAxisSize.min,
+166:                           children: [
+167:                             const Text('ðŸ§¾', style: TextStyle(fontSize: 14)),
+168:                             const SizedBox(width: 6),
+169:                             Text(
+170:                               'Admission Fee:',
+171:                               style: TextStyle(
+172:                                 fontSize: 13,
+173:                                 color: Colors.grey[700],
+174:                               ),
+175:                             ),
+176:                             const SizedBox(width: 4),
+177:                             Text(
+178:                               (profile?.hasAdmissionFee ?? false)
+179:                                   ? Format.rupees(profile!.admissionFee)
+180:                                   : 'N/A (Free / Waived)',
+181:                               style: TextStyle(
+182:                                 fontSize: 13,
+183:                                 fontWeight: FontWeight.bold,
+184:                                 color: (profile?.hasAdmissionFee ?? false)
+185:                                     ? Colors.amber.shade900
+186:                                     : Colors.grey,
+187:                               ),
+188:                             ),
+189:                           ],
+190:                         ),
+191:                       ),
+192:                     ),
+193:                   ],
+194:                 ),
+195:               ),
+196:             ).animate().fadeIn().slideY(begin: -0.1, end: 0),
+197:           ),
+198: 
+199:           // Tab Bar for Switching between 12-Month Schedule and Payment History
+200:           TabBar(
+201:             controller: _tabController,
+202:             tabs: const [
+203:               Tab(text: 'Current Year Schedule'),
+204:               Tab(text: 'Payment Receipts Log'),
+205:             ],
+206:           ),
+207: 
+208:           Expanded(
+209:             child: TabBarView(
+210:               controller: _tabController,
+211:               children: [
+212:                 // 12-Month Schedule List
+213:                 _buildScheduleTab(
+214:                   feeData?.monthlySchedule ?? const [],
+215:                   studentCtrl.isLoadingFees,
+216:                   theme,
+217:                 ),
+218: 
+219:                 // Payment History Ledger List
+220:                 _buildHistoryTab(feeData?.results ?? const [], studentCtrl.isLoadingFees, theme),
+221:               ],
+222:             ),
+223:           ),
+224:         ],
+225:       ),
+226:     );
+227:   }
+228: 
+229:   Widget _buildScheduleTab(List<MonthlyScheduleItem> schedule, bool isLoading, ThemeData theme) {
+230:     if (isLoading) {
+231:       return const Center(child: CircularProgressIndicator());
+232:     }
+233:     if (schedule.isEmpty) {
+234:       return const Center(child: Text('No fee schedule available'));
+235:     }
+236:     return ListView.builder(
+237:       padding: const EdgeInsets.all(16),
+238:       itemCount: schedule.length,
+239:       itemBuilder: (context, index) {
+240:         final item = schedule[index];
+241:         final isPaid = item.isPaid;
+242: 
+243:         return Card(
+244:           margin: const EdgeInsets.only(bottom: 10),
+245:           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+246:           child: ListTile(
+247:             leading: CircleAvatar(
+248:               backgroundColor: isPaid ? Colors.green.withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
+249:               child: Icon(
+250:                 isPaid ? Icons.check_circle_rounded : Icons.schedule_rounded,
+251:                 color: isPaid ? Colors.green : Colors.orange,
+252:               ),
+253:             ),
+254:             // Title: month name (e.g. "January 2026")
+255:             title: Text(
+256:               item.monthName,
+257:               maxLines: 1,
+258:               overflow: TextOverflow.ellipsis,
+259:               style: const TextStyle(fontWeight: FontWeight.bold),
+260:             ),
+261:             // Subtitle: fee amount (plus payment date when available)
+262:             subtitle: Text(
+263:               (isPaid && (item.paymentDate?.isNotEmpty ?? false))
+264:                   ? '${Format.rupees(item.amount)}  â€¢  Paid ${item.paymentDate}'
+265:                   : Format.rupees(item.amount),
+266:               style: const TextStyle(fontSize: 13),
+267:             ),
+268:             // Trailing: green PAID badge with check icon / red PENDING badge
+269:             trailing: Container(
+270:               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+271:               decoration: BoxDecoration(
+272:                 color: isPaid ? Colors.green : Colors.red,
+273:                 borderRadius: BorderRadius.circular(20),
+274:               ),
+275:               child: Row(
+276:                 mainAxisSize: MainAxisSize.min,
+277:                 children: [
+278:                   Icon(
+279:                     isPaid ? Icons.check_rounded : Icons.close_rounded,
+280:                     color: Colors.white,
+281:                     size: 14,
+282:                   ),
+283:                   const SizedBox(width: 4),
+284:                   Text(
+285:                     isPaid ? 'PAID' : 'PENDING',
+286:                     style: const TextStyle(
+287:                       color: Colors.white,
+288:                       fontSize: 11,
+289:                       fontWeight: FontWeight.bold,
+290:                     ),
+291:                   ),
+292:                 ],
+293:               ),
+294:             ),
+295:           ),
+296:         ).animate().fadeIn(delay: Duration(milliseconds: 50 * index));
+297:       },
+298:     );
+299:   }
+300: 
+301:   Widget _buildHistoryTab(List<FeeRecord> history, bool isLoading, ThemeData theme) {
+302:     if (isLoading) {
+303:       return const Center(child: CircularProgressIndicator());
+304:     }
+305:     if (history.isEmpty) {
+306:       return const Center(child: Text('No payment history records found.'));
+307:     }
+308:     return ListView.builder(
+309:       padding: const EdgeInsets.all(16),
+310:       itemCount: history.length,
+311:       itemBuilder: (context, index) {
+312:         final item = history[index];
+313:         return Card(
+314:           margin: const EdgeInsets.only(bottom: 10),
+315:           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+316:           child: ListTile(
+317:             leading: const CircleAvatar(
+318:               backgroundColor: Colors.green,
+319:               child: Icon(Icons.receipt_long_rounded, color: Colors.white),
+320:             ),
+321:             title: Text(
+322:               '${item.feeMonthName} ${item.feeYear}',
+323:               style: const TextStyle(fontWeight: FontWeight.bold),
+324:             ),
+325:             subtitle: Text('Ref: ${item.reference.isNotEmpty ? item.reference : 'N/A'} | Date: ${item.paymentDate}'),
+326:             trailing: Text(
+327:               Format.rupees(item.amount),
+328:               style: const TextStyle(
+329:                 fontWeight: FontWeight.bold,
+330:                 fontSize: 16,
+331:                 color: Colors.green,
+332:               ),
+333:             ),
+334:           ),
+335:         ).animate().fadeIn(delay: Duration(milliseconds: 50 * index));
+336:       },
+337:     );
+338:   }
+339: }

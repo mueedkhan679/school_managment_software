@@ -1,0 +1,391 @@
+﻿===== _tmp_fee.txt 90-250 =====
+90:                                 alignment: Alignment.centerRight,
+91:                                 child: Text(
+92:                                   Format.rupees(feeData?.currYearPaid),
+93:                                   maxLines: 1,
+94:                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+95:                                 ),
+96:                               ),
+97:                             ],
+98:                           ),
+99:                         ),
+100:                       ],
+101:                     ),
+102:                     const Divider(height: 24),
+103:                     // Vertical layout + FittedBox: amounts scale down instead
+104:                     // of causing "RIGHT OVERFLOWED BY â€¦" on narrow screens.
+105:                     Column(
+106:                       crossAxisAlignment: CrossAxisAlignment.start,
+107:                       children: [
+108:                         const Text('Outstanding Balance:', style: TextStyle(fontWeight: FontWeight.bold)),
+109:                         const SizedBox(height: 4),
+110:                         FittedBox(
+111:                           fit: BoxFit.scaleDown,
+112:                           alignment: Alignment.centerLeft,
+113:                           child: Text(
+114:                             Format.rupees(feeData?.yearlyPending),
+115:                             maxLines: 1,
+116:                             style: TextStyle(
+117:                               fontSize: 24,
+118:                               fontWeight: FontWeight.bold,
+119:                               color: (feeData?.yearlyPending != '0.00' && feeData?.yearlyPending != '0')
+120:                                   ? Colors.red
+121:                                   : Colors.green,
+122:                             ),
+123:                           ),
+124:                         ),
+125:                       ],
+126:                     ),
+127:                     const SizedBox(height: 14),
+128:                     Column(
+129:                       crossAxisAlignment: CrossAxisAlignment.start,
+130:                       children: [
+131:                         const Text('Total Paid:', style: TextStyle(fontWeight: FontWeight.bold)),
+132:                         const SizedBox(height: 4),
+133:                         FittedBox(
+134:                           fit: BoxFit.scaleDown,
+135:                           alignment: Alignment.centerLeft,
+136:                           child: Text(
+137:                             Format.rupees(feeData?.totalPaidFees),
+138:                             maxLines: 1,
+139:                             style: const TextStyle(
+140:                               fontWeight: FontWeight.bold,
+141:                               color: Colors.green,
+142:                             ),
+143:                           ),
+144:                         ),
+145:                       ],
+146:                     ),
+147:                     const SizedBox(height: 12),
+148:                     // One-time Admission Fee badge (sourced from the
+149:                     // student-profile API; N/A when waived or not charged).
+150:                     Align(
+151:                       alignment: Alignment.centerLeft,
+152:                       child: Container(
+153:                         padding: const EdgeInsets.symmetric(
+154:                           horizontal: 12,
+155:                           vertical: 8,
+156:                         ),
+157:                         decoration: BoxDecoration(
+158:                           color: (profile?.hasAdmissionFee ?? false)
+159:                               ? Colors.amber.withValues(alpha: 0.18)
+160:                               : theme.colorScheme.surfaceContainerHighest
+161:                                   .withValues(alpha: 0.6),
+162:                           borderRadius: BorderRadius.circular(12),
+163:                         ),
+164:                         child: Row(
+165:                           mainAxisSize: MainAxisSize.min,
+166:                           children: [
+167:                             const Text('ðŸ§¾', style: TextStyle(fontSize: 14)),
+168:                             const SizedBox(width: 6),
+169:                             Text(
+170:                               'Admission Fee:',
+171:                               style: TextStyle(
+172:                                 fontSize: 13,
+173:                                 color: Colors.grey[700],
+174:                               ),
+175:                             ),
+176:                             const SizedBox(width: 4),
+177:                             Text(
+178:                               (profile?.hasAdmissionFee ?? false)
+179:                                   ? Format.rupees(profile!.admissionFee)
+180:                                   : 'N/A (Free / Waived)',
+181:                               style: TextStyle(
+182:                                 fontSize: 13,
+183:                                 fontWeight: FontWeight.bold,
+184:                                 color: (profile?.hasAdmissionFee ?? false)
+185:                                     ? Colors.amber.shade900
+186:                                     : Colors.grey,
+187:                               ),
+188:                             ),
+189:                           ],
+190:                         ),
+191:                       ),
+192:                     ),
+193:                   ],
+194:                 ),
+195:               ),
+196:             ).animate().fadeIn().slideY(begin: -0.1, end: 0),
+197:           ),
+198: 
+199:           // Tab Bar for Switching between 12-Month Schedule and Payment History
+200:           TabBar(
+201:             controller: _tabController,
+202:             tabs: const [
+203:               Tab(text: 'Current Year Schedule'),
+204:               Tab(text: 'Payment Receipts Log'),
+205:             ],
+206:           ),
+207: 
+208:           Expanded(
+209:             child: TabBarView(
+210:               controller: _tabController,
+211:               children: [
+212:                 // 12-Month Schedule List
+213:                 _buildScheduleTab(
+214:                   feeData?.monthlySchedule ?? const [],
+215:                   studentCtrl.isLoadingFees,
+216:                   theme,
+217:                 ),
+218: 
+219:                 // Payment History Ledger List
+220:                 _buildHistoryTab(feeData?.results ?? const [], studentCtrl.isLoadingFees, theme),
+221:               ],
+222:             ),
+223:           ),
+224:         ],
+225:       ),
+226:     );
+227:   }
+228: 
+229:   Widget _buildScheduleTab(List<MonthlyScheduleItem> schedule, bool isLoading, ThemeData theme) {
+230:     if (isLoading) {
+231:       return const Center(child: CircularProgressIndicator());
+232:     }
+233:     if (schedule.isEmpty) {
+234:       return const Center(child: Text('No fee schedule available'));
+235:     }
+236:     return ListView.builder(
+237:       padding: const EdgeInsets.all(16),
+238:       itemCount: schedule.length,
+239:       itemBuilder: (context, index) {
+240:         final item = schedule[index];
+241:         final isPaid = item.isPaid;
+242: 
+243:         return Card(
+244:           margin: const EdgeInsets.only(bottom: 10),
+245:           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+246:           child: ListTile(
+247:             leading: CircleAvatar(
+248:               backgroundColor: isPaid ? Colors.green.withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
+249:               child: Icon(
+250:                 isPaid ? Icons.check_circle_rounded : Icons.schedule_rounded,
+===== qr_scan_view.dart 1-228 =====
+1: import 'dart:async';
+2: import 'package:flutter/material.dart';
+3: import 'package:flutter/services.dart';
+4: import 'package:mobile_scanner/mobile_scanner.dart';
+5: import 'package:provider/provider.dart';
+6: import '../controllers/teacher_controller.dart';
+7: 
+8: /// Full-screen camera scanner that reads the Teacher Attendance QR code
+9: /// displayed on the admin web dashboard and checks the teacher in.
+10: class QrScanView extends StatefulWidget {
+11:   const QrScanView({super.key});
+12: 
+13:   @override
+14:   State<QrScanView> createState() => _QrScanViewState();
+15: }
+16: 
+17: class _QrScanViewState extends State<QrScanView> {
+18:   final MobileScannerController _cameraController = MobileScannerController(
+19:     detectionTimeoutMs: 1500,
+20:   );
+21:   bool _handled = false;
+22: 
+23:   @override
+24:   void dispose() {
+25:     _cameraController.dispose();
+26:     super.dispose();
+27:   }
+28: 
+29:   Future<void> _onDetect(BarcodeCapture capture) async {
+30:     if (_handled) return;
+31:     final code = capture.barcodes.isNotEmpty
+32:         ? capture.barcodes.first.rawValue
+33:         : null;
+34:     if (code == null || code.trim().isEmpty) return;
+35: 
+36:     _handled = true;
+37:     final tc = context.read<TeacherController>();
+38:     final ok = await tc.markOwnAttendanceViaQr(code.trim());
+39:     if (!mounted) return;
+40: 
+41:     final result = tc.selfScan;
+42: 
+43:     // Play a short confirmation sound on a successful (or already-marked)
+44:     // scan, so the teacher gets instant audio feedback.
+45:     if (ok) {
+46:       unawaited(SystemSound.play(SystemSoundType.alert));
+47:     }
+48: 
+49:     await showDialog<void>(
+50:       context: context,
+51:       barrierDismissible: false,
+52:       builder: (dialogContext) {
+53:         final iconColor = ok ? Colors.green : Colors.redAccent;
+54:         final icon = ok
+55:             ? (result.duplicate
+56:                 ? Icons.verified_user_rounded
+57:                 : Icons.check_circle_rounded)
+58:             : Icons.error_rounded;
+59:         final title = ok
+60:             ? (result.duplicate
+61:                 ? 'Attendance Already Marked'
+62:                 : 'Attendance Marked Successfully')
+63:             : 'Invalid QR Code';
+64: 
+65:         return AlertDialog(
+66:           icon: Icon(icon, color: iconColor, size: 44),
+67:           title: Text(title, textAlign: TextAlign.center),
+68:           content: SingleChildScrollView(
+69:             child: Column(
+70:               mainAxisSize: MainAxisSize.min,
+71:               crossAxisAlignment: CrossAxisAlignment.center,
+72:               children: [
+73:                 if (ok && result.name.isNotEmpty) ...[
+74:                   // Teacher photo (or initials placeholder)
+75:                   ClipOval(
+76:                     child: result.photoUrl != null && result.photoUrl!.isNotEmpty
+77:                         ? Image.network(
+78:                             result.photoUrl!,
+79:                             width: 72,
+80:                             height: 72,
+81:                             fit: BoxFit.cover,
+82:                             errorBuilder: (_, __, ___) => _initialCircle(result),
+83:                           )
+84:                         : _initialCircle(result),
+85:                   ),
+86:                   const SizedBox(height: 12),
+87:                   Text(
+88:                     result.name,
+89:                     style: const TextStyle(
+90:                       fontWeight: FontWeight.bold,
+91:                       fontSize: 18,
+92:                     ),
+93:                   ),
+94:                   Text(
+95:                     '@${result.teacherId}',
+96:                     style: const TextStyle(color: Colors.black54),
+97:                   ),
+98:                   if (result.phone.isNotEmpty) ...[
+99:                     const SizedBox(height: 6),
+100:                     Text('ðŸ“ž ${result.phone}'),
+101:                   ],
+102:                   if (result.address.isNotEmpty) ...[
+103:                     const SizedBox(height: 4),
+104:                     Text('ðŸ“ ${result.address}'),
+105:                   ],
+106:                   const Divider(height: 24),
+107:                   _statusRow(
+108:                     'Attendance Status',
+109:                     result.isPresent ? 'Present' : result.status,
+110:                     result.isPresent ? Colors.green : Colors.orange,
+111:                   ),
+112:                   if (result.timeInLabel.isNotEmpty)
+113:                     _statusRow('Check-in Time', result.timeInLabel, Colors.black87),
+114:                 ] else ...[
+115:                   Text(
+116:                     tc.selfScanMessage ?? '',
+117:                     textAlign: TextAlign.center,
+118:                   ),
+119:                 ],
+120:               ],
+121:             ),
+122:           ),
+123:           actionsAlignment: MainAxisAlignment.center,
+124:           actions: [
+125:             FilledButton(
+126:               onPressed: () => Navigator.of(dialogContext).pop(),
+127:               child: const Text('Okay'),
+128:             ),
+129:           ],
+130:         );
+131:       },
+132:     );
+133:     if (!mounted) return;
+134:     // Success closes the scanner and returns to the dashboard; failures let
+135:     // the teacher retry immediately.
+136:     if (ok) {
+137:       Navigator.of(context).pop();
+138:     } else {
+139:       setState(() => _handled = false);
+140:     }
+141:   }
+142: 
+143:   Widget _statusRow(String label, String value, Color valueColor) {
+144:     return Padding(
+145:       padding: const EdgeInsets.symmetric(vertical: 2),
+146:       child: Row(
+147:         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+148:         children: [
+149:           Text(label, style: const TextStyle(color: Colors.black54)),
+150:           Text(
+151:             value,
+152:             style: TextStyle(fontWeight: FontWeight.w600, color: valueColor),
+153:           ),
+154:         ],
+155:       ),
+156:     );
+157:   }
+158: 
+159:   Widget _initialCircle(dynamic result) {
+160:     final name = result.name is String ? result.name as String : '';
+161:     return Container(
+162:       width: 72,
+163:       height: 72,
+164:       alignment: Alignment.center,
+165:       decoration: BoxDecoration(color: Colors.green.shade100, shape: BoxShape.circle),
+166:       child: Text(
+167:         name.isEmpty ? '?' : name.substring(0, 1).toUpperCase(),
+168:         style: TextStyle(
+169:           fontSize: 28,
+170:           fontWeight: FontWeight.bold,
+171:           color: Colors.green.shade800,
+172:         ),
+173:       ),
+174:     );
+175:   }
+176: 
+177:   @override
+178:   Widget build(BuildContext context) {
+179:     final tc = context.watch<TeacherController>();
+180:     return Scaffold(
+181:       appBar: AppBar(title: const Text('Scan Attendance QR')),
+182:       body: Stack(
+183:         children: [
+184:           MobileScanner(
+185:             controller: _cameraController,
+186:             onDetect: _onDetect,
+187:           ),
+188:           // Viewfinder frame
+189:           Center(
+190:             child: Container(
+191:               width: 260,
+192:               height: 260,
+193:               decoration: BoxDecoration(
+194:                 border: Border.all(color: Colors.white, width: 3),
+195:                 borderRadius: BorderRadius.circular(20),
+196:               ),
+197:             ),
+198:           ),
+199:           Positioned(
+200:             left: 0,
+201:             right: 0,
+202:             bottom: 32,
+203:             child: Column(
+204:               children: [
+205:                 if (tc.isScanningSelf)
+206:                   const CircularProgressIndicator(color: Colors.white),
+207:                 const SizedBox(height: 12),
+208:                 Container(
+209:                   padding:
+210:                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+211:                   decoration: BoxDecoration(
+212:                     color: Colors.black54,
+213:                     borderRadius: BorderRadius.circular(10),
+214:                   ),
+215:                   child: const Text(
+216:                     'Point the camera at the QR code on the school dashboard',
+217:                     style: TextStyle(color: Colors.white),
+218:                     textAlign: TextAlign.center,
+219:                   ),
+220:                 ),
+221:               ],
+222:             ),
+223:           ),
+224:         ],
+225:       ),
+226:     );
+227:   }
+228: }

@@ -1,0 +1,303 @@
+===== lib\views\digital_id_card_view.dart [1-109] =====
+1: import 'dart:math';
+2: import 'package:flutter/material.dart';
+3: import 'package:flutter_animate/flutter_animate.dart';
+4: import 'package:provider/provider.dart';
+5: import 'package:qr_flutter/qr_flutter.dart';
+6: import '../controllers/student_controller.dart';
+7: import '../widgets/student_avatar.dart';
+8: 
+9: class DigitalIdCardView extends StatefulWidget {
+10:   const DigitalIdCardView({super.key});
+11: 
+12:   @override
+13:   State<DigitalIdCardView> createState() => _DigitalIdCardViewState();
+14: }
+15: 
+16: class _DigitalIdCardViewState extends State<DigitalIdCardView> with SingleTickerProviderStateMixin {
+17:   late AnimationController _controller;
+18:   bool _showFront = true;
+19: 
+20:   @override
+21:   void initState() {
+22:     super.initState();
+23:     _controller = AnimationController(
+24:       vsync: this,
+25:       duration: const Duration(milliseconds: 600),
+26:     );
+27:   }
+28: 
+29:   @override
+30:   void dispose() {
+31:     _controller.dispose();
+32:     super.dispose();
+33:   }
+34: 
+35:   void _flipCard() {
+36:     if (_showFront) {
+37:       _controller.forward();
+38:     } else {
+39:       _controller.reverse();
+40:     }
+41:     setState(() {
+42:       _showFront = !_showFront;
+43:     });
+44:   }
+45: 
+46:   @override
+47:   Widget build(BuildContext context) {
+48:     final theme = Theme.of(context);
+49:     final studentCtrl = context.watch<StudentController>();
+50:     final profile = studentCtrl.profile;
+51: 
+52:     return SingleChildScrollView(
+53:       padding: const EdgeInsets.all(24.0),
+54:       child: Column(
+55:         children: [
+56:           Text(
+57:             'Digital Student ID Card',
+58:             style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+59:           ),
+60:           const SizedBox(height: 8),
+61:           Text(
+62:             'Tap card to flip for QR Code verification',
+63:             style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+64:           ),
+65:           const SizedBox(height: 28),
+66: 
+67:           // 3D Flip Card Container
+68:           GestureDetector(
+69:             onTap: _flipCard,
+70:             child: AnimatedBuilder(
+71:               animation: _controller,
+72:               builder: (context, child) {
+73:                 final angle = _controller.value * pi;
+74:                 final isBack = angle >= (pi / 2);
+75: 
+76:                 return Transform(
+77:                   transform: Matrix4.identity()
+78:                     ..setEntry(3, 2, 0.001)
+79:                     ..rotateY(angle),
+80:                   alignment: Alignment.center,
+81:                   child: isBack
+82:                       ? Transform(
+83:                           transform: Matrix4.identity()..rotateY(pi),
+84:                           alignment: Alignment.center,
+85:                           child: _buildCardBack(context, profile, theme),
+86:                         )
+87:                       : _buildCardFront(context, profile, theme),
+88:                 );
+89:               },
+90:             ),
+91:           ).animate().fadeIn().scale(),
+92: 
+93:           const SizedBox(height: 32),
+94: 
+95:           // Flip hint button
+96:           ElevatedButton.icon(
+97:             onPressed: _flipCard,
+98:             icon: const Icon(Icons.flip_rounded),
+99:             label: Text(_showFront ? 'Flip to View QR Code' : 'Flip to View Details'),
+100:             style: ElevatedButton.styleFrom(
+101:               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+102:               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+103:             ),
+104:           ),
+105:         ],
+106:       ),
+107:     );
+108:   }
+109: 
+===== lib\views\digital_id_card_view.dart [242-336] =====
+242:   Widget _buildCardBack(BuildContext context, profile, ThemeData theme) {
+243:     final qrData = profile?.qrCodeData ?? 'STUDENT_ID:${profile?.studentId}';
+244: 
+245:     return Container(
+246:       width: double.infinity,
+247:       height: 440,
+248:       decoration: BoxDecoration(
+249:         borderRadius: BorderRadius.circular(24),
+250:         gradient: LinearGradient(
+251:           begin: Alignment.bottomRight,
+252:           end: Alignment.topLeft,
+253:           colors: [
+254:             theme.colorScheme.surfaceContainerHighest,
+255:             theme.colorScheme.surface,
+256:           ],
+257:         ),
+258:         boxShadow: [
+259:           BoxShadow(
+260:             color: Colors.black.withValues(alpha: 0.1),
+261:             blurRadius: 16,
+262:             offset: const Offset(0, 8),
+263:           ),
+264:         ],
+265:       ),
+266:       child: Padding(
+267:         padding: const EdgeInsets.all(24.0),
+268:         child: Column(
+269:           mainAxisAlignment: MainAxisAlignment.center,
+270:           children: [
+271:             Text(
+272:               'Digital Verification QR',
+273:               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+274:             ),
+275:             const SizedBox(height: 16),
+276: 
+277:             // Auto Generated QR Code
+278:             Container(
+279:               padding: const EdgeInsets.all(16),
+280:               decoration: BoxDecoration(
+281:                 color: Colors.white,
+282:                 borderRadius: BorderRadius.circular(16),
+283:                 boxShadow: const [
+284:                   BoxShadow(color: Colors.black12, blurRadius: 8),
+285:                 ],
+286:               ),
+287:               child: QrImageView(
+288:                 data: qrData,
+289:                 version: QrVersions.auto,
+290:                 size: 180.0,
+291:                 backgroundColor: Colors.white,
+292:               ),
+293:             ),
+294:             const SizedBox(height: 18),
+295: 
+296:             Text(
+297:               'Scan for instant attendance & ID check',
+298:               style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+299:             ),
+300:             const SizedBox(height: 12),
+301:             Text(
+302:               'Emergency Contact: ${profile?.phone.isNotEmpty == true ? profile?.phone : 'School Admin'}',
+303:               maxLines: 1,
+304:               overflow: TextOverflow.ellipsis,
+305:               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+306:             ),
+307:           ],
+308:         ),
+309:       ),
+310:     );
+311:   }
+312: 
+313:   /// One labelled value column inside the ID-card bio grid
+314:   /// (Class / Gender / DOB). Text is centered and ellipsized so long values
+315:   /// can never push outside their equal-width column.
+316:   Widget _buildInfoColumn(String label, String value) {
+317:     return Column(
+318:       children: [
+319:         Text(
+320:           label,
+321:           maxLines: 1,
+322:           overflow: TextOverflow.ellipsis,
+323:           style: const TextStyle(color: Colors.white70, fontSize: 11),
+324:         ),
+325:         const SizedBox(height: 2),
+326:         Text(
+327:           value,
+328:           maxLines: 1,
+329:           overflow: TextOverflow.ellipsis,
+330:           textAlign: TextAlign.center,
+331:           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+332:         ),
+333:       ],
+334:     );
+335:   }
+336: }
+===== lib\views\fee_view.dart [155-250] =====
+155:                           vertical: 8,
+156:                         ),
+157:                         decoration: BoxDecoration(
+158:                           color: (profile?.hasAdmissionFee ?? false)
+159:                               ? Colors.amber.withValues(alpha: 0.18)
+160:                               : theme.colorScheme.surfaceContainerHighest
+161:                                   .withValues(alpha: 0.6),
+162:                           borderRadius: BorderRadius.circular(12),
+163:                         ),
+164:                         child: Row(
+165:                           mainAxisSize: MainAxisSize.min,
+166:                           children: [
+167:                             const Text('🧾', style: TextStyle(fontSize: 14)),
+168:                             const SizedBox(width: 6),
+169:                             Text(
+170:                               'Admission Fee:',
+171:                               style: TextStyle(
+172:                                 fontSize: 13,
+173:                                 color: Colors.grey[700],
+174:                               ),
+175:                             ),
+176:                             const SizedBox(width: 4),
+177:                             Text(
+178:                               (profile?.hasAdmissionFee ?? false)
+179:                                   ? Format.rupees(profile!.admissionFee)
+180:                                   : 'N/A (Free / Waived)',
+181:                               style: TextStyle(
+182:                                 fontSize: 13,
+183:                                 fontWeight: FontWeight.bold,
+184:                                 color: (profile?.hasAdmissionFee ?? false)
+185:                                     ? Colors.amber.shade900
+186:                                     : Colors.grey,
+187:                               ),
+188:                             ),
+189:                           ],
+190:                         ),
+191:                       ),
+192:                     ),
+193:                   ],
+194:                 ),
+195:               ),
+196:             ).animate().fadeIn().slideY(begin: -0.1, end: 0),
+197:           ),
+198: 
+199:           // Tab Bar for Switching between 12-Month Schedule and Payment History
+200:           TabBar(
+201:             controller: _tabController,
+202:             tabs: const [
+203:               Tab(text: 'Current Year Schedule'),
+204:               Tab(text: 'Payment Receipts Log'),
+205:             ],
+206:           ),
+207: 
+208:           Expanded(
+209:             child: TabBarView(
+210:               controller: _tabController,
+211:               children: [
+212:                 // 12-Month Schedule List
+213:                 _buildScheduleTab(
+214:                   feeData?.monthlySchedule ?? const [],
+215:                   studentCtrl.isLoadingFees,
+216:                   theme,
+217:                 ),
+218: 
+219:                 // Payment History Ledger List
+220:                 _buildHistoryTab(feeData?.results ?? const [], studentCtrl.isLoadingFees, theme),
+221:               ],
+222:             ),
+223:           ),
+224:         ],
+225:       ),
+226:     );
+227:   }
+228: 
+229:   Widget _buildScheduleTab(List<MonthlyScheduleItem> schedule, bool isLoading, ThemeData theme) {
+230:     if (isLoading) {
+231:       return const Center(child: CircularProgressIndicator());
+232:     }
+233:     if (schedule.isEmpty) {
+234:       return const Center(child: Text('No fee schedule available'));
+235:     }
+236:     return ListView.builder(
+237:       padding: const EdgeInsets.all(16),
+238:       itemCount: schedule.length,
+239:       itemBuilder: (context, index) {
+240:         final item = schedule[index];
+241:         final isPaid = item.isPaid;
+242: 
+243:         return Card(
+244:           margin: const EdgeInsets.only(bottom: 10),
+245:           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+246:           child: ListTile(
+247:             leading: CircleAvatar(
+248:               backgroundColor: isPaid ? Colors.green.withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
+249:               child: Icon(
+250:                 isPaid ? Icons.check_circle_rounded : Icons.schedule_rounded,
