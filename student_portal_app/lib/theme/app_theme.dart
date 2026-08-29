@@ -85,7 +85,7 @@ class AppTheme {
     final Color outline = isDark ? const Color(0xFF33405C) : const Color(0xFFDFE5F0);
 
     final TextTheme textTheme = GoogleFonts.poppinsTextTheme(
-      isDark ? ThemeData.dark() : ThemeData.light(),
+      isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
     ).apply(bodyColor: isDark ? const Color(0xFFE6EAF2) : const Color(0xFF1C2540));
 
     return ThemeData(

@@ -67,10 +67,10 @@ class SkeletonList extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: SchoolPalette.softShadow,
         ),
-        child: Row(
+        child: const Row(
           children: [
-            const ShimmerPlaceholder(width: 44, height: 44, radius: 22),
-            const SizedBox(width: 14),
+            ShimmerPlaceholder(width: 44, height: 44, radius: 22),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,12 +79,12 @@ class SkeletonList extends StatelessWidget {
                     width: double.infinity,
                     height: 13,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   ShimmerPlaceholder(width: 130, height: 10, radius: 6),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             ShimmerPlaceholder(width: 54, height: 22, radius: 11),
           ],
         ),
@@ -107,13 +107,13 @@ class SummaryCardsSkeleton extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: SchoolPalette.softShadow,
           ),
-          child: Column(
+          child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ShimmerPlaceholder(width: 84, height: 12, radius: 6),
-              const Spacer(),
+              Spacer(),
               ShimmerPlaceholder(width: 130, height: 24, radius: 8),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               ShimmerPlaceholder(width: 70, height: 11, radius: 6),
             ],
           ),
@@ -148,13 +148,13 @@ class HeroBannerSkeleton extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: SchoolPalette.softShadow,
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ShimmerPlaceholder(width: 110, height: 12, radius: 6),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           ShimmerPlaceholder(width: 190, height: 20, radius: 8),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           ShimmerPlaceholder(width: 160, height: 12, radius: 6),
         ],
       ),

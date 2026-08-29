@@ -39,7 +39,7 @@ class _SplashViewState extends State<SplashView> {
     // (Silently imported through the provider tree — no watch here, we only
     // need a one-shot read.)
     final auth = context.read<AuthController>();
-    if (auth != null && auth.isAuthenticated && auth.session != null) {
+    if (auth.isAuthenticated && auth.session != null) {
       target = auth.session!.role == 'TEACHER'
           ? const TeacherDashboardView()
           : const MainScaffoldView();
@@ -69,9 +69,9 @@ class _SplashViewState extends State<SplashView> {
 
                 // School logo — tries a network image, then a bundled asset,
                 // and finally falls back to the built-in vector badge.
-                SchoolLogo(
+                const SchoolLogo(
                   size: 118,
-                  networkUrl: const String.fromEnvironment(
+                  networkUrl: String.fromEnvironment(
                     'SCHOOL_LOGO_URL',
                     defaultValue: '',
                   ),

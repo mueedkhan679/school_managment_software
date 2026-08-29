@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
 import 'school_logo.dart';
 
 /// App bar that carries the school brand: the logo badge sits beside the
