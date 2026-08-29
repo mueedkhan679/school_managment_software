@@ -7,6 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from apps.accounts.models import Role
+from apps.attendance.models import Attendance, AttendanceStatus
 from apps.classrooms.models import SchoolClass
 from apps.students.models import Gender, Student
 from apps.teachers.models import Teacher
@@ -233,6 +234,67 @@ class Phase10AccountManagementTestCase(TestCase):
         # Profile still exists, just unlinked
         self.student.refresh_from_db()
         self.assertIsNone(self.student.user_id)
+
+    def test_account_delete_missing_user_deletes_student_profile(self):
+        """A missing login account no longer 404s — the orphaned Student is deleted."""
+        # Student and User ids come from independent sequences, so a Student
+        # pk can collide with an existing User pk (e.g. the admin's). Create
+        # a student with an id guaranteed absent from the User table so the
+        # view really exercises the "missing user" branch.
+        safe_id = (User.objects.order_by("-id").first().id or 0) + 1
+        student = Student.objects.create(
+            id=safe_id,
+            name="Orphan Student",
+            father_name="Khalid Siddiqui",
+            school_class=self.cls,
+            date_of_birth=date(2014, 3, 10),
+            gender=Gender.FEMALE,
+            is_active=True,
+        )
+        self.client.force_login(self.admin)
+        res = self.client.post(
+            reverse("accounts:account_delete", kwargs={"user_id": safe_id})
+        )
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(Student.objects.filter(pk=student.pk).exists())
+        self.assertFalse(User.objects.filter(id=safe_id).exists())
+
+    def test_account_delete_missing_user_soft_deletes_protected_student(self):
+        """A Student with fee/attendance history is soft-deleted, never crashes."""
+        # Use a collision-free id (see the test above) so the view cannot hit
+        # an unrelated User row that shares the Student's pk.
+        safe_id = (User.objects.order_by("-id").first().id or 0) + 1
+        student = Student.objects.create(
+            id=safe_id,
+            name="Protected Student",
+            father_name="Khalid Siddiqui",
+            school_class=self.cls,
+            date_of_birth=date(2014, 3, 10),
+            gender=Gender.FEMALE,
+            is_active=True,
+        )
+        Attendance.objects.create(
+            student=student,
+            date=date(2026, 1, 5),
+            status=AttendanceStatus.PRESENT,
+        )
+        self.client.force_login(self.admin)
+        res = self.client.post(
+            reverse("accounts:account_delete", kwargs={"user_id": safe_id})
+        )
+        self.assertEqual(res.status_code, 302)
+        student.refresh_from_db()
+        self.assertFalse(student.is_active)
+        self.assertTrue(student.attendance_records.exists())
+
+    def test_account_delete_nothing_found_clean_error(self):
+        """Neither a user nor a profile exists → clean redirect, no 404."""
+        self.client.force_login(self.admin)
+        res = self.client.post(
+            reverse("accounts:account_delete", kwargs={"user_id": 999999})
+        )
+        self.assertEqual(res.status_code, 302)
+        self.assertIn(reverse("accounts:account_list"), res.url)
 
     # ---- Admin Account Toggle Protection ----
 

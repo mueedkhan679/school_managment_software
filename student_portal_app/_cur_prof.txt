@@ -1,0 +1,120 @@
+   1: import '../services/api_service.dart';
+   2: 
+   3: class StudentProfile {
+   4:   final int id;
+   5:   final String studentId;
+   6:   final String name;
+   7:   final String fatherName;
+   8:   final int schoolClassId;
+   9:   final String schoolClassName;
+  10:   final String dateOfBirth;
+  11:   final String gender;
+  12:   final String genderDisplay;
+  13:   final String formBNumber;
+  14:   final String email;
+  15:   final String phone;
+  16:   final String address;
+  17:   final String? photoUrl;
+  18:   final String admissionDate;
+  19:   final String? customMonthlyFee;
+  20:   final String effectiveMonthlyFee;
+  21:   final String yearlyFee;
+  22:   final String? admissionFee;
+  23:   final String qrCodeData;
+  24:   final String totalPaid;
+  25:   final String attendancePercentage;
+  26: 
+  27:   StudentProfile({
+  28:     required this.id,
+  29:     required this.studentId,
+  30:     required this.name,
+  31:     required this.fatherName,
+  32:     required this.schoolClassId,
+  33:     required this.schoolClassName,
+  34:     required this.dateOfBirth,
+  35:     required this.gender,
+  36:     required this.genderDisplay,
+  37:     required this.formBNumber,
+  38:     required this.email,
+  39:     required this.phone,
+  40:     required this.address,
+  41:     this.photoUrl,
+  42:     required this.admissionDate,
+  43:     this.customMonthlyFee,
+  44:     required this.effectiveMonthlyFee,
+  45:     required this.yearlyFee,
+  46:     this.admissionFee,
+  47:     required this.qrCodeData,
+  48:     this.totalPaid = '0.00',
+  49:     this.attendancePercentage = '0.0',
+  50:   });
+  51: 
+  52:   /// Returns [v] as a trimmed non-empty string, otherwise null.
+  53:   static String? _nonEmpty(dynamic v) {
+  54:     final s = v?.toString().trim();
+  55:     return (s == null || s.isEmpty) ? null : s;
+  56:   }
+  57: 
+  58:   static String? _parsePhotoUrl(dynamic url) {
+  59:     if (url == null) return null;
+  60:     final String raw = url.toString().trim();
+  61:     if (raw.isEmpty) return null;
+  62: 
+  63:     // Already an absolute URL â€“ use it as-is.
+  64:     if (raw.startsWith('http://') || raw.startsWith('https://')) {
+  65:       return raw;
+  66:     }
+  67: 
+  68:     // Relative backend media path (e.g. "/media/student_photos/x.jpg" or
+  69:     // "media/student_photos/x.jpg") â€“ resolve it against the API origin so
+  70:     // uploaded student photos always render.
+  71:     String base = ApiService.baseUrl;
+  72:     if (base.endsWith('/')) {
+  73:       base = base.substring(0, base.length - 1);
+  74:     }
+  75:     return raw.startsWith('/') ? '$base$raw' : '$base/$raw';
+  76:   }
+  77: 
+  78:   factory StudentProfile.fromJson(Map<String, dynamic> json) {
+  79:     String parsedName = json['full_name']?.toString() ?? json['name']?.toString() ?? '';
+  80:     if (parsedName.isEmpty && json['first_name'] != null) {
+  81:       parsedName = '${json['first_name']} ${json['last_name'] ?? ''}'.trim();
+  82:     }
+  83:     return StudentProfile(
+  84:       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+  85:       studentId: json['student_id']?.toString() ?? json['registration_number']?.toString() ?? json['username']?.toString() ?? '',
+  86:       name: parsedName,
+  87:       fatherName: json['father_name']?.toString() ?? '',
+  88:       schoolClassId: int.tryParse(json['school_class_id']?.toString() ?? '') ?? 0,
+  89:       schoolClassName: json['class_name']?.toString() ?? json['classroom']?.toString() ?? json['grade']?.toString() ?? json['school_class_name']?.toString() ?? '',
+  90:       dateOfBirth:
+  91:           _nonEmpty(json['dob']) ?? _nonEmpty(json['date_of_birth']) ?? _nonEmpty(json['birth_date']) ?? 'N/A',
+  92:       gender: _nonEmpty(json['gender']) ?? _nonEmpty(json['sex']) ?? 'N/A',
+  93:       genderDisplay: _nonEmpty(json['gender_display']) ?? '',
+  94:       formBNumber: json['form_b']?.toString() ?? json['cnic']?.toString() ?? json['form_b_number']?.toString() ?? '',
+  95:       email: json['email']?.toString() ?? '',
+  96:       phone: json['contact']?.toString() ?? json['phone']?.toString() ?? '',
+  97:       address: json['residential_address']?.toString() ?? json['address']?.toString() ?? '',
+  98:       photoUrl: _parsePhotoUrl(
+  99:         json['photo'] ??
+ 100:             json['student_photo'] ??
+ 101:             json['profile_photo'] ??
+ 102:             json['photo_url'] ??
+ 103:             json['photo_path'] ??
+ 104:             json['avatar'] ??
+ 105:             json['image'],
+ 106:       ),
+ 107:       admissionDate: json['admission_date']?.toString() ?? '',
+ 108:       customMonthlyFee: json['custom_monthly_fee']?.toString(),
+ 109:       effectiveMonthlyFee: json['effective_tuition']?.toString() ?? json['monthly_tuition']?.toString() ?? json['tuition_fee']?.toString() ?? json['effective_monthly_fee']?.toString() ?? '0.00',
+ 110:       yearlyFee: json['yearly_fee']?.toString() ?? '0.00',
+ 111:       admissionFee: _nonEmpty(json['admission_fee']),
+ 112:       qrCodeData: json['qr_code_data']?.toString() ?? '',
+ 113:       totalPaid: json['total_paid']?.toString() ?? json['paid_amount']?.toString() ?? '0.00',
+ 114:       attendancePercentage: json['attendance_percentage']?.toString() ?? '0.0',
+ 115:     );
+ 116:   }
+ 117: 
+ 118:   /// The student's complete display name (e.g. "Ahmed Khan").
+ 119:   ///
+ 120:   /// Falls back to a friendly placeholder derived from the student ID so UI

@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -197,11 +198,80 @@ def account_reset_password(request, user_id):
 @admin_required
 @require_POST
 def account_delete(request, user_id):
-    """Permanently delete a student/teacher user account (unlinks profile)."""
-    user_obj = get_object_or_404(User, id=user_id, role__in=[Role.STUDENT, Role.TEACHER])
-    username = user_obj.username
-    user_obj.delete()
-    messages.success(request, f"Account <strong>{username}</strong> has been permanently deleted.")
+    """Permanently delete a student/teacher user account (unlinks profile).
+
+    Gracefully handles the case where the ``User`` account is already gone:
+
+      1. If the User account exists, it is deleted as before (the linked
+         Student/Teacher profile is kept but unlinked via ``SET_NULL``).
+      2. If the User is missing, the view still looks for a matching
+         Student/Teacher profile (by primary key or the orphaned user link) and
+         deletes it safely — falling back to a soft-delete when fee/attendance
+         history is protected, so the request never 404s.
+      3. If nothing matches, a clean error message is shown instead of a 404.
+    """
+    user_obj = User.objects.filter(
+        id=user_id, role__in=[Role.STUDENT, Role.TEACHER]
+    ).first()
+    if user_obj is not None:
+        username = user_obj.username
+        user_obj.delete()
+        messages.success(
+            request,
+            f"Account <strong>{username}</strong> has been permanently deleted.",
+        )
+        return redirect("accounts:account_list")
+
+    # No matching login account — the profile record may still exist (e.g. the
+    # login account was deleted previously but the Student/Teacher was kept).
+    student = Student.objects.filter(Q(pk=user_id) | Q(user_id=user_id)).first()
+    if student is not None:
+        student_id = student.student_id
+        try:
+            student.delete()
+            message = (
+                f"Linked account was already missing; student "
+                f"<strong>{student.name}</strong> ({student_id}) has been deleted."
+            )
+        except ProtectedError:
+            # Fee/attendance history protects the row — soft-delete instead so
+            # financial & attendance records are preserved (same behaviour as
+            # the Students list "delete" action).
+            student.is_active = False
+            student.save(update_fields=["is_active", "updated_at"])
+            message = (
+                f"Linked account was already missing; student "
+                f"<strong>{student.name}</strong> ({student_id}) had protected "
+                "fee/attendance history and was deactivated instead."
+            )
+        messages.success(request, message)
+        return redirect("accounts:account_list")
+
+    teacher = Teacher.objects.filter(Q(pk=user_id) | Q(user_id=user_id)).first()
+    if teacher is not None:
+        teacher_id = teacher.teacher_id
+        try:
+            teacher.delete()
+            message = (
+                f"Linked account was already missing; teacher "
+                f"<strong>{teacher.name}</strong> ({teacher_id}) has been deleted."
+            )
+        except ProtectedError:
+            teacher.is_active = False
+            teacher.save(update_fields=["is_active", "updated_at"])
+            message = (
+                f"Linked account was already missing; teacher "
+                f"<strong>{teacher.name}</strong> ({teacher_id}) had protected "
+                "attendance history and was deactivated instead."
+            )
+        messages.success(request, message)
+        return redirect("accounts:account_list")
+
+    # Neither a user account nor a profile exists — handle gracefully.
+    messages.error(
+        request,
+        f"No account or student/teacher record was found for id {user_id}.",
+    )
     return redirect("accounts:account_list")
 
 

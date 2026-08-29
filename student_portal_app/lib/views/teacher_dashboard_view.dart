@@ -5,6 +5,8 @@ import '../controllers/auth_controller.dart';
 import '../controllers/teacher_controller.dart';
 import 'login_view.dart';
 import 'qr_scan_view.dart';
+import '../widgets/modern_loader.dart';
+import '../widgets/shimmer_placeholders.dart';
 import 'package:intl/intl.dart';
 
 class TeacherDashboardView extends StatefulWidget {
@@ -247,7 +249,7 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
         // Roster List
         Expanded(
           child: tc.isLoadingAttendance
-              ? const Center(child: CircularProgressIndicator())
+              ? const SkeletonList(itemCount: 8)
               : tc.attendanceError != null
                   ? Center(child: Text(tc.attendanceError!, style: TextStyle(color: theme.colorScheme.error)))
                   : tc.selectedClassIsEmpty
@@ -717,7 +719,7 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
         // Body Content
         Expanded(
           child: tc.isLoadingSalary
-              ? const Center(child: CircularProgressIndicator())
+              ? const ModernLoader(message: 'Loading salary details…')
               : tc.salaryError != null
                   ? Center(
                       child: Column(

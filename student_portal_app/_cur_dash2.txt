@@ -1,0 +1,69 @@
+ 136:                           SizedBox(
+ 137:                             height: 90,
+ 138:                             width: 90,
+ 139:                             child: Stack(
+ 140:                               alignment: Alignment.center,
+ 141:                               children: [
+ 142:                                 CircularProgressIndicator(
+ 143:                                   value: (attendance?.attendanceRate ?? 0.0) / 100.0,
+ 144:                                   strokeWidth: 8,
+ 145:                                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
+ 146:                                   color: (attendance?.attendanceRate ?? 0) >= 75
+ 147:                                       ? Colors.green
+ 148:                                       : Colors.orange,
+ 149:                                 ),
+ 150:                                 Column(
+ 151:                                   mainAxisAlignment: MainAxisAlignment.center,
+ 152:                                   children: [
+ 153:                                     Text(
+ 154:                                       '${attendance?.attendanceRate ?? 0.0}%',
+ 155:                                       style: theme.textTheme.titleMedium?.copyWith(
+ 156:                                         fontWeight: FontWeight.bold,
+ 157:                                       ),
+ 158:                                     ),
+ 159:                                     Text(
+ 160:                                       'Rate',
+ 161:                                       style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+ 162:                                     ),
+ 163:                                   ],
+ 164:                                 ),
+ 165:                               ],
+ 166:                             ),
+ 167:                           ),
+ 168:                           const SizedBox(height: 12),
+ 169:                           Column(
+ 170:                             children: [
+ 171:                               Text(
+ 172:                                 'âœ… Present: ${attendance?.presentCount ?? 0}',
+ 173:                                 style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+ 174:                                 overflow: TextOverflow.ellipsis,
+ 175:                               ),
+ 176:                               const SizedBox(height: 4),
+ 177:                               Text(
+ 178:                                 'âŒ Absent: ${attendance?.absentCount ?? 0}',
+ 179:                                 style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+ 180:                                 overflow: TextOverflow.ellipsis,
+ 181:                               ),
+ 182:                             ],
+ 183:                           ),
+ 184:                         ],
+ 185:                       ),
+ 186:                     ),
+ 187:                   ).animate().fadeIn(delay: 200.ms).scale(),
+ 188:                 ),
+ 189: 
+ 190:                 const SizedBox(width: 12),
+ 191: 
+ 192:                 // Quick Fee Status Card
+ 193:                 Expanded(
+ 194:                   child: Card(
+ 195:                     elevation: 2,
+ 196:                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+ 197:                     child: Padding(
+ 198:                       padding: const EdgeInsets.symmetric(
+ 199:                         horizontal: 14,
+ 200:                         vertical: 16,
+ 201:                       ),
+ 202:                       child: Column(
+ 203:                         crossAxisAlignment: CrossAxisAlignment.start,
+ 204:                         children: [

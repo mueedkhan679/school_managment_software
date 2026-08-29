@@ -1,0 +1,34 @@
+  87:                   calendarBuilders: CalendarBuilders(
+  88:                     markerBuilder: (context, date, events) {
+  89:                       final dayKey = DateTime(date.year, date.month, date.day);
+  90:                       final record = recordMap[dayKey];
+  91:                       if (record != null) {
+  92:                         final isPresent = record.status.toUpperCase() == 'PRESENT';
+  93:                         return Positioned(
+  94:                           bottom: 2,
+  95:                           child: Container(
+  96:                             width: 7,
+  97:                             height: 7,
+  98:                             decoration: BoxDecoration(
+  99:                               shape: BoxShape.circle,
+ 100:                               color: isPresent ? Colors.green : Colors.red,
+ 101:                             ),
+ 102:                           ),
+ 103:                         );
+ 104:                       }
+ 105:                       return null;
+ 106:                     },
+ 107:                   ),
+ 108:                   calendarStyle: CalendarStyle(
+ 109:                     todayDecoration: BoxDecoration(
+ 110:                       color: theme.colorScheme.primary.withValues(alpha: 0.5),
+ 111:                       shape: BoxShape.circle,
+ 112:                     ),
+ 113:                     selectedDecoration: BoxDecoration(
+ 114:                       color: theme.colorScheme.primary,
+ 115:                       shape: BoxShape.circle,
+ 116:                     ),
+ 117:                   ),
+ 118:                 ),
+ 119:               ),
+ 120:             ).animate().fadeIn(delay: 200.ms),

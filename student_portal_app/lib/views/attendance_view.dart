@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../controllers/student_controller.dart';
 import '../models/attendance_model.dart';
+import '../widgets/shimmer_placeholders.dart';
 
 class AttendanceView extends StatefulWidget {
   const AttendanceView({super.key});
@@ -130,8 +131,13 @@ class _AttendanceViewState extends State<AttendanceView> {
 
             if (studentCtrl.isLoadingAttendance)
               const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Center(child: CircularProgressIndicator()),
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: SkeletonList(
+                  itemCount: 4,
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  horizontalPadding: 0,
+                ),
               )
             else if (records.isEmpty)
               const Padding(

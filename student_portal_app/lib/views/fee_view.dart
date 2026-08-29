@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../controllers/student_controller.dart';
 import '../models/fee_model.dart';
 import '../utils/formatters.dart';
+import '../widgets/shimmer_placeholders.dart';
 
 class FeeView extends StatefulWidget {
   const FeeView({super.key});
@@ -237,7 +238,7 @@ class _FeeViewState extends State<FeeView> with SingleTickerProviderStateMixin {
 
   Widget _buildScheduleTab(List<MonthlyScheduleItem> schedule, bool isLoading, ThemeData theme) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SkeletonList(itemCount: 6);
     }
     if (schedule.isEmpty) {
       return const Center(child: Text('No fee schedule available'));
@@ -309,7 +310,7 @@ class _FeeViewState extends State<FeeView> with SingleTickerProviderStateMixin {
 
   Widget _buildHistoryTab(List<FeeRecord> history, bool isLoading, ThemeData theme) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SkeletonList(itemCount: 6);
     }
     if (history.isEmpty) {
       return const Center(child: Text('No payment history records found.'));

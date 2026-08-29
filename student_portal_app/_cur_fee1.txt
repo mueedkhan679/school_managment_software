@@ -1,0 +1,140 @@
+   1: import 'package:flutter/material.dart';
+   2: import 'package:flutter_animate/flutter_animate.dart';
+   3: import 'package:provider/provider.dart';
+   4: import '../controllers/student_controller.dart';
+   5: import '../models/fee_model.dart';
+   6: import '../utils/formatters.dart';
+   7: 
+   8: class FeeView extends StatefulWidget {
+   9:   const FeeView({super.key});
+  10: 
+  11:   @override
+  12:   State<FeeView> createState() => _FeeViewState();
+  13: }
+  14: 
+  15: class _FeeViewState extends State<FeeView> with SingleTickerProviderStateMixin {
+  16:   late TabController _tabController;
+  17: 
+  18:   @override
+  19:   void initState() {
+  20:     super.initState();
+  21:     // Default to the monthly breakdown tab so the paid/pending schedule is
+  22:     // visible immediately when opening the Fee Management screen.
+  23:     _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
+  24:   }
+  25: 
+  26:   @override
+  27:   void dispose() {
+  28:     _tabController.dispose();
+  29:     super.dispose();
+  30:   }
+  31: 
+  32:   @override
+  33:   Widget build(BuildContext context) {
+  34:     final theme = Theme.of(context);
+  35:     final studentCtrl = context.watch<StudentController>();
+  36:     final feeData = studentCtrl.feeData;
+  37:     final profile = studentCtrl.profile;
+  38: 
+  39:     return RefreshIndicator(
+  40:       onRefresh: () async {
+  41:         await studentCtrl.fetchFees();
+  42:       },
+  43:       child: Column(
+  44:         children: [
+  45:           // Header Financial Balance Summary Card
+  46:           Padding(
+  47:             padding: const EdgeInsets.all(16.0),
+  48:             child: Card(
+  49:               elevation: 4,
+  50:               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+  51:               color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+  52:               child: Padding(
+  53:                 padding: const EdgeInsets.all(20.0),
+  54:                 child: Column(
+  55:                   children: [
+  56:                     Row(
+  57:                       crossAxisAlignment: CrossAxisAlignment.start,
+  58:                       children: [
+  59:                         Expanded(
+  60:                           child: Column(
+  61:                             crossAxisAlignment: CrossAxisAlignment.start,
+  62:                             children: [
+  63:                               const Text('Yearly Expected', style: TextStyle(fontSize: 12, color: Colors.grey)),
+  64:                               const SizedBox(height: 2),
+  65:                               FittedBox(
+  66:                                 fit: BoxFit.scaleDown,
+  67:                                 alignment: Alignment.centerLeft,
+  68:                                 child: Text(
+  69:                                   Format.rupees(feeData?.yearlyExpected),
+  70:                                   maxLines: 1,
+  71:                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  72:                                 ),
+  73:                               ),
+  74:                             ],
+  75:                           ),
+  76:                         ),
+  77:                         const SizedBox(width: 12),
+  78:                         Expanded(
+  79:                           child: Column(
+  80:                             crossAxisAlignment: CrossAxisAlignment.end,
+  81:                             children: [
+  82:                               const Text(
+  83:                                 'Current Year Paid',
+  84:                                 textAlign: TextAlign.right,
+  85:                                 style: TextStyle(fontSize: 12, color: Colors.grey),
+  86:                               ),
+  87:                               const SizedBox(height: 2),
+  88:                               FittedBox(
+  89:                                 fit: BoxFit.scaleDown,
+  90:                                 alignment: Alignment.centerRight,
+  91:                                 child: Text(
+  92:                                   Format.rupees(feeData?.currYearPaid),
+  93:                                   maxLines: 1,
+  94:                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+  95:                                 ),
+  96:                               ),
+  97:                             ],
+  98:                           ),
+  99:                         ),
+ 100:                       ],
+ 101:                     ),
+ 102:                     const Divider(height: 24),
+ 103:                     // Vertical layout + FittedBox: amounts scale down instead
+ 104:                     // of causing "RIGHT OVERFLOWED BY â€¦" on narrow screens.
+ 105:                     Column(
+ 106:                       crossAxisAlignment: CrossAxisAlignment.start,
+ 107:                       children: [
+ 108:                         const Text('Outstanding Balance:', style: TextStyle(fontWeight: FontWeight.bold)),
+ 109:                         const SizedBox(height: 4),
+ 110:                         FittedBox(
+ 111:                           fit: BoxFit.scaleDown,
+ 112:                           alignment: Alignment.centerLeft,
+ 113:                           child: Text(
+ 114:                             Format.rupees(feeData?.yearlyPending),
+ 115:                             maxLines: 1,
+ 116:                             style: TextStyle(
+ 117:                               fontSize: 24,
+ 118:                               fontWeight: FontWeight.bold,
+ 119:                               color: (feeData?.yearlyPending != '0.00' && feeData?.yearlyPending != '0')
+ 120:                                   ? Colors.red
+ 121:                                   : Colors.green,
+ 122:                             ),
+ 123:                           ),
+ 124:                         ),
+ 125:                       ],
+ 126:                     ),
+ 127:                     const SizedBox(height: 14),
+ 128:                     Column(
+ 129:                       crossAxisAlignment: CrossAxisAlignment.start,
+ 130:                       children: [
+ 131:                         const Text('Total Paid:', style: TextStyle(fontWeight: FontWeight.bold)),
+ 132:                         const SizedBox(height: 4),
+ 133:                         FittedBox(
+ 134:                           fit: BoxFit.scaleDown,
+ 135:                           alignment: Alignment.centerLeft,
+ 136:                           child: Text(
+ 137:                             Format.rupees(feeData?.totalPaidFees),
+ 138:                             maxLines: 1,
+ 139:                             style: const TextStyle(
+ 140:                               fontWeight: FontWeight.bold,

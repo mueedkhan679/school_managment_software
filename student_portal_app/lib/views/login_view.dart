@@ -6,6 +6,7 @@ import '../controllers/student_controller.dart';
 import '../controllers/teacher_controller.dart';
 import 'main_scaffold_view.dart';
 import 'teacher_dashboard_view.dart';
+import '../widgets/modern_loader.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -220,14 +221,7 @@ class _LoginViewState extends State<LoginView> {
                           ),
                         ),
                         child: auth.status == AuthStatus.authenticating
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
+                            ? const ButtonSpinner(size: 24)
                             : const Text(
                                 'Sign In',
                                 style: TextStyle(

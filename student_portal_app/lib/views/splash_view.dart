@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../theme/app_theme.dart';
+import '../widgets/modern_loader.dart';
 import '../widgets/school_logo.dart';
 import 'login_view.dart';
 import 'main_scaffold_view.dart';
@@ -120,14 +121,7 @@ class _SplashViewState extends State<SplashView> {
                 const Spacer(flex: 4),
 
                 // Subtle loading pulse while the session is restored.
-                SizedBox(
-                  width: 26,
-                  height: 26,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.4,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ).animate(onPlay: (c) => c.repeat()).fade(
+                const ButtonSpinner(size: 26).animate(onPlay: (c) => c.repeat()).fade(
                       begin: 0.35,
                       end: 1,
                       duration: 900.ms,

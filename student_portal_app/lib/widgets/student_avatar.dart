@@ -1,16 +1,20 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-/// Circular avatar that loads the student's profile photo from [imageUrl] and
-/// degrades gracefully:
+import '../services/api_service.dart';
+import 'modern_loader.dart';
+
+/// Circular avatar that loads the student's profile photo and degrades
+/// gracefully:
 ///
-///  * missing / empty URL      → person placeholder icon
-///  * network or 404 failure   → person placeholder icon (via
-///                               `onBackgroundImageError`)
-///  * while loading            → background colour shows through
+///  * missing / empty URL                → person placeholder icon
+///  * backend-relative path (`/media/…`) → absolutised against the API host
+///  * network or 404 failure             → person placeholder icon
+///  * while loading                      → subtle spinner inside the circle
 ///
-/// An optional [innerPadding] reproduces the ID-card "white ring" style by
-/// drawing a solid outer circle behind the photo circle.
-class StudentAvatar extends StatefulWidget {
+/// Photos are cached on disk by `cached_network_image`, so avatars render
+/// instantly on subsequent launches.
+class StudentAvatar extends StatelessWidget {
   const StudentAvatar({
     super.key,
     required this.imageUrl,
@@ -21,7 +25,7 @@ class StudentAvatar extends StatefulWidget {
     this.innerPadding = 0,
   });
 
-  /// Absolute (or backend-normalised) photo URL. May be null/empty.
+  /// Raw photo URL from the API. May be null/empty or backend-relative.
   final String? imageUrl;
 
   final double radius;
@@ -32,58 +36,69 @@ class StudentAvatar extends StatefulWidget {
   /// Gap between the outer decorative ring and the photo itself.
   final double innerPadding;
 
-  @override
-  State<StudentAvatar> createState() => _StudentAvatarState();
-}
-
-class _StudentAvatarState extends State<StudentAvatar> {
-  bool _loadFailed = false;
-
-  @override
-  void didUpdateWidget(covariant StudentAvatar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Allow a retry when the profile (and its photo URL) changes.
-    if (oldWidget.imageUrl != widget.imageUrl && _loadFailed) {
-      _loadFailed = false;
+  /// Ensures [raw] is an absolute, loadable URL.
+  ///
+  /// The backend serialises `photo_url` as `/media/...`, which the app cannot
+  /// load on its own. Backend-relative `/media/` and `/static/` paths are
+  /// prefixed with the API host; absolute http(s) URLs are returned unchanged.
+  static String? absoluteUrl(String? raw) {
+    if (raw == null) return null;
+    final url = raw.trim();
+    if (url.isEmpty) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/media/') || url.startsWith('/static/')) {
+      return '${ApiService.baseUrl}$url';
     }
+    if (url.startsWith('media/') || url.startsWith('static/')) {
+      return '${ApiService.baseUrl}/$url';
+    }
+    return url;
   }
-
-  bool get _hasUsableUrl =>
-      !_loadFailed &&
-      widget.imageUrl != null &&
-      widget.imageUrl!.trim().isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
-    final Color effectiveBackground =
-        widget.backgroundColor ?? Theme.of(context).colorScheme.surfaceContainerHighest;
+    final Color effectiveBackground = backgroundColor ??
+        Theme.of(context).colorScheme.surfaceContainerHighest;
+    final Color effectiveIconColor =
+        iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant;
+
+    final double photoRadius = radius - innerPadding;
+    final String? resolved = absoluteUrl(imageUrl);
 
     final Widget photoCircle = CircleAvatar(
-      radius: widget.radius - widget.innerPadding,
+      radius: photoRadius,
       backgroundColor: effectiveBackground,
-      backgroundImage:
-          _hasUsableUrl ? NetworkImage(widget.imageUrl!.trim()) : null,
-      onBackgroundImageError: _hasUsableUrl
-          ? (Object exception, StackTrace? stackTrace) {
-              // NetworkImage failed (offline, 404, bad host...) → fall back
-              // to the placeholder icon.
-              if (mounted && !_loadFailed) {
-                setState(() => _loadFailed = true);
-              }
-            }
-          : null,
-      child: _hasUsableUrl
-          ? null
-          : Icon(
+      child: resolved == null
+          ? Icon(
               Icons.person_rounded,
-              size: widget.iconSize,
-              color: widget.iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
+              size: iconSize,
+              color: effectiveIconColor,
+            )
+          : ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: resolved,
+                width: photoRadius * 2,
+                height: photoRadius * 2,
+                fit: BoxFit.cover,
+                fadeInDuration: const Duration(milliseconds: 200),
+                                placeholder: (_, __) => Center(
+                  child: ButtonSpinner(
+                    size: iconSize * 0.55,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                errorWidget: (_, __, ___) => Icon(
+                  Icons.person_rounded,
+                  size: iconSize,
+                  color: effectiveIconColor,
+                ),
+              ),
             ),
     );
 
-    if (widget.innerPadding > 0) {
+    if (innerPadding > 0) {
       return CircleAvatar(
-        radius: widget.radius,
+        radius: radius,
         backgroundColor: effectiveBackground,
         child: photoCircle,
       );

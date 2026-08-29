@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../controllers/teacher_controller.dart';
+import '../widgets/modern_loader.dart';
 
 /// Full-screen camera scanner that reads the Teacher Attendance QR code
 /// displayed on the admin web dashboard and checks the teacher in.
@@ -203,7 +204,7 @@ class _QrScanViewState extends State<QrScanView> {
             child: Column(
               children: [
                 if (tc.isScanningSelf)
-                  const CircularProgressIndicator(color: Colors.white),
+                  const ButtonSpinner(size: 28),
                 const SizedBox(height: 12),
                 Container(
                   padding:

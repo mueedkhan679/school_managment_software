@@ -1,0 +1,187 @@
+  76:                             ),
+  77:                             // FittedBox: long ID/class combinations scale
+  78:                             // down inside the chip instead of overflowing
+  79:                             // the welcome banner on small screens.
+  80:                             child: FittedBox(
+  81:                               fit: BoxFit.scaleDown,
+  82:                               alignment: Alignment.centerLeft,
+  83:                               child: Text(
+  84:                                 'ID: ${profile?.studentId ?? '---'} | Class: ${profile?.className ?? '---'}',
+  85:                                 maxLines: 1,
+  86:                                 softWrap: false,
+  87:                                 style: TextStyle(
+  88:                                   color: theme.colorScheme.onPrimary,
+  89:                                   fontSize: 12,
+  90:                                   fontWeight: FontWeight.w500,
+  91:                                 ),
+  92:                               ),
+  93:                             ),
+  94:                           ),
+  95:                         ],
+  96:                       ),
+  97:                     ),
+  98:                   ],
+  99:                 ),
+ 100:               ),
+ 101:             ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
+ 102: 
+ 103:             const SizedBox(height: 20),
+ 104: 
+ 105:             // Attendance & Fee Quick Overview Row
+ 106:             // IntrinsicHeight + stretch keeps the Attendance and Fee Status
+ 107:             // cards exactly the same height regardless of content.
+ 108:             IntrinsicHeight(
+ 109:               child: Row(
+ 110:                 crossAxisAlignment: CrossAxisAlignment.stretch,
+ 111:                 children: [
+ 112:                   // Attendance Circular Indicator Card
+ 113:                   Expanded(
+ 114:                   child: Card(
+ 115:                     elevation: 2,
+ 116:                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+ 117:                     child: Padding(
+ 118:                       // Symmetric padding keeps the twin overview cards
+ 119:                       // comfortable on small screens.
+ 120:                       padding: const EdgeInsets.symmetric(
+ 121:                         horizontal: 14,
+ 122:                         vertical: 16,
+ 123:                       ),
+ 124:                       child: Column(
+ 125:                         children: [
+ 126:                           // FittedBox: the section title always renders on a
+ 127:                           // single line, scaling down on narrow devices.
+ 128:                           FittedBox(
+ 129:                             fit: BoxFit.scaleDown,
+ 130:                             child: Text(
+ 131:                               'Attendance',
+ 132:                               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+ 133:                             ),
+ 134:                           ),
+ 135:                           const SizedBox(height: 12),
+ 136:                           SizedBox(
+ 137:                             height: 90,
+ 138:                             width: 90,
+ 139:                             child: Stack(
+ 140:                               alignment: Alignment.center,
+ 141:                               children: [
+ 142:                                 CircularProgressIndicator(
+ 143:                                   value: (attendance?.attendanceRate ?? 0.0) / 100.0,
+ 144:                                   strokeWidth: 8,
+ 145:                                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
+ 146:                                   color: (attendance?.attendanceRate ?? 0) >= 75
+ 147:                                       ? Colors.green
+ 148:                                       : Colors.orange,
+ 149:                                 ),
+ 150:                                 Column(
+ 151:                                   mainAxisAlignment: MainAxisAlignment.center,
+ 152:                                   children: [
+ 153:                                     Text(
+ 154:                                       '${attendance?.attendanceRate ?? 0.0}%',
+ 155:                                       style: theme.textTheme.titleMedium?.copyWith(
+ 156:                                         fontWeight: FontWeight.bold,
+ 157:                                       ),
+ 158:                                     ),
+ 159:                                     Text(
+ 160:                                       'Rate',
+ 161:                                       style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+ 162:                                     ),
+ 163:                                   ],
+ 164:                                 ),
+ 165:                               ],
+ 166:                             ),
+ 167:                           ),
+ 168:                           const SizedBox(height: 12),
+ 169:                           Column(
+ 170:                             children: [
+ 171:                               Text(
+ 172:                                 'âœ… Present: ${attendance?.presentCount ?? 0}',
+ 173:                                 style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+ 174:                                 overflow: TextOverflow.ellipsis,
+ 175:                               ),
+ 176:                               const SizedBox(height: 4),
+ 177:                               Text(
+ 178:                                 'âŒ Absent: ${attendance?.absentCount ?? 0}',
+ 179:                                 style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+ 180:                                 overflow: TextOverflow.ellipsis,
+ 181:                               ),
+ 182:                             ],
+ 183:                           ),
+ 184:                         ],
+ 185:                       ),
+ 186:                     ),
+ 187:                   ).animate().fadeIn(delay: 200.ms).scale(),
+ 188:                 ),
+ 189: 
+ 190:                 const SizedBox(width: 12),
+ 191: 
+ 192:                 // Quick Fee Status Card
+ 193:                 Expanded(
+ 194:                   child: Card(
+ 195:                     elevation: 2,
+ 196:                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+ 197:                     child: Padding(
+ 198:                       padding: const EdgeInsets.symmetric(
+ 199:                         horizontal: 14,
+ 200:                         vertical: 16,
+ 201:                       ),
+ 202:                       child: Column(
+ 203:                         crossAxisAlignment: CrossAxisAlignment.start,
+ 204:                         children: [
+ 205:                           // FittedBox: the title stays on a single line on
+ 206:                           // any screen width instead of wrapping/clipping.
+ 207:                           FittedBox(
+ 208:                             fit: BoxFit.scaleDown,
+ 209:                             alignment: Alignment.centerLeft,
+ 210:                             child: Text(
+ 211:                               'Fee Status',
+ 212:                               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+ 213:                             ),
+ 214:                           ),
+ 215:                           const SizedBox(height: 12),
+ 216:                           // Status badge â€“ wrapped so it can scale down on
+ 217:                           // very narrow cards instead of overflowing.
+ 218:                           Align(
+ 219:                             alignment: Alignment.centerLeft,
+ 220:                             child: FittedBox(
+ 221:                               fit: BoxFit.scaleDown,
+ 222:                               child: Container(
+ 223:                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+ 224:                                 decoration: BoxDecoration(
+ 225:                                   color: (fees?.overallStatus == 'PAID')
+ 226:                                       ? Colors.green.withValues(alpha: 0.15)
+ 227:                                       : Colors.red.withValues(alpha: 0.15),
+ 228:                                   borderRadius: BorderRadius.circular(10),
+ 229:                                 ),
+ 230:                                 child: Row(
+ 231:                                   mainAxisSize: MainAxisSize.min,
+ 232:                                   children: [
+ 233:                                     Icon(
+ 234:                                       (fees?.overallStatus == 'PAID')
+ 235:                                           ? Icons.check_circle_rounded
+ 236:                                           : Icons.pending_actions_rounded,
+ 237:                                       size: 16,
+ 238:                                       color: (fees?.overallStatus == 'PAID') ? Colors.green : Colors.red,
+ 239:                                     ),
+ 240:                                     const SizedBox(width: 6),
+ 241:                                     Text(
+ 242:                                       fees?.overallStatus ?? 'PENDING',
+ 243:                                       style: TextStyle(
+ 244:                                         color: (fees?.overallStatus == 'PAID') ? Colors.green : Colors.red,
+ 245:                                         fontWeight: FontWeight.bold,
+ 246:                                         fontSize: 12,
+ 247:                                       ),
+ 248:                                     ),
+ 249:                                   ],
+ 250:                                 ),
+ 251:                               ),
+ 252:                             ),
+ 253:                           ),
+ 254:                           const SizedBox(height: 14),
+ 255:                           Text(
+ 256:                             'Pending Balance:',
+ 257:                             style: theme.textTheme.bodySmall,
+ 258:                           ),
+ 259:                           // Large amount scales down instead of wrapping or
+ 260:                           // breaking out of the card ("RIGHT OVERFLOWED").
+ 261:                           FittedBox(
+ 262:                             fit: BoxFit.scaleDown,
