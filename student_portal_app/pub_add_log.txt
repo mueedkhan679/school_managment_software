@@ -1,4 +1,0 @@
-"flutter_spinkit" is already in "dependencies". Will try to update the constraint.
-"shimmer" is already in "dependencies". Will try to update the constraint.
-Got socket error trying to find package http at https://pub.dev.
-Failed to update packages.

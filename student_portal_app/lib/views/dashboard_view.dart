@@ -74,12 +74,21 @@ class DashboardView extends StatelessWidget {
                               color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(
-                              'ID: ${profile?.studentId ?? '---'} | Class: ${profile?.className ?? '---'}',
-                              style: TextStyle(
-                                color: theme.colorScheme.onPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                            // FittedBox: long ID/class combinations scale
+                            // down inside the chip instead of overflowing
+                            // the welcome banner on small screens.
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'ID: ${profile?.studentId ?? '---'} | Class: ${profile?.className ?? '---'}',
+                                maxLines: 1,
+                                softWrap: false,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),
@@ -106,12 +115,22 @@ class DashboardView extends StatelessWidget {
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      // Symmetric padding keeps the twin overview cards
+                      // comfortable on small screens.
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 16,
+                      ),
                       child: Column(
                         children: [
-                          Text(
-                            'Attendance',
-                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          // FittedBox: the section title always renders on a
+                          // single line, scaling down on narrow devices.
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Attendance',
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
@@ -176,13 +195,22 @@ class DashboardView extends StatelessWidget {
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 16,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Fee Status',
-                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          // FittedBox: the title stays on a single line on
+                          // any screen width instead of wrapping/clipping.
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Fee Status',
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           // Status badge – wrapped so it can scale down on

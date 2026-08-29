@@ -174,16 +174,25 @@ class _FeeViewState extends State<FeeView> with SingleTickerProviderStateMixin {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              (profile?.hasAdmissionFee ?? false)
-                                  ? Format.rupees(profile!.admissionFee)
-                                  : 'N/A (Free / Waived)',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: (profile?.hasAdmissionFee ?? false)
-                                    ? Colors.amber.shade900
-                                    : Colors.grey,
+                            // Flexible + ellipsis: long values such as
+                            // "N/A (Free / Waived)" now shrink inside the chip
+                            // instead of pushing it past the card edge (the
+                            // "RIGHT OVERFLOWED BY 93px" error).
+                            Flexible(
+                              child: Text(
+                                (profile?.hasAdmissionFee ?? false)
+                                    ? Format.rupees(profile!.admissionFee)
+                                    : 'N/A (Free / Waived)',
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: (profile?.hasAdmissionFee ?? false)
+                                      ? Colors.amber.shade900
+                                      : Colors.grey,
+                                ),
                               ),
                             ),
                           ],
