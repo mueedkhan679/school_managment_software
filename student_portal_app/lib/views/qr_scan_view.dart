@@ -5,6 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../controllers/teacher_controller.dart';
 import '../widgets/modern_loader.dart';
+import '../widgets/student_avatar.dart';
 
 /// Full-screen camera scanner that reads the Teacher Attendance QR code
 /// displayed on the admin web dashboard and checks the teacher in.
@@ -72,17 +73,13 @@ class _QrScanViewState extends State<QrScanView> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 if (ok && result.name.isNotEmpty) ...[
-                  // Teacher photo (or initials placeholder)
-                  ClipOval(
-                    child: result.photoUrl != null && result.photoUrl!.isNotEmpty
-                        ? Image.network(
-                            result.photoUrl!,
-                            width: 72,
-                            height: 72,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _initialCircle(result),
-                          )
-                        : _initialCircle(result),
+                  // Teacher photo — normalized to an absolute URL, cached on
+                  // disk, and falling back to a person icon when missing or
+                  // unloadable (same helper as the student avatars).
+                  StudentAvatar(
+                    imageUrl: result.photoUrl,
+                    radius: 36,
+                    iconSize: 36,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -153,24 +150,6 @@ class _QrScanViewState extends State<QrScanView> {
             style: TextStyle(fontWeight: FontWeight.w600, color: valueColor),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _initialCircle(dynamic result) {
-    final name = result.name is String ? result.name as String : '';
-    return Container(
-      width: 72,
-      height: 72,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: Colors.green.shade100, shape: BoxShape.circle),
-      child: Text(
-        name.isEmpty ? '?' : name.substring(0, 1).toUpperCase(),
-        style: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: Colors.green.shade800,
-        ),
       ),
     );
   }

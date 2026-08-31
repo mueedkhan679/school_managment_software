@@ -12,12 +12,15 @@ import '../services/api_service.dart';
 /// Student-side state: profile, attendance and fees.
 ///
 /// Data strategy (fast + robust):
-///  1. On first access the controller hydrates models from a
-///    [SharedPreferences] cache — the UI renders instantly with the last
-///    known content, even fully offline.
-///     updates (and re-caches) once fresh data arrives.
+///  1. On first access the controller hydrates models from a JSON cache on
+///    disk (via path_provider's getApplicationDocumentsDirectory) - the UI
+///    renders instantly with the last known content, even fully offline.
+///  2. Network fetches then run as a background sync: when cached data is
+///    already showing, no full-screen loaders are raised; the UI silently
+///    updates (and re-caches) once fresh data arrives.
 ///  3. Loading flags are only raised when there is nothing cached to show
-///     (first-ever launch), which drives the skeleton screens.
+///    (first-ever launch), which drives the skeleton screens.
+
 class StudentController extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
@@ -36,7 +39,7 @@ class StudentController extends ChangeNotifier {
   bool _hydrated = false;
 
   // --- Cache keys -----------------------------------------------------------
-    static const String _kProfile = 'student_profile';
+  static const String _kProfile = 'student_profile';
   static const String _kAttendance = 'student_attendance';
   static const String _kFees = 'student_fees';
 
@@ -56,7 +59,7 @@ class StudentController extends ChangeNotifier {
   bool get hasCachedData =>
       _profile != null || _attendanceData != null || _feeData != null;
 
-    /// Loads the last-known payloads from disk cache into memory (once per
+  /// Loads the last-known payloads from disk cache into memory (once per
   /// session) so screens can paint instantly before any network call.
   Future<void> hydrateFromCache() async {
     if (_hydrated) return;

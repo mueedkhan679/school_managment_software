@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.example.student_portal_app"
-    compileSdk = 35
+    compileSdk = 36
+
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -18,11 +19,11 @@ android {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.student_portal_app"
         // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // For more information, see: https://developer.android.com/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        // Use SDK 35 explicitly instead of flutter.targetSdkVersion (36) so that
-        // targetSdk does not exceed compileSdk (35).
-        targetSdk = 35
+        // compileSdk 36 is required: the transitive sqflite_android 2.4.3
+        // package references Build.VERSION_CODES.BAKLAVA (API 36) symbols.
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
