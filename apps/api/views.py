@@ -586,6 +586,7 @@ class TeacherAttendanceView(APIView):
                 "school_class_name": s.school_class.name if s.school_class else "",
                 "school_class_id": s.school_class_id,
                 "status": existing.get(s.id, AttendanceStatus.PRESENT),
+                "is_marked": s.id in existing,
             })
 
         return Response(
@@ -638,11 +639,18 @@ class TeacherAttendanceView(APIView):
                 # ``marked_by`` stores the requesting user; the audit trail
                 # resolves the Teacher profile via ``Attendance.marked_by_teacher``
                 # so every record always tracks who took the attendance.
-                Attendance.objects.update_or_create(
+                obj, created = Attendance.objects.update_or_create(
                     student=student,
                     date=attendance_date,
                     defaults={"status": status_val, "marked_by": request.user},
                 )
+                if created and status_val == AttendanceStatus.PRESENT and student.user:
+                    from apps.core.models import Notification
+                    from django.utils import timezone
+                    # Create a friendly timestamp string in the server's local time
+                    time_str = timezone.localtime().strftime('%I:%M %p')
+                    msg = f"{student.name} entered school on {attendance_date.strftime('%Y-%m-%d')} at {time_str}."
+                    Notification.objects.create(user=student.user, message=msg)
                 marked_count += 1
 
         return Response(
@@ -868,3 +876,62 @@ class TeacherLatestScanView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        if not old_password or not new_password:
+            return Response({"status": "error", "message": "Both old and new passwords are required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not request.user.check_password(old_password):
+            return Response({"status": "error", "message": "Incorrect old password."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        request.user.set_password(new_password)
+        request.user.save()
+        return Response({"status": "success", "message": "Password changed successfully."}, status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class NotificationListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        from apps.core.models import Notification
+        notifications = Notification.objects.filter(user=request.user)
+        payload = [
+            {
+                "id": n.id,
+                "message": n.message,
+                "created_at": n.created_at.isoformat()
+            }
+            for n in notifications
+        ]
+        return Response({"status": "success", "notifications": payload}, status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class NotificationClearView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def _clear_user_notifications(self, request):
+        from apps.core.models import Notification
+        count = Notification.objects.filter(user=request.user).count()
+        Notification.objects.filter(user=request.user).delete()
+        return Response(
+            {
+                "status": "success",
+                "message": f"{count} notification(s) cleared successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, *args, **kwargs):
+        return self._clear_user_notifications(request)
+
+    def post(self, request, *args, **kwargs):
+        return self._clear_user_notifications(request)

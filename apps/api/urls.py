@@ -13,6 +13,9 @@ from .views import (
     TeacherProfileApiView,
     TeacherSalaryView,
     TeacherStudentCreateView,
+    ChangePasswordView,
+    NotificationListView,
+    NotificationClearView,
 )
 
 app_name = "api"
@@ -21,6 +24,11 @@ urlpatterns = [
     # Auth endpoints
     path("auth/login/", StudentLoginView.as_view(), name="student-login"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
+    path("auth/change-password/", ChangePasswordView.as_view(), name="change_password"),
+
+    # Notifications
+    path("notifications/", NotificationListView.as_view(), name="notification_list"),
+    path("notifications/clear/", NotificationClearView.as_view(), name="notification_clear"),
 
     # Student portal endpoints
     path("students/profile/", StudentProfileView.as_view(), name="student-profile"),
