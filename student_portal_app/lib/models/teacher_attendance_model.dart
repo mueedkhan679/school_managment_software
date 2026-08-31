@@ -6,6 +6,7 @@ class TeacherAttendanceStudent {
   final String genderDisplay;
   final String schoolClassName;
   final String status;
+  final bool isMarked;
 
   TeacherAttendanceStudent({
     required this.id,
@@ -15,6 +16,7 @@ class TeacherAttendanceStudent {
     required this.genderDisplay,
     required this.schoolClassName,
     required this.status,
+    required this.isMarked,
   });
 
   factory TeacherAttendanceStudent.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class TeacherAttendanceStudent {
       genderDisplay: json['gender_display']?.toString() ?? '',
       schoolClassName: json['school_class_name']?.toString() ?? '',
       status: json['status']?.toString() ?? 'PRESENT',
+      isMarked: json['is_marked'] as bool? ?? false,
     );
   }
 

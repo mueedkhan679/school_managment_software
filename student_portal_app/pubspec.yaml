@@ -28,5 +28,14 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.0
 
+dependency_overrides:
+  # sqflite_android 2.4.2+/2.4.3 reference Android API-36 ("Baklava") symbols
+  # (Build.VERSION_CODES.BAKLAVA / Thread.threadId()), which fails javac
+  # compilation when the project targets a lower SDK. Pin the newest release
+  # that does NOT use those symbols (2.4.1 — verified against pub.dev source;
+  # there is no 2.3.8, as the package only ships 2.4.x), so `flutter run`
+  # builds cleanly. Combined with the forced compileSdk = 36 below.
+  sqflite_android: 2.4.1
+
 flutter:
   uses-material-design: true

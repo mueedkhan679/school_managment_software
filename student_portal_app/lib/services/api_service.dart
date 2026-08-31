@@ -262,6 +262,32 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> changePassword(String oldPassword, String newPassword) async {
+    final url = Uri.parse('$baseUrl/api/v1/auth/change-password/');
+    final response = await http.post(
+      url,
+      headers: await _getHeaders(requireAuth: true),
+      body: jsonEncode({
+        'old_password': oldPassword,
+        'new_password': newPassword,
+      }),
+    );
+    return _processResponse(response);
+  }
+
+  Future<Map<String, dynamic>> getNotifications() async {
+    return _authenticatedGet('$baseUrl/api/v1/notifications/');
+  }
+
+  Future<Map<String, dynamic>> clearNotifications() async {
+    final url = Uri.parse('$baseUrl/api/v1/notifications/clear/');
+    final response = await http.delete(
+      url,
+      headers: await _getHeaders(requireAuth: true),
+    );
+    return _processResponse(response);
+  }
+
   Future<Map<String, dynamic>> _authenticatedGet(String urlStr) async {
     final url = Uri.parse(urlStr);
     var response = await http.get(url, headers: await _getHeaders(requireAuth: true));

@@ -8,6 +8,8 @@ import 'qr_scan_view.dart';
 import '../widgets/modern_loader.dart';
 import '../widgets/shimmer_placeholders.dart';
 import 'package:intl/intl.dart';
+import 'notification_center_view.dart';
+import 'change_password_view.dart';
 
 class TeacherDashboardView extends StatefulWidget {
   const TeacherDashboardView({super.key});
@@ -68,9 +70,24 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
             onPressed: () => _openAddStudentDialog(context),
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _onLogout,
-            tooltip: 'Logout',
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationCenterView()));
+            },
+          ),
+          PopupMenuButton<String>(
+            onSelected: (val) {
+              if (val == 'password') {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordView()));
+              } else if (val == 'logout') {
+                _onLogout();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'password', child: Text('Change Password')),
+              const PopupMenuItem(value: 'logout', child: Text('Logout')),
+            ],
           ),
         ],
       ),
@@ -247,6 +264,25 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
         _buildClassSummaryCard(tc, theme),
 
         // Roster List
+        if (!tc.isLoadingAttendance && tc.attendanceRoster.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  icon: const Icon(Icons.check_circle_outline, size: 18),
+                  label: const Text('All Present'),
+                  onPressed: () => tc.markAllAttendance('PRESENT'),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  label: const Text('All Absent'),
+                  onPressed: () => tc.markAllAttendance('ABSENT'),
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: tc.isLoadingAttendance
               ? const SkeletonList(itemCount: 8)
@@ -261,6 +297,8 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                           itemBuilder: (context, index) {
                             final student = tc.attendanceRoster[index];
                             final currentStatus = tc.attendanceSubmissions[student.id.toString()] ?? student.status;
+                            final isLocked = student.isMarked && !tc.isEditingAttendance(student.id);
+                            
                             return Card(
                               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                               child: ListTile(
@@ -277,43 +315,59 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                // FittedBox guarantees the three toggles can
-                                // never trigger a RenderFlex overflow on
-                                // narrow screens — they shrink instead.
-                                trailing: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _statusChip(
-                                        tc,
-                                        student.id,
-                                        label: 'P',
-                                        value: 'PRESENT',
-                                        currentStatus: currentStatus,
-                                        activeColor: Colors.green,
+                                trailing: isLocked
+                                    ? Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            currentStatus,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: currentStatus == 'PRESENT' ? Colors.green : (currentStatus == 'ABSENT' ? Colors.red : Colors.orange),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            icon: const Icon(Icons.edit, size: 20),
+                                            tooltip: 'Edit Attendance',
+                                            onPressed: () => tc.setEditingAttendance(student.id),
+                                          ),
+                                        ],
+                                      )
+                                    : FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            _statusChip(
+                                              tc,
+                                              student.id,
+                                              label: 'P',
+                                              value: 'PRESENT',
+                                              currentStatus: currentStatus,
+                                              activeColor: Colors.green,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            _statusChip(
+                                              tc,
+                                              student.id,
+                                              label: 'A',
+                                              value: 'ABSENT',
+                                              currentStatus: currentStatus,
+                                              activeColor: Colors.red,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            _statusChip(
+                                              tc,
+                                              student.id,
+                                              label: 'L',
+                                              value: 'LEAVE',
+                                              currentStatus: currentStatus,
+                                              activeColor: Colors.orange,
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      const SizedBox(width: 6),
-                                      _statusChip(
-                                        tc,
-                                        student.id,
-                                        label: 'A',
-                                        value: 'ABSENT',
-                                        currentStatus: currentStatus,
-                                        activeColor: Colors.red,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      _statusChip(
-                                        tc,
-                                        student.id,
-                                        label: 'L',
-                                        value: 'LEAVE',
-                                        currentStatus: currentStatus,
-                                        activeColor: Colors.orange,
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ),
                             );
                           },

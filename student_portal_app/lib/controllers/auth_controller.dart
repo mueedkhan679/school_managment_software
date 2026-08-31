@@ -13,18 +13,20 @@ class AuthController extends ChangeNotifier {
   UserSession? _session;
   String? _errorMessage;
   bool _rememberMe = true;
+  bool _isInitialized = false;
 
   AuthStatus get status => _status;
   UserSession? get session => _session;
   String? get errorMessage => _errorMessage;
   bool get rememberMe => _rememberMe;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
+  bool get isInitialized => _isInitialized;
 
   AuthController() {
     _initSession();
   }
 
-    Future<void> _initSession() async {
+  Future<void> _initSession() async {
     _rememberMe = await _storageService.getRememberMe();
     final token = await _storageService.getAccessToken();
     if (token != null && token.isNotEmpty) {
@@ -41,8 +43,9 @@ class AuthController extends ChangeNotifier {
         teacherName: info['teacher_name'] ?? '',
       );
       _status = AuthStatus.authenticated;
-      notifyListeners();
     }
+    _isInitialized = true;
+    notifyListeners();
   }
 
   void toggleRememberMe(bool? val) {

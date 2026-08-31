@@ -284,12 +284,30 @@ class TeacherController extends ChangeNotifier {
       }
     }
     _isLoadingAttendance = false;
+    _editingAttendanceIds.clear();
+    notifyListeners();
+  }
+
+  final Set<int> _editingAttendanceIds = {};
+
+  bool isEditingAttendance(int studentId) => _editingAttendanceIds.contains(studentId);
+
+  void setEditingAttendance(int studentId) {
+    _editingAttendanceIds.add(studentId);
     notifyListeners();
   }
 
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
     fetchTeacherAttendance(date: date);
+  }
+
+  void markAllAttendance(String status) {
+    for (var s in _attendanceRoster) {
+      if (!s.isMarked || isEditingAttendance(s.id)) {
+        updateAttendanceStatus(s.id, status);
+      }
+    }
   }
 
   void updateAttendanceStatus(int id, String status) {
@@ -305,7 +323,9 @@ class TeacherController extends ChangeNotifier {
           genderDisplay: _attendanceRoster[i].genderDisplay,
           schoolClassName: _attendanceRoster[i].schoolClassName,
           status: status,
+          isMarked: _attendanceRoster[i].isMarked,
         );
+        break;
       }
     }
     notifyListeners();

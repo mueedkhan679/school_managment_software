@@ -7,6 +7,8 @@ import 'dashboard_view.dart';
 import 'digital_id_card_view.dart';
 import 'fee_view.dart';
 import 'login_view.dart';
+import 'notification_center_view.dart';
+import 'change_password_view.dart';
 
 class MainScaffoldView extends StatefulWidget {
   const MainScaffoldView({super.key});
@@ -61,9 +63,24 @@ class _MainScaffoldViewState extends State<MainScaffoldView> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Sign Out',
-            onPressed: _handleLogout,
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationCenterView()));
+            },
+          ),
+          PopupMenuButton<String>(
+            onSelected: (val) {
+              if (val == 'password') {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordView()));
+              } else if (val == 'logout') {
+                _handleLogout();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'password', child: Text('Change Password')),
+              const PopupMenuItem(value: 'logout', child: Text('Sign Out')),
+            ],
           ),
         ],
       ),

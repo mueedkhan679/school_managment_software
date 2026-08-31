@@ -28,17 +28,30 @@ class _SplashViewState extends State<SplashView> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(_splashDuration, _goNext);
+    _init();
+  }
+
+  Future<void> _init() async {
+    final startTime = DateTime.now();
+    // Keep checking if AuthController is initialized
+    while (mounted) {
+      // ignore: use_build_context_synchronously
+      final auth = context.read<AuthController>();
+      if (auth.isInitialized) break;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    
+    final elapsed = DateTime.now().difference(startTime);
+    if (elapsed < _splashDuration) {
+      await Future.delayed(_splashDuration - elapsed);
+    }
+    _goNext();
   }
 
   /// Route to whichever screen matches the (possibly restored) session.
   void _goNext() {
     if (!mounted) return;
     Widget target = const LoginView();
-    // Session restore happens asynchronously in AuthController; whatever its
-    // state is at the end of the splash window decides the destination.
-    // (Silently imported through the provider tree — no watch here, we only
-    // need a one-shot read.)
     final auth = context.read<AuthController>();
     if (auth.isAuthenticated && auth.session != null) {
       target = auth.session!.role == 'TEACHER'
