@@ -284,16 +284,33 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getNotifications() async {
-    return _authenticatedGet('$baseUrl/api/v1/notifications/');
+    try {
+      return await _authenticatedGet('$baseUrl/api/v1/notifications/');
+    } catch (e) {
+      debugPrint('Network error fetching notifications: $e');
+      return {
+        'status': 'error',
+        'message': 'Network or server error: $e',
+        'isHtmlResponse': true,
+      };
+    }
   }
 
   Future<Map<String, dynamic>> clearNotifications() async {
     final url = Uri.parse('$baseUrl/api/v1/notifications/clear/');
-    final response = await http.delete(
-      url,
-      headers: await _getHeaders(requireAuth: true),
-    );
-    return _processResponse(response);
+    try {
+      final response = await http.post(
+        url,
+        headers: await _getHeaders(requireAuth: true),
+      );
+      return _processResponse(response);
+    } catch (e) {
+      debugPrint('Network error on /api/v1/notifications/clear/: $e');
+      return {
+        'status': 'error',
+        'message': 'Network or server error: $e',
+      };
+    }
   }
 
   Future<Map<String, dynamic>> _authenticatedGet(String urlStr) async {
