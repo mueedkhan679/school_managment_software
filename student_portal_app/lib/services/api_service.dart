@@ -264,15 +264,23 @@ class ApiService {
 
   Future<Map<String, dynamic>> changePassword(String oldPassword, String newPassword) async {
     final url = Uri.parse('$baseUrl/api/v1/auth/change-password/');
-    final response = await http.post(
-      url,
-      headers: await _getHeaders(requireAuth: true),
-      body: jsonEncode({
-        'old_password': oldPassword,
-        'new_password': newPassword,
-      }),
-    );
-    return _processResponse(response);
+    try {
+      final response = await http.post(
+        url,
+        headers: await _getHeaders(requireAuth: true),
+        body: jsonEncode({
+          'old_password': oldPassword,
+          'new_password': newPassword,
+        }),
+      );
+      return _processResponse(response);
+    } catch (e) {
+      debugPrint('Network error on /api/v1/auth/change-password/: $e');
+      return {
+        'status': 'error',
+        'message': 'Network or server error: $e',
+      };
+    }
   }
 
   Future<Map<String, dynamic>> getNotifications() async {
