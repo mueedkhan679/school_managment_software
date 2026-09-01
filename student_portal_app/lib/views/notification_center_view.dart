@@ -90,15 +90,21 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                       itemBuilder: (context, index) {
                         final n = _notifications[index];
                         final msg = n['message'] ?? '';
+                        final title = n['title'] ?? 'Notification';
                         final date = n['created_at'] != null 
                             ? DateTime.tryParse(n['created_at'])?.toLocal().toString().split('.')[0] 
                             : '';
+                        final subtitleParts = <String>[
+                          if (msg.toString().isNotEmpty) msg.toString(),
+                          if (date != null && date.toString().isNotEmpty) date.toString(),
+                        ];
                         return Card(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                           child: ListTile(
                             leading: const Icon(Icons.notifications_active, color: Colors.blue),
-                            title: Text(msg),
-                            subtitle: Text(date ?? ''),
+                            title: Text(title.toString()),
+                            subtitle: Text(subtitleParts.join('\n')),
+                            isThreeLine: subtitleParts.length > 1,
                           ),
                         );
                       },
