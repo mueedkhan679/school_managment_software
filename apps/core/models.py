@@ -101,6 +101,7 @@ class SchoolSettings(models.Model):
 
 class Notification(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=120, default="Notification")
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 

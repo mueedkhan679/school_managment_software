@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
@@ -598,7 +598,28 @@ class TeacherAttendanceView(APIView):
         )
 
     def post(self, request, *args, **kwargs):
+        # ---------------------------------------------------------------
+        # Every local is assigned here at the very top so that no matter
+        # which code-path a request takes (early-return on 403, 400 on
+        # bad date, empty roster, invalid status values, etc.) the names
+        # referenced further down are always bound.  This eliminates the
+        # ``UnboundLocalError`` (HTTP 500) that occurred when a variable
+        # such as ``student``, ``status_val`` or ``response_data`` was
+        # referenced before Python had a chance to bind it.
+        # ---------------------------------------------------------------
         teacher = self._get_teacher_or_403(request)
+        submissions = {}
+        attendance_date = timezone.now().date()
+        class_id = None
+        students = Student.objects.none()
+        marked_count = 0
+        student = None
+        status_val = AttendanceStatus.PRESENT
+        obj = None
+        created = False
+        response_data = {}
+
+        # --- Permission check -------------------------------------------------
         if not teacher:
             return Response(
                 {
@@ -607,8 +628,21 @@ class TeacherAttendanceView(APIView):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        # --- Parse submission payload -----------------------------------------
+        # ``submissions`` may arrive as ``attendance`` or ``submissions``.
+        # Guard against a non-dict value (e.g. ``None`` or a JSON list) so
+        # that ``.get()`` below never raises ``AttributeError``.
         submissions = request.data.get("attendance", request.data.get("submissions", {}))
-        date_str = request.data.get("date", timezone.now().date().strftime("%Y-%m-%d"))
+        if not isinstance(submissions, dict):
+            submissions = {}
+
+        # Default to the server's local today when ``date`` is missing or
+        # blank.  Uses the stdlib ``date`` class directly so this line can
+        # never be affected by a local rebinding of the ``timezone`` module
+        # inside this method (the reported ``UnboundLocalError`` class).
+        today_str = date.today().strftime("%Y-%m-%d")
+        date_str = request.data.get("date") or today_str
         try:
             attendance_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except (ValueError, TypeError):
@@ -617,6 +651,7 @@ class TeacherAttendanceView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # --- Resolve the roster of students to mark --------------------------
         # Allow teachers to mark attendance for ANY class, not just assigned ones
         class_id = request.data.get("class_id")
         if class_id and str(class_id).isdigit():
@@ -628,14 +663,23 @@ class TeacherAttendanceView(APIView):
                 is_active=True
             ).order_by("student_id")
 
+        # --- Save loop -------------------------------------------------------
         marked_count = 0
         for student in students:
-            status_val = submissions.get(str(student.id), AttendanceStatus.PRESENT)
+            # Only students explicitly present in the payload are marked.
+            # An empty/partial ``attendance`` map must never silently default
+            # unlisted students to PRESENT — they are skipped instead.
+            status_val = submissions.get(str(student.id))
+            if status_val is None:
+                continue
             if status_val in [
                 AttendanceStatus.PRESENT,
                 AttendanceStatus.ABSENT,
                 AttendanceStatus.LEAVE,
             ]:
+                # Restrict to once-per-day: ``update_or_create`` matching
+                # (student, date) updates an existing row instead of creating
+                # a duplicate or raising ``IntegrityError``.
                 # ``marked_by`` stores the requesting user; the audit trail
                 # resolves the Teacher profile via ``Attendance.marked_by_teacher``
                 # so every record always tracks who took the attendance.
@@ -644,24 +688,44 @@ class TeacherAttendanceView(APIView):
                     date=attendance_date,
                     defaults={"status": status_val, "marked_by": request.user},
                 )
-                if created and status_val == AttendanceStatus.PRESENT and student.user:
+
+                # Auto-generate a parent/student notification every time a
+                # record is successfully saved *or* updated — for PRESENT,
+                # ABSENT and LEAVE statuses alike.
+                try:
                     from apps.core.models import Notification
-                    from django.utils import timezone
-                    # Create a friendly timestamp string in the server's local time
-                    time_str = timezone.localtime().strftime('%I:%M %p')
-                    msg = f"{student.name} entered school on {attendance_date.strftime('%Y-%m-%d')} at {time_str}."
-                    Notification.objects.create(user=student.user, message=msg)
+
+                    # Only students that have a linked login account can
+                    # receive a notification (``Student.user`` is nullable).
+                    if student.user:
+                        Notification.objects.create(
+                            user=student.user,
+                            title="Attendance Update",
+                            message=(
+                                f"{student.name} was marked "
+                                f"{str(status_val).upper()} on {attendance_date}."
+                            ),
+                        )
+                except Exception:
+                    # A notification-logging failure (e.g. DB hiccup on the
+                    # Notification table) must never crash the core
+                    # attendance-submission flow.
+                    pass
+
                 marked_count += 1
+
+        # --- Build response --------------------------------------------------
+        response_data = {
+            "marked_count": marked_count,
+            "date": attendance_date.strftime("%Y-%m-%d"),
+            "marked_by_teacher_id": teacher.teacher_id,
+        }
 
         return Response(
             {
                 "status": "success",
                 "message": f"Attendance saved for {marked_count} student(s) on {attendance_date}.",
-                "payload": {
-                    "marked_count": marked_count,
-                    "date": attendance_date.strftime("%Y-%m-%d"),
-                    "marked_by_teacher_id": teacher.teacher_id,
-                },
+                "payload": response_data,
             },
             status=status.HTTP_200_OK,
         )
@@ -906,12 +970,19 @@ class NotificationListView(APIView):
         payload = [
             {
                 "id": n.id,
+                "title": n.title,
                 "message": n.message,
                 "created_at": n.created_at.isoformat()
             }
             for n in notifications
         ]
-        return Response({"status": "success", "notifications": payload}, status=status.HTTP_200_OK)
+        # ``payload`` mirrors ``notifications`` so both consumers work:
+        # the web dashboard reads ``notifications`` while the Flutter
+        # student portal (NotificationCenterView) reads ``payload``.
+        return Response(
+            {"status": "success", "notifications": payload, "payload": payload},
+            status=status.HTTP_200_OK
+        )
 
 
 @method_decorator(csrf_exempt, name='dispatch')
