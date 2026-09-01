@@ -335,6 +335,29 @@ class ApiService {
     return _processResponse(response);
   }
 
+  /// Registers the device's FCM push token with the backend so push
+  /// notifications (e.g. attendance updates) reach this device.
+  ///
+  /// Call right after a successful login, passing the token obtained from
+  /// Firebase Messaging (package:firebase_messaging). Safe to call again —
+  /// the backend simply overwrites the stored token.
+  Future<Map<String, dynamic>> updateFcmToken(String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/update-fcm-token/'),
+        headers: await _getHeaders(),
+        body: jsonEncode({'fcm_token': token}),
+      );
+      return _processResponse(response);
+    } catch (e) {
+      debugPrint('Network error on update-fcm-token: $e');
+      return {
+        'status': 'error',
+        'message': 'Network or server error: $e',
+      };
+    }
+  }
+
   Map<String, dynamic> _processResponse(http.Response response) {
     // Log response details for debugging
     debugPrint('Response Status Code: ${response.statusCode}');
