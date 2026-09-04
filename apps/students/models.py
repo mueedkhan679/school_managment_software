@@ -13,6 +13,12 @@ class Gender(models.TextChoices):
     FEMALE = "F", "Female"
 
 
+class StudentStatus(models.TextChoices):
+    NEW_ADMISSION = "NEW_ADMISSION", "New Admission"
+    REGULAR = "REGULAR", "Regular"
+    PROMOTED = "PROMOTED", "Promoted"
+
+
 class Student(models.Model):
     """A student enrolled in the school.
 
@@ -22,6 +28,12 @@ class Student(models.Model):
 
     student_id = models.CharField(max_length=20, unique=True, editable=False)
     name = models.CharField(max_length=100)
+    status = models.CharField(
+        max_length=20,
+        choices=StudentStatus.choices,
+        default=StudentStatus.NEW_ADMISSION,
+        help_text="Visual tag to distinguish student progression."
+    )
     roll_number = models.CharField(
         max_length=50,
         blank=True,

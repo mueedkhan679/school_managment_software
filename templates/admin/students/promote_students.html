@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<form action="" method="post">
+    {% csrf_token %}
+    <p>Select the new class to promote the following students:</p>
+    <ul>
+        {% for student in students %}
+            <li>{{ student.name }} ({{ student.school_class.name }})
+                <input type="hidden" name="_selected_action" value="{{ student.pk }}" />
+            </li>
+        {% endfor %}
+    </ul>
+    
+    <div style="margin-top: 20px;">
+        <label for="new_class">Target Class: </label>
+        <select name="new_class" id="new_class" required>
+            <option value="">-- Select Class --</option>
+            {% for c in classes %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <input type="hidden" name="action" value="promote_students" />
+    <input type="hidden" name="apply" value="1" />
+    
+    <div style="margin-top: 20px;">
+        <input type="submit" value="Promote Students" class="default" />
+    </div>
+</form>
+{% endblock %}

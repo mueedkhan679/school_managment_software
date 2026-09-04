@@ -30,6 +30,15 @@ class StudentFee(models.Model):
     student = models.ForeignKey(
         Student, on_delete=models.PROTECT, related_name="fees"
     )
+    school_class = models.ForeignKey(
+        'classrooms.SchoolClass', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="fees_collected",
+        help_text="The class the student was in when this fee was paid."
+    )
+    session_year = models.CharField(
+        max_length=9, blank=True,
+        help_text="Academic session, e.g., '2025-2026'"
+    )
     fee_month = models.PositiveSmallIntegerField(choices=MONTHS, verbose_name="Fee Month")
     fee_year = models.PositiveSmallIntegerField(verbose_name="Fee Year")
     amount = models.DecimalField(
@@ -81,4 +90,12 @@ class StudentFee(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.get_fee_month_display()} {self.fee_year} (Rs {self.amount})"
+
+    def save(self, *args, **kwargs):
+        if not self.school_class and self.student_id:
+            self.school_class = self.student.school_class
+        if not self.session_year:
+            # Simple fallback session year derivation (e.g. "2025-2026")
+            self.session_year = f"{self.fee_year}-{self.fee_year + 1}"
+        super().save(*args, **kwargs)
 

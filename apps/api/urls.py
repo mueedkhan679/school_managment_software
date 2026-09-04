@@ -17,6 +17,7 @@ from .views import (
     NotificationListView,
     NotificationClearView,
     UpdateFcmTokenView,
+    StudentFeeStatementPDFView,
 )
 
 app_name = "api"
@@ -36,6 +37,7 @@ urlpatterns = [
     path("students/profile/", StudentProfileView.as_view(), name="student-profile"),
     path("students/attendance/", StudentAttendanceView.as_view(), name="student-attendance"),
     path("students/fees/", StudentFeeView.as_view(), name="student-fees"),
+    path("students/fees/statement/", StudentFeeStatementPDFView.as_view(), name="student-fees-statement"),
 
     # Teacher portal endpoints
     path("teacher/classes/", TeacherClassListView.as_view(), name="teacher-classes"),

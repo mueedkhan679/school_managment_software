@@ -83,6 +83,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     yearly_fee = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     photo_url = serializers.SerializerMethodField()
     qr_code_data = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
         model = Student
@@ -107,6 +108,8 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "yearly_fee",
             "admission_fee",
             "qr_code_data",
+            "status",
+            "status_display",
         ]
 
     def get_photo_url(self, obj):
