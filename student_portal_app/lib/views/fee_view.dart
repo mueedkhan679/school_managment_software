@@ -37,201 +37,212 @@ class _FeeViewState extends State<FeeView> with SingleTickerProviderStateMixin {
     final feeData = studentCtrl.feeData;
     final profile = studentCtrl.profile;
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        await studentCtrl.fetchFees();
-      },
-      child: Column(
-        children: [
-          // Header Financial Balance Summary Card
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Yearly Expected', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                              const SizedBox(height: 2),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  Format.rupees(feeData?.yearlyExpected),
-                                  maxLines: 1,
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await studentCtrl.fetchFees();
+        },
+        child: Column(
+          children: [
+            // Header Financial Balance Summary Card
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Yearly Expected', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                const SizedBox(height: 2),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    Format.rupees(feeData?.yearlyExpected),
+                                    maxLines: 1,
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Text(
-                                'Current Year Paid',
-                                textAlign: TextAlign.right,
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 2),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  Format.rupees(feeData?.currYearPaid),
-                                  maxLines: 1,
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    // Vertical layout + FittedBox: amounts scale down instead
-                    // of causing "RIGHT OVERFLOWED BY …" on narrow screens.
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Outstanding Balance:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            Format.rupees(feeData?.yearlyPending),
-                            maxLines: 1,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: (feeData?.yearlyPending != '0.00' && feeData?.yearlyPending != '0')
-                                  ? Colors.red
-                                  : Colors.green,
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Total Paid:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            Format.rupees(feeData?.totalPaidFees),
-                            maxLines: 1,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const Text(
+                                  'Current Year Paid',
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 2),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    Format.rupees(feeData?.currYearPaid),
+                                    maxLines: 1,
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // One-time Admission Fee badge (sourced from the
-                    // student-profile API; N/A when waived or not charged).
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (profile?.hasAdmissionFee ?? false)
-                              ? Colors.amber.withValues(alpha: 0.18)
-                              : theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('🧾', style: TextStyle(fontSize: 14)),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Admission Fee:',
+                        ],
+                      ),
+                      const Divider(height: 24),
+                      // Vertical layout + FittedBox: amounts scale down instead
+                      // of causing "RIGHT OVERFLOWED BY …" on narrow screens.
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Outstanding Balance:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              Format.rupees(feeData?.yearlyPending),
+                              maxLines: 1,
                               style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: (feeData?.yearlyPending != '0.00' && feeData?.yearlyPending != '0')
+                                    ? Colors.red
+                                    : Colors.green,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            // Flexible + ellipsis: long values such as
-                            // "N/A (Free / Waived)" now shrink inside the chip
-                            // instead of pushing it past the card edge (the
-                            // "RIGHT OVERFLOWED BY 93px" error).
-                            Flexible(
-                              child: Text(
-                                (profile?.hasAdmissionFee ?? false)
-                                    ? Format.rupees(profile!.admissionFee)
-                                    : 'N/A (Free / Waived)',
-                                maxLines: 1,
-                                softWrap: false,
-                                overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Total Paid:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              Format.rupees(feeData?.totalPaidFees),
+                              maxLines: 1,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // One-time Admission Fee badge
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: (profile?.hasAdmissionFee ?? false)
+                                ? Colors.amber.withValues(alpha: 0.18)
+                                : theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🧾', style: TextStyle(fontSize: 14)),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Admission Fee:',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: (profile?.hasAdmissionFee ?? false)
-                                      ? Colors.amber.shade900
-                                      : Colors.grey,
+                                  color: Colors.grey[700],
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  (profile?.hasAdmissionFee ?? false)
+                                      ? Format.rupees(profile!.admissionFee)
+                                      : 'N/A (Free / Waived)',
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: (profile?.hasAdmissionFee ?? false)
+                                        ? Colors.amber.shade900
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ).animate().fadeIn().slideY(begin: -0.1, end: 0),
-          ),
-
-          // Tab Bar for Switching between 12-Month Schedule and Payment History
-          TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Current Year Schedule'),
-              Tab(text: 'Payment Receipts Log'),
-            ],
-          ),
-
-          Expanded(
-            child: TabBarView(
+              ).animate().fadeIn().slideY(begin: -0.1, end: 0),
+            ),
+  
+            // Tab Bar for Switching between 12-Month Schedule and Payment History
+            TabBar(
               controller: _tabController,
-              children: [
-                // 12-Month Schedule List
-                _buildScheduleTab(
-                  feeData?.monthlySchedule ?? const [],
-                  studentCtrl.isLoadingFees,
-                  theme,
-                ),
-
-                // Payment History Ledger List
-                _buildHistoryTab(feeData?.results ?? const [], studentCtrl.isLoadingFees, theme),
+              tabs: const [
+                Tab(text: 'Current Year Schedule'),
+                Tab(text: 'Payment Receipts Log'),
               ],
             ),
-          ),
-        ],
+  
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // 12-Month Schedule List
+                  _buildScheduleTab(
+                    feeData?.monthlySchedule ?? const [],
+                    studentCtrl.isLoadingFees,
+                    theme,
+                  ),
+  
+                  // Payment History Ledger List
+                  _buildHistoryTab(feeData?.results ?? const [], studentCtrl.isLoadingFees, theme),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: studentCtrl.isDownloadingStatement
+            ? null
+            : () => studentCtrl.downloadFeeStatement(context),
+        icon: studentCtrl.isDownloadingStatement
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+            : const Icon(Icons.picture_as_pdf_rounded),
+        label: Text(studentCtrl.isDownloadingStatement ? 'Downloading...' : 'Statement PDF'),
       ),
     );
   }

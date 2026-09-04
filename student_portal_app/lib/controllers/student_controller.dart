@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 
 import '../models/attendance_model.dart';
 import '../models/fee_model.dart';
@@ -208,6 +209,45 @@ class StudentController extends ChangeNotifier {
 
     _isLoadingFees = false;
     notifyListeners();
+  }
+
+  bool _isDownloadingStatement = false;
+  bool get isDownloadingStatement => _isDownloadingStatement;
+
+  Future<void> downloadFeeStatement(BuildContext context) async {
+    _isDownloadingStatement = true;
+    notifyListeners();
+    try {
+      final response = await _apiService.downloadFeeStatement();
+      if (response.statusCode == 200) {
+        final dir = await getApplicationDocumentsDirectory();
+        final file = File('${dir.path}/fee_statement.pdf');
+        await file.writeAsBytes(response.bodyBytes);
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Fee Statement downloaded successfully')),
+          );
+        }
+        
+        await OpenFilex.open(file.path);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to download Fee Statement')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      _isDownloadingStatement = false;
+      notifyListeners();
+    }
   }
 
   /// Persists a raw payload map as JSON for instant cold-start hydration.

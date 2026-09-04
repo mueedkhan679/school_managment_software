@@ -118,6 +118,11 @@ class ApiService {
     return _authenticatedGet('$baseUrl/api/v1/students/fees/');
   }
 
+  Future<http.Response> downloadFeeStatement() async {
+    final url = Uri.parse('$baseUrl/api/v1/students/fees/statement/');
+    return await http.get(url, headers: await _getHeaders(requireAuth: true));
+  }
+
   Future<Map<String, dynamic>> getTeacherClasses() async {
     return _authenticatedGet('$baseUrl/api/v1/teacher/classes/');
   }

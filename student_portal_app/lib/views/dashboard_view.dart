@@ -92,6 +92,24 @@ class DashboardView extends StatelessWidget {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 6),
+                          // Status Badge
+                          if (profile?.statusDisplay != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white24,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                profile!.statusDisplay,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),

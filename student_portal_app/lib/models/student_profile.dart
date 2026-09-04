@@ -23,6 +23,8 @@ class StudentProfile {
   final String qrCodeData;
   final String totalPaid;
   final String attendancePercentage;
+  final String status;
+  final String statusDisplay;
 
   StudentProfile({
     required this.id,
@@ -47,6 +49,8 @@ class StudentProfile {
     required this.qrCodeData,
     this.totalPaid = '0.00',
     this.attendancePercentage = '0.0',
+    this.status = 'NEW_ADMISSION',
+    this.statusDisplay = 'New Admission',
   });
 
   /// Returns [v] as a trimmed non-empty string, otherwise null.
@@ -112,6 +116,8 @@ class StudentProfile {
       qrCodeData: json['qr_code_data']?.toString() ?? '',
       totalPaid: json['total_paid']?.toString() ?? json['paid_amount']?.toString() ?? '0.00',
       attendancePercentage: json['attendance_percentage']?.toString() ?? '0.0',
+      status: json['status']?.toString() ?? 'NEW_ADMISSION',
+      statusDisplay: json['status_display']?.toString() ?? 'New Admission',
     );
   }
 
