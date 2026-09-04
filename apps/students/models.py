@@ -119,3 +119,27 @@ class Student(models.Model):
         """Yearly expected fee = effective monthly fee x 12 (automatic)."""
         return self.effective_monthly_fee * 12
 
+
+class StudentAcademicHistory(models.Model):
+    """Archived record of a student's past academic sessions and fee completion status."""
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE, related_name="academic_history"
+    )
+    school_class = models.ForeignKey(
+        SchoolClass, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="archived_students",
+        help_text="The class the student completed."
+    )
+    session_year = models.CharField(max_length=20, help_text="e.g. 2025-2026")
+    fee_clearance_status = models.CharField(max_length=50, help_text="e.g. '12/12 Paid'")
+    status_tag = models.CharField(max_length=20, choices=StudentStatus.choices)
+    promoted_date = models.DateField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-promoted_date"]
+        verbose_name = "Academic History"
+        verbose_name_plural = "Academic Histories"
+
+    def __str__(self):
+        class_name = self.school_class.name if self.school_class else "Unknown Class"
+        return f"{self.student.name} - {class_name} ({self.session_year})"
