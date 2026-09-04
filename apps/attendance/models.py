@@ -72,3 +72,45 @@ class Attendance(models.Model):
             return None
         return teacher
 
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=Attendance)
+def attendance_post_save(sender, instance, created, **kwargs):
+    """Auto-generate an in-app notification and an FCM push notification
+    whenever an attendance record is created or updated.
+    """
+    if not instance.student.user:
+        return
+
+    # Don't trigger for bulk updates if they bypass save(), but update_or_create calls save().
+    marker_name = "Admin"
+    if instance.marked_by:
+        marker_name = instance.marked_by.get_full_name() or instance.marked_by.username
+        if instance.marked_by_teacher:
+            marker_name = instance.marked_by_teacher.name
+
+    status_str = str(instance.status).upper()
+    date_str = instance.date.strftime('%Y-%m-%d')
+    title = f"Attendance Marked: {status_str}"
+    message = f"Your attendance for {date_str} has been marked as {status_str} by {marker_name}."
+
+    try:
+        from apps.core.models import Notification
+        from apps.core.fcm import send_fcm_notification
+
+        # Create in-app notification
+        Notification.objects.create(
+            user=instance.student.user,
+            title=title,
+            message=message,
+        )
+
+        # Send push notification
+        send_fcm_notification(instance.student.user, title, message)
+    except Exception:
+        # Never break the save transaction for notification issues
+        pass
+
+

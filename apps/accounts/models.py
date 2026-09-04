@@ -17,6 +17,15 @@ class User(AbstractUser):
 
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.ADMIN)
     phone = models.CharField(max_length=20, blank=True, verbose_name="Phone")
+    # Firebase Cloud Messaging device token, registered by the Flutter app
+    # right after login (POST /api/v1/update-fcm-token/) so push
+    # notifications (e.g. attendance updates) can reach the device.
+    fcm_token = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="FCM device token",
+    )
 
     class Meta:
         verbose_name = "User"

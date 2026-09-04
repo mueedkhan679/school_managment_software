@@ -1,0 +1,21 @@
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (28) Operation timed out after 25008 milliseconds with 0 bytes received
+curl: (28) Operation timed out after 25013 milliseconds with 0 bytes received
+curl: (35) Recv failure: Connection was reset
+curl: (22) The requested URL returned error: 404
+curl: (28) Operation timed out after 25007 milliseconds with 0 bytes received
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (28) Operation timed out after 25015 milliseconds with 0 bytes received
+SEED_DONE OK=0 SKIP=42 FAIL=4
+com/google/android/gms/strict-version-matcher-plugin-parent/1.2.4/strict-version-matcher-plugin-parent-1.2.4.pom 
+org/jetbrains/kotlin/kotlin-stdlib-parent/1.7.22/kotlin-stdlib-parent-1.7.22.pom 
+com/google/gms/google-services/google-services.gradle.plugin/4.4.2/google-services.gradle.plugin-4.4.2.pom 
+org/jetbrains/kotlin/kotlin-parent/1.7.22/kotlin-parent-1.7.22.pom 

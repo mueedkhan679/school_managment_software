@@ -1,0 +1,158 @@
+ Volume in drive C has no label.
+ Volume Serial Number is 90BB-33C6
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\android\gms\strict-version-matcher-plugin\1.2.4
+
+02/09/2026  02:19 pm            43,176 strict-version-matcher-plugin-1.2.4.jar
+02/09/2026  02:19 pm             1,653 strict-version-matcher-plugin-1.2.4.pom
+               2 File(s)         44,829 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\code\findbugs\jsr305\3.0.2
+
+02/09/2026  02:22 pm            19,936 jsr305-3.0.2.jar
+02/09/2026  02:22 pm             4,286 jsr305-3.0.2.pom
+               2 File(s)         24,222 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\code\gson\gson\2.8.5
+
+02/09/2026  02:21 pm           241,622 gson-2.8.5.jar
+02/09/2026  02:21 pm             2,527 gson-2.8.5.pom
+               2 File(s)        244,149 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\code\gson\gson-parent\2.8.5
+
+02/09/2026  02:21 pm             3,778 gson-parent-2.8.5.pom
+               1 File(s)          3,778 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\errorprone\error_prone_annotations\2.2.0
+
+02/09/2026  02:22 pm            13,694 error_prone_annotations-2.2.0.jar
+02/09/2026  02:22 pm             1,784 error_prone_annotations-2.2.0.pom
+               2 File(s)         15,478 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\errorprone\error_prone_parent\2.2.0
+
+02/09/2026  02:22 pm             5,092 error_prone_parent-2.2.0.pom
+               1 File(s)          5,092 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\gms\google-services\4.4.2
+
+02/09/2026  02:18 pm            40,886 google-services-4.4.2.jar
+02/09/2026  02:51 pm                 0 google-services-4.4.2.module
+02/09/2026  01:32 pm             1,714 google-services-4.4.2.pom
+               3 File(s)         42,600 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\gms\google-services\com.google.gms.google-services.gradle.plugin\4.4.2
+
+02/09/2026  02:51 pm                 0 com.google.gms.google-services.gradle.plugin-4.4.2.pom
+               1 File(s)              0 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\gms\google-services\google-services.gradle.plugin\4.4.2
+
+02/09/2026  01:32 pm               832 com.google.gms.google-services.gradle.plugin-4.4.2.pom
+               1 File(s)            832 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\guava\failureaccess\1.0.1
+
+02/09/2026  02:22 pm             4,617 failureaccess-1.0.1.jar
+02/09/2026  02:22 pm             2,413 failureaccess-1.0.1.pom
+               2 File(s)          7,030 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\guava\guava\27.0.1-jre
+
+02/09/2026  02:21 pm         2,746,650 guava-27.0.1-jre.jar
+02/09/2026  02:21 pm             8,282 guava-27.0.1-jre.pom
+               2 File(s)      2,754,932 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\guava\guava-parent\27.0.1-jre
+
+02/09/2026  02:21 pm            10,397 guava-parent-27.0.1-jre.pom
+               1 File(s)         10,397 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\guava\listenablefuture\9999.0-empty-to-avoid-conflict-with-guava
+
+02/09/2026  02:22 pm             2,199 listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar
+02/09/2026  02:22 pm             2,278 listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.pom
+               2 File(s)          4,477 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\com\google\j2objc\j2objc-annotations\1.1
+
+02/09/2026  02:22 pm             8,782 j2objc-annotations-1.1.jar
+02/09/2026  02:22 pm             2,762 j2objc-annotations-1.1.pom
+               2 File(s)         11,544 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\checkerframework\checker-qual\2.5.2
+
+02/09/2026  02:21 pm           193,322 checker-qual-2.5.2.jar
+02/09/2026  02:22 pm             2,482 checker-qual-2.5.2.pom
+               2 File(s)        195,804 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\codehaus\codehaus-parent\4
+
+02/09/2026  02:22 pm             4,821 codehaus-parent-4.pom
+               1 File(s)          4,821 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\codehaus\mojo\animal-sniffer-annotations\1.17
+
+02/09/2026  02:22 pm             3,448 animal-sniffer-annotations-1.17.jar
+02/09/2026  02:22 pm             2,572 animal-sniffer-annotations-1.17.pom
+               2 File(s)          6,020 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\codehaus\mojo\animal-sniffer-parent\1.17
+
+02/09/2026  02:22 pm             8,607 animal-sniffer-parent-1.17.pom
+               1 File(s)          8,607 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\codehaus\mojo\mojo-parent\40
+
+02/09/2026  02:22 pm            33,621 mojo-parent-40.pom
+               1 File(s)         33,621 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\codehaus\mojo\mojo-parent\50
+
+02/09/2026  02:22 pm            34,099 mojo-parent-50.pom
+               1 File(s)         34,099 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\jetbrains\annotations\13.0
+
+02/09/2026  02:21 pm            17,536 annotations-13.0.jar
+02/09/2026  02:21 pm             4,930 annotations-13.0.pom
+               2 File(s)         22,466 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\jetbrains\kotlin\kotlin-stdlib\1.7.22
+
+02/09/2026  02:20 pm           573,440 kotlin-stdlib-1.7.22.jar
+02/09/2026  02:20 pm             1,554 kotlin-stdlib-1.7.22.pom
+               2 File(s)        574,994 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\jetbrains\kotlin\kotlin-stdlib-common\1.7.22
+
+02/09/2026  02:20 pm           212,184 kotlin-stdlib-common-1.7.22.jar
+02/09/2026  02:21 pm             1,162 kotlin-stdlib-common-1.7.22.pom
+               2 File(s)        213,346 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\jetbrains\kotlin\kotlin-stdlib-jdk7\1.7.22
+
+02/09/2026  02:19 pm            45,684 kotlin-stdlib-jdk7-1.7.22.jar
+02/09/2026  02:19 pm             1,389 kotlin-stdlib-jdk7-1.7.22.pom
+               2 File(s)         47,073 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\jetbrains\kotlin\kotlin-stdlib-jdk8\1.7.22
+
+02/09/2026  02:19 pm            19,804 kotlin-stdlib-jdk8-1.7.22.jar
+02/09/2026  02:19 pm             1,581 kotlin-stdlib-jdk8-1.7.22.pom
+               2 File(s)         21,385 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\sonatype\oss\oss-parent\7
+
+02/09/2026  02:22 pm             4,824 oss-parent-7.pom
+               1 File(s)          4,824 bytes
+
+ Directory of c:\Users\ytmoi\Desktop\school_project\student_portal_app\android\local-maven\org\sonatype\oss\oss-parent\9
+
+02/09/2026  02:22 pm             6,569 oss-parent-9.pom
+               1 File(s)          6,569 bytes
+
+     Total Files Listed:
+              44 File(s)      4,342,989 bytes
+               0 Dir(s)  24,150,532,096 bytes free

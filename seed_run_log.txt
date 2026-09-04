@@ -1,0 +1,33 @@
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (28) Operation timed out after 25007 milliseconds with 359458 out of 1536429 bytes received
+curl: (28) Operation timed out after 25015 milliseconds with 573440 out of 1536429 bytes received
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (28) Operation timed out after 25006 milliseconds with 2301708 out of 2746650 bytes received
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+curl: (22) The requested URL returned error: 404
+SEED_DONE OK=39 SKIP=2 FAIL=5
+com/google/android/gms/strict-version-matcher-plugin-parent/1.2.4/strict-version-matcher-plugin-parent-1.2.4.pom 
+org/jetbrains/kotlin/kotlin-stdlib/1.7.22/kotlin-stdlib-1.7.22.jar 
+org/jetbrains/kotlin/kotlin-stdlib-parent/1.7.22/kotlin-stdlib-parent-1.7.22.pom 
+com/google/gms/google-services/google-services.gradle.plugin/4.4.2/google-services.gradle.plugin-4.4.2.pom 
+org/jetbrains/kotlin/kotlin-parent/1.7.22/kotlin-parent-1.7.22.pom 

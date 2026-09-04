@@ -1,0 +1,12 @@
+System check identified no issues (0 silenced).
+CHECK_EXIT:0 
+Creating test database for alias 'default'...
+..............................................
+----------------------------------------------------------------------
+Ran 46 tests in 128.796s
+
+OK
+Destroying test database for alias 'default'...
+Found 46 test(s).
+System check identified no issues (0 silenced).
+TEST_EXIT:0 

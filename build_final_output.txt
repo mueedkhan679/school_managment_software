@@ -1,0 +1,156 @@
+=== ATTEMPT 1 === 
+Running Gradle task 'assembleDebug'...                          
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Settings file 'C:\Users\ytmoi\Desktop\school_project\student_portal_app\android\settings.gradle.kts' line: 31
+
+* What went wrong:
+Plugin [id: 'com.google.gms.google-services', version: '4.4.2', apply: false] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'com.google.gms.google-services:com.google.gms.google-services.gradle.plugin:4.4.2')
+  Searched in the following repositories:
+    maven(https://maven.aliyun.com/repository/google)
+    maven2(https://maven.aliyun.com/repository/public)
+    maven3(https://maven.aliyun.com/repository/gradle-plugin)
+    Google
+    MavenRepo
+    Gradle Central Plugin Repository
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 34s
+Running Gradle task 'assembleDebug'...                             34.5s
+Gradle task assembleDebug failed with exit code 1
+=== ATTEMPT 2 === 
+Running Gradle task 'assembleDebug'...                          
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Settings file 'C:\Users\ytmoi\Desktop\school_project\student_portal_app\android\settings.gradle.kts' line: 31
+
+* What went wrong:
+Plugin [id: 'com.google.gms.google-services', version: '4.4.2', apply: false] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'com.google.gms.google-services:com.google.gms.google-services.gradle.plugin:4.4.2')
+  Searched in the following repositories:
+    maven(https://maven.aliyun.com/repository/google)
+    maven2(https://maven.aliyun.com/repository/public)
+    maven3(https://maven.aliyun.com/repository/gradle-plugin)
+    Google
+    MavenRepo
+    Gradle Central Plugin Repository
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 28s
+Running Gradle task 'assembleDebug'...                             29.1s
+Gradle task assembleDebug failed with exit code 1
+=== ATTEMPT 3 === 
+Running Gradle task 'assembleDebug'...                          
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Settings file 'C:\Users\ytmoi\Desktop\school_project\student_portal_app\android\settings.gradle.kts' line: 31
+
+* What went wrong:
+Plugin [id: 'com.google.gms.google-services', version: '4.4.2', apply: false] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'com.google.gms.google-services:com.google.gms.google-services.gradle.plugin:4.4.2')
+  Searched in the following repositories:
+    maven(https://maven.aliyun.com/repository/google)
+    maven2(https://maven.aliyun.com/repository/public)
+    maven3(https://maven.aliyun.com/repository/gradle-plugin)
+    Google
+    MavenRepo
+    Gradle Central Plugin Repository
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 23s
+Running Gradle task 'assembleDebug'...                             24.0s
+Gradle task assembleDebug failed with exit code 1
+=== ATTEMPT 4 === 
+Running Gradle task 'assembleDebug'...                          
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Settings file 'C:\Users\ytmoi\Desktop\school_project\student_portal_app\android\settings.gradle.kts' line: 31
+
+* What went wrong:
+Plugin [id: 'com.google.gms.google-services', version: '4.4.2', apply: false] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'com.google.gms.google-services:com.google.gms.google-services.gradle.plugin:4.4.2')
+  Searched in the following repositories:
+    maven(https://maven.aliyun.com/repository/google)
+    maven2(https://maven.aliyun.com/repository/public)
+    maven3(https://maven.aliyun.com/repository/gradle-plugin)
+    Google
+    MavenRepo
+    Gradle Central Plugin Repository
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 27s
+Running Gradle task 'assembleDebug'...                             27.5s
+Gradle task assembleDebug failed with exit code 1
+=== ATTEMPT 5 === 
+Running Gradle task 'assembleDebug'...                          
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Settings file 'C:\Users\ytmoi\Desktop\school_project\student_portal_app\android\settings.gradle.kts' line: 31
+
+* What went wrong:
+Plugin [id: 'com.google.gms.google-services', version: '4.4.2', apply: false] was not found in any of the following sources:
+
+- Gradle Core Plugins (plugin is not in 'org.gradle' namespace)
+- Included Builds (No included builds contain this plugin)
+- Plugin Repositories (could not resolve plugin artifact 'com.google.gms.google-services:com.google.gms.google-services.gradle.plugin:4.4.2')
+  Searched in the following repositories:
+    maven(https://maven.aliyun.com/repository/google)
+    maven2(https://maven.aliyun.com/repository/public)
+    maven3(https://maven.aliyun.com/repository/gradle-plugin)
+    Google
+    MavenRepo
+    Gradle Central Plugin Repository
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 20s
+Running Gradle task 'assembleDebug'...                             20.9s
+Gradle task assembleDebug failed with exit code 1
+BUILD_EXIT:1 

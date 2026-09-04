@@ -2,8 +2,8 @@
 
 Covers:
 - POST /api/v1/teacher/attendance/ creates a ``Notification`` (title
-  ``"Attendance Update"``) for every marked student that has a linked login
-  account.
+  ``"Attendance Update - <teacher name/username>"``) for every marked
+  student that has a linked login account, plus a best-effort FCM push.
 - Students without a linked account are skipped silently — the submission
   still succeeds and never crashes (the try/except guarantee).
 - Resubmitting attendance for the same day UPDATES the single
@@ -19,6 +19,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
@@ -107,8 +108,12 @@ class AttendanceNotificationTests(APITestCase):
         notifs = Notification.objects.filter(user=self.student_user)
         self.assertEqual(notifs.count(), 1)
         notif = notifs.first()
-        self.assertEqual(notif.title, "Attendance Update")
-        self.assertEqual(notif.message, "Ali Khan was marked ABSENT on 2026-09-01.")
+        # setUp users have no first/last name, so get_full_name() is empty
+        # and the username is used as the teacher display name.
+        self.assertEqual(notif.title, "Attendance Update - notif_tch")
+        self.assertEqual(
+            notif.message, "notif_tch marked your attendance as ABSENT for 2026-09-01."
+        )
 
     def test_student_without_linked_account_is_skipped_silently(self):
         """Missing ``Student.user`` must never break the submission flow."""
@@ -193,7 +198,97 @@ class AttendanceNotificationTests(APITestCase):
         self.assertIn("payload", body)
         self.assertEqual(body["payload"], body["notifications"])
         self.assertEqual(len(body["payload"]), 1)
-        self.assertEqual(body["payload"][0]["title"], "Attendance Update")
+        self.assertEqual(body["payload"][0]["title"], "Attendance Update - notif_tch")
         self.assertEqual(
-            body["payload"][0]["message"], "Ali Khan was marked ABSENT on 2026-09-01."
+            body["payload"][0]["message"],
+            "notif_tch marked your attendance as ABSENT for 2026-09-01.",
         )
+
+    # ------------------ FCM push architecture ------------------
+
+    def test_send_fcm_notification_without_token_returns_false(self):
+        """Users without a registered ``fcm_token`` are a safe no-op."""
+        from apps.core.fcm import send_fcm_notification
+
+        self.assertFalse(send_fcm_notification(self.teacher_user, "Title", "Body"))
+
+    @override_settings(FIREBASE_CREDENTIALS_PATH=None)
+    def test_attendance_flow_survives_unconfigured_fcm(self):
+        """A registered FCM token without Firebase credentials must never
+        break the submission — the DB notification is still created."""
+        self.student_user.fcm_token = "device-token-abc123"
+        self.student_user.save(update_fields=["fcm_token"])
+
+        resp = self._post_attendance()
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Notification.objects.count(), 1)
+        self.assertEqual(
+            Notification.objects.first().title, "Attendance Update - notif_tch"
+        )
+
+
+class FcmRegistrationTests(APITestCase):
+    """POST /api/v1/update-fcm-token/ registers the device push token."""
+
+    def setUp(self):
+        # The login endpoint enforces role-based profile validation
+        # (CustomTokenObtainPairSerializer.validate), so a STUDENT account
+        # must have an active Student profile before it can obtain a token.
+        self.cls = SchoolClass.objects.create(name="FCM Class", order=10)
+        self.user = User.objects.create_user(
+            username="fcm_user",
+            password="fcmpass123",
+            role=Role.STUDENT,
+        )
+        Student.objects.create(
+            name="FCM Tester",
+            father_name="Test Sr",
+            school_class=self.cls,
+            date_of_birth=date(2012, 1, 1),
+            gender=Gender.MALE,
+            user=self.user,
+        )
+
+    def _login(self):
+        resp = self.client.post(
+            reverse("api:student-login"),
+            {"username": "fcm_user", "password": "fcmpass123"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        token = resp.json()["payload"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    def test_registers_token_when_authenticated(self):
+        self._login()
+        resp = self.client.post(
+            reverse("api:update-fcm-token"),
+            {"fcm_token": "device-token-abc123"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["status"], "success")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.fcm_token, "device-token-abc123")
+
+    def test_missing_token_returns_400(self):
+        self._login()
+        resp = self.client.post(reverse("api:update-fcm-token"), {}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_overlong_token_returns_400(self):
+        self._login()
+        resp = self.client.post(
+            reverse("api:update-fcm-token"),
+            {"fcm_token": "x" * 256},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_requires_authentication(self):
+        resp = self.client.post(
+            reverse("api:update-fcm-token"),
+            {"fcm_token": "tok"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 401)

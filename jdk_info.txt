@@ -1,0 +1,35 @@
+[√] Flutter (Channel stable, 3.44.8, on Microsoft Windows [Version 10.0.26200.9168], locale en-PK) [344ms]
+    • Flutter version 3.44.8 on channel stable at C:\flutter\flutter
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision 058e0af2c2 (6 weeks ago), 2026-07-23 10:56:21 -0700
+    • Engine revision 0cd610717b
+    • Dart version 3.12.2
+    • DevTools version 2.57.0
+    • Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, enable-swift-package-manager, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[√] Windows Version (11 Pro 64-bit, 25H2, 2009) [1,936ms]
+
+[☠] Android toolchain - develop for Android devices (the doctor check crashed)
+    X Due to an error, the doctor check did not complete. If the error message below is not helpful, please let us know about this issue at https://github.com/flutter/flutter/issues.
+    X Exception: Android toolchain - develop for Android devices exceeded maximum allowed duration of 0:04:30.000000
+    • 
+
+[√] Chrome - develop for the web [20ms]
+    • Chrome at C:\Program Files\Google\Chrome\Application\chrome.exe
+
+[X] Visual Studio - develop Windows apps [18ms]
+    X Visual Studio not installed; this is necessary to develop Windows apps.
+      Download at https://visualstudio.microsoft.com/downloads/.
+      Please install the "Desktop development with C++" workload, including all of its default components
+
+[√] Connected device (4 available) [834ms]
+    • M2007J3SG (mobile) • e3992d08 • android-arm64  • Android 12 (API 31)
+    • Windows (desktop)  • windows  • windows-x64    • Microsoft Windows [Version 10.0.26200.9168]
+    • Chrome (web)       • chrome   • web-javascript • Google Chrome 151.0.7922.174
+    • Edge (web)         • edge     • web-javascript • Microsoft Edge 152.0.4191.53
+
+[√] Network resources [1,281ms]
+    • All expected network resources are available.
+
+! Doctor found issues in 2 categories.
+DONE 

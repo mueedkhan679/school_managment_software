@@ -15,6 +15,7 @@ from apps.accounts.models import Role
 from apps.attendance.models import Attendance, AttendanceStatus
 from apps.classrooms.models import SchoolClass
 from apps.core.constants import MONTHS
+from apps.core.fcm import send_fcm_notification
 from apps.fees.models import FeeStatus
 from apps.students.models import Student
 from apps.teachers.models import (
@@ -608,6 +609,8 @@ class TeacherAttendanceView(APIView):
         # referenced before Python had a chance to bind it.
         # ---------------------------------------------------------------
         teacher = self._get_teacher_or_403(request)
+        # Display name used in the auto-generated notification title/message.
+        teacher_name = request.user.get_full_name() or request.user.username
         submissions = {}
         attendance_date = timezone.now().date()
         class_id = None
@@ -689,28 +692,6 @@ class TeacherAttendanceView(APIView):
                     defaults={"status": status_val, "marked_by": request.user},
                 )
 
-                # Auto-generate a parent/student notification every time a
-                # record is successfully saved *or* updated — for PRESENT,
-                # ABSENT and LEAVE statuses alike.
-                try:
-                    from apps.core.models import Notification
-
-                    # Only students that have a linked login account can
-                    # receive a notification (``Student.user`` is nullable).
-                    if student.user:
-                        Notification.objects.create(
-                            user=student.user,
-                            title="Attendance Update",
-                            message=(
-                                f"{student.name} was marked "
-                                f"{str(status_val).upper()} on {attendance_date}."
-                            ),
-                        )
-                except Exception:
-                    # A notification-logging failure (e.g. DB hiccup on the
-                    # Notification table) must never crash the core
-                    # attendance-submission flow.
-                    pass
 
                 marked_count += 1
 
@@ -1006,3 +987,46 @@ class NotificationClearView(APIView):
 
     def post(self, request, *args, **kwargs):
         return self._clear_user_notifications(request)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class UpdateFcmTokenView(APIView):
+    """POST /api/v1/update-fcm-token/ — register the device's FCM token.
+
+    The Flutter app calls this right after login so that push notifications
+    (e.g. "Attendance Update - <teacher>") can be delivered to the device.
+
+    Body: ``{"fcm_token": "<firebase device token>"}`` (``token`` accepted
+    as an alias). Requires authentication (JWT bearer).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        token = request.data.get("fcm_token") or request.data.get("token")
+        if not token or not str(token).strip():
+            return Response(
+                {
+                    "status": "error",
+                    "message": "fcm_token is required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        token = str(token).strip()
+        if len(token) > 255:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "fcm_token must be at most 255 characters.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        request.user.fcm_token = token
+        request.user.save(update_fields=["fcm_token"])
+        return Response(
+            {
+                "status": "success",
+                "message": "FCM token registered successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )

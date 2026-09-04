@@ -195,6 +195,15 @@ MAILERS = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ---------------------------------------------------------------------------
+# Firebase Cloud Messaging (FCM) push notifications
+# ---------------------------------------------------------------------------
+# Point this at a downloaded Firebase service-account JSON file (set the env
+# var or add FIREBASE_CREDENTIALS_PATH=... to .env). When unset, push delivery
+# is silently skipped — in-app Notification rows are unaffected. See
+# apps/core/fcm.py.
+FIREBASE_CREDENTIALS_PATH = os.environ.get("FIREBASE_CREDENTIALS_PATH") or None
+
+# ---------------------------------------------------------------------------
 # Authentication & session security
 # ---------------------------------------------------------------------------
 LOGIN_URL = 'accounts:login'

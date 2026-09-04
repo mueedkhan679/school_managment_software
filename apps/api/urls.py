@@ -16,6 +16,7 @@ from .views import (
     ChangePasswordView,
     NotificationListView,
     NotificationClearView,
+    UpdateFcmTokenView,
 )
 
 app_name = "api"
@@ -25,6 +26,7 @@ urlpatterns = [
     path("auth/login/", StudentLoginView.as_view(), name="student-login"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("auth/change-password/", ChangePasswordView.as_view(), name="change_password"),
+    path("update-fcm-token/", UpdateFcmTokenView.as_view(), name="update-fcm-token"),
 
     # Notifications
     path("notifications/", NotificationListView.as_view(), name="notification_list"),
