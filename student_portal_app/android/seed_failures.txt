@@ -1,0 +1,4 @@
+com/google/android/gms/strict-version-matcher-plugin-parent/1.2.4/strict-version-matcher-plugin-parent-1.2.4.pom 
+org/jetbrains/kotlin/kotlin-stdlib-parent/1.7.22/kotlin-stdlib-parent-1.7.22.pom 
+com/google/gms/google-services/google-services.gradle.plugin/4.4.2/google-services.gradle.plugin-4.4.2.pom 
+org/jetbrains/kotlin/kotlin-parent/1.7.22/kotlin-parent-1.7.22.pom 

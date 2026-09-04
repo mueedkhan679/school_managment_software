@@ -22,6 +22,9 @@ dependencies:
   shimmer: ^3.0.0
   cached_network_image: ^3.3.1
   path_provider: ^2.1.6
+  firebase_core: ^4.14.0
+  firebase_messaging: ^16.6.0
+  flutter_local_notifications: ^19.0.0
 
 dev_dependencies:
   flutter_test:
@@ -30,12 +33,9 @@ dev_dependencies:
 
 dependency_overrides:
   # sqflite_android 2.4.2+/2.4.3 reference Android API-36 ("Baklava") symbols
-  # (Build.VERSION_CODES.BAKLAVA / Thread.threadId()), which fails javac
-  # compilation when the project targets a lower SDK. Pin the newest release
-  # that does NOT use those symbols (2.4.1 — verified against pub.dev source;
-  # there is no 2.3.8, as the package only ships 2.4.x), so `flutter run`
-  # builds cleanly. Combined with the forced compileSdk = 36 below.
-  sqflite_android: 2.4.1
+  # which failed earlier, but since we forced compileSdk=36 in build.gradle.kts,
+  # it's now safe to use 2.4.3.
+  sqflite_android: 2.4.3
 
 flutter:
   uses-material-design: true

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "213115350590",
+    "project_id": "collegeexamsystem",
+    "storage_bucket": "collegeexamsystem.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:213115350590:android:dc5866e48e883c6c88ab6f",
+        "android_client_info": {
+          "package_name": "com.example.student_portal_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3lc_7vmzWJPUK6-q_aiqtG2FEOqNPMV4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

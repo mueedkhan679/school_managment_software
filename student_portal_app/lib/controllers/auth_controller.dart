@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../services/fcm_service.dart';
 import '../services/storage_service.dart';
 
 enum AuthStatus { unauthenticated, authenticating, authenticated, error }
@@ -44,6 +45,9 @@ class AuthController extends ChangeNotifier {
       );
       _status = AuthStatus.authenticated;
     }
+    // App-launch path: a restored session should (re-)register the device's
+    // FCM token so push notifications keep flowing without a fresh login.
+    FcmService.instance.syncTokenWithBackend();
     _isInitialized = true;
     notifyListeners();
   }
@@ -80,6 +84,10 @@ class AuthController extends ChangeNotifier {
           teacherName: _session!.teacherName,
         );
         await _storageService.setRememberMe(_rememberMe);
+
+        // Register this device's FCM token on the backend so attendance and
+        // fee notifications reach this phone immediately after login.
+        await FcmService.instance.syncTokenWithBackend();
 
         _status = AuthStatus.authenticated;
         notifyListeners();

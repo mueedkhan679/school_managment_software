@@ -11,6 +11,7 @@ class StorageService {
   static const String _keyTeacherName = 'teacher_name';
   static const String _keyRole = 'role';
   static const String _keyRememberMe = 'remember_me';
+  static const String _keyFcmToken = 'fcm_token';
 
   static const String _keySessionCookie = 'session_cookie';
 
@@ -75,6 +76,15 @@ class StorageService {
   Future<bool> getRememberMe() async {
     final val = await _storage.read(key: _keyRememberMe);
     return val == 'true';
+  }
+
+  /// FCM device token handed to the Django backend on login/app launch.
+  Future<void> saveFcmToken(String token) async {
+    await _storage.write(key: _keyFcmToken, value: token);
+  }
+
+  Future<String?> getFcmToken() async {
+    return await _storage.read(key: _keyFcmToken);
   }
 
   Future<void> clearAll() async {
