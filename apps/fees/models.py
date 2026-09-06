@@ -3,6 +3,7 @@ from decimal import Decimal
 import django
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -94,8 +95,30 @@ class StudentFee(models.Model):
     def save(self, *args, **kwargs):
         if not self.school_class and self.student_id:
             self.school_class = self.student.school_class
-        if not self.session_year:
+        if not self.session_year and self.fee_year:
             # Simple fallback session year derivation (e.g. "2025-2026")
             self.session_year = f"{self.fee_year}-{self.fee_year + 1}"
+
+        # Strict 12-month block: once a student has completed all 12 monthly
+        # instalments for a class + session, further STANDARD monthly fee
+        # collection for that session is locked automatically. Extra payments
+        # (late fee, exam fee, ...) remain available and keep the record of
+        # the cleared session intact. Existing records can still be edited.
+        if (
+            not self.pk  # only new collections
+            and not self.is_extra
+            and self.student_id
+            and self.school_class_id
+            and self.session_year
+            and self.student.is_session_cleared(self.school_class, self.session_year)
+        ):
+            raise ValidationError(
+                f"{self.student} has already completed all 12 months of fees for "
+                f"{self.school_class} (Session {self.session_year}). Monthly fee "
+                "collection for this session is locked — promote the student to a "
+                "new class to begin a fresh 12-month cycle. Use 'Allow Extra / "
+                "Additional Payment' only for non-monthly payments."
+            )
+
         super().save(*args, **kwargs)
 

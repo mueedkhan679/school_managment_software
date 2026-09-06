@@ -1033,11 +1033,6 @@ class UpdateFcmTokenView(APIView):
 
 import io
 from django.http import HttpResponse
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
-from reportlab.lib.units import inch
 
 @method_decorator(csrf_exempt, name='dispatch')
 class StudentFeeStatementPDFView(APIView):
@@ -1047,6 +1042,21 @@ class StudentFeeStatementPDFView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        # Imported lazily so the web UI / management commands keep working in
+        # environments where reportlab isn't installed (PDF view needs it only
+        # when this endpoint is actually called).
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.units import inch
+        from reportlab.platypus import (
+            SimpleDocTemplate,
+            Spacer,
+            Table,
+            TableStyle,
+            Paragraph,
+        )
+
         student = _get_student(request)
         if not student:
             return Response(

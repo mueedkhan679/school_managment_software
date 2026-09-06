@@ -1,0 +1,123 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block title %}Promote {{ student.name }} | Django site admin{% endblock %}
+
+{% block content_title %}<h1>Promote Student &mdash; Target Class Selection</h1>{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    &rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo; <a href="{% url opts|admin_urlname:'change' student.pk %}">{{ student.name }}</a>
+    &rsaquo; {% translate 'Promote' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<form action="" method="post">
+    {% csrf_token %}
+
+    <!-- Student & clearance summary -->
+    <fieldset class="module aligned">
+        <h2>Academic Session Snapshot (will be archived)</h2>
+        <div class="form-row">
+            <div>
+                <label>Student</label>
+                <div class="readonly" style="font-size: 14px;">
+                    <strong>{{ student.name }}</strong> ({{ student.student_id }})
+                </div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label>Current Class</label>
+                <div class="readonly">{{ student.school_class.name }}</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label>Session Year</label>
+                <div class="readonly">{{ fee_clearance.session_year }}</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label>Current Status</label>
+                <div class="readonly">{{ student.get_status_display }}</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label>Fee Clearance</label>
+                <div class="readonly">
+                    {% if fee_clearance.is_cleared %}
+                        <span style="color: #1e7e34; font-weight: 700;">&#9989; {{ fee_clearance.status_label }}</span>
+                    {% else %}
+                        <span style="color: #b3541e; font-weight: 700;">{{ fee_clearance.status_label }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </fieldset>
+
+    {% if not fee_clearance.is_cleared %}
+    <div class="errornote" style="margin-top: 12px;">
+        <strong>Warning:</strong> This student has not completed all 12 months of fees for
+        {{ student.school_class.name }} (Session {{ fee_clearance.session_year }}).
+        You must check the override box below to promote despite the incomplete fee record.
+    </div>
+    {% endif %}
+
+    <!-- Target class dropdown -->
+    <fieldset class="module aligned" style="margin-top: 16px;">
+        <h2>Select Target Class</h2>
+        <div class="form-row">
+            <div>
+                <label for="new_class" style="font-weight: 700;">Target Class *</label>
+                {% if has_promotable_classes %}
+                <select name="new_class" id="new_class" required>
+                    <option value="">-- Select Class --</option>
+                    {% for c in classes %}
+                        <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="help">Promote from &ldquo;{{ student.school_class.name }}&rdquo; into the class selected above
+                    (e.g. Class 9 &rarr; Class 10).</p>
+                {% else %}
+                <p class="help" style="color: #b3541e; font-weight: 700;">
+                    No target class available — create a new class before promoting this student.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </fieldset>
+
+    {% if not fee_clearance.is_cleared %}
+    <div class="form-row" style="margin-top: 10px;">
+        <label>
+            <input type="checkbox" name="allow_incomplete_fees" />
+            <strong>Override Fee Validation (promote even though 12/12 months are not paid)</strong>
+        </label>
+    </div>
+    {% endif %}
+
+    <input type="hidden" name="_selected_action" value="{{ student.pk }}" />
+    <input type="hidden" name="action" value="promote_students" />
+    <input type="hidden" name="apply" value="1" />
+
+    <div class="submit-row">
+        {% if has_promotable_classes %}
+        <input type="submit" value="Promote Student" class="default" name="_save" />
+        {% endif %}
+        <a href="{% url opts|admin_urlname:'change' student.pk %}" class="button cancel-link">Cancel</a>
+    </div>
+
+    <p class="help" style="margin-top: 8px;">
+        Promotion archives the current class/session (12-month payment status) into the permanent
+        <strong>Academic History</strong> record, updates the student's class, sets the status badge to
+        <strong>PROMOTED</strong>, and resets the active fee tracker to <strong>0/12</strong> for the new academic session.
+    </p>
+</form>
+{% endblock %}

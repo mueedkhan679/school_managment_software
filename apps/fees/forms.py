@@ -120,6 +120,28 @@ class StudentFeeForm(forms.ModelForm):
                     f"please check the 'Allow Extra / Additional Payment' checkbox."
                 )
 
+        # Strict 12-month block: once a student completes all 12 monthly
+        # instalments for the current class + session, further standard monthly
+        # fee collection for that session is locked automatically. Existing
+        # records can still be edited; extra payments remain allowed.
+        if (
+            student
+            and fee_year
+            and not is_extra
+            and not (self.instance and self.instance.pk)
+            and student.school_class_id
+        ):
+            session_year = f"{int(fee_year)}-{int(fee_year) + 1}"
+            if student.is_session_cleared(student.school_class, session_year):
+                raise ValidationError(
+                    f"{student.name} ({student.student_id}) has already completed all "
+                    f"12 months of fees for {student.school_class.name} "
+                    f"(Session {session_year}). Monthly fee collection for this session "
+                    "is locked — promote the student to a new class to begin a fresh "
+                    "12-month cycle, or check 'Allow Extra / Additional Payment' for "
+                    "non-monthly payments."
+                )
+
         # Auto-generate reference number if left blank
         if not reference and student and fee_year and fee_month:
             cleaned_data["reference"] = f"REC-{fee_year}{int(fee_month):02d}-{student.id:04d}"

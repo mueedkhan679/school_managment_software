@@ -1,11 +1,16 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import models, transaction
+from django.utils import timezone
 
 from apps.classrooms.models import SchoolClass
 from apps.core.models import Sequence
+
+#: Number of monthly fee instalments in one academic session.
+MONTHS_PER_SESSION = 12
 
 
 class Gender(models.TextChoices):
@@ -118,6 +123,108 @@ class Student(models.Model):
     def yearly_fee(self) -> Decimal:
         """Yearly expected fee = effective monthly fee x 12 (automatic)."""
         return self.effective_monthly_fee * 12
+
+    # ------------------------------------------------------------------
+    # Academic session & fee-clearance tracker
+    # ------------------------------------------------------------------
+    @property
+    def current_session(self) -> str:
+        """Academic session of the student's CURRENT class.
+
+        Derived from the most recent fee paid in the current class (e.g.
+        '2025-2026'); falls back to the calendar-year session when no fee
+        exists yet.
+        """
+        latest = (
+            self.fees.filter(school_class=self.school_class)
+            .order_by("-fee_year", "-payment_date", "-id")
+            .first()
+        )
+        if latest and latest.session_year:
+            return latest.session_year
+        now_year = timezone.now().year
+        return f"{now_year}-{now_year + 1}"
+
+    def paid_months_count_for(self, school_class, session_year) -> int:
+        """Number of distinct, PAID monthly instalments for a class+session."""
+        from apps.fees.models import FeeStatus
+
+        return (
+            self.fees.filter(
+                school_class=school_class,
+                status=FeeStatus.PAID,
+                session_year=session_year,
+            )
+            .values("fee_month")
+            .distinct()
+            .count()
+        )
+
+    @property
+    def paid_months_count(self) -> int:
+        """Distinct paid months in the current class for the current session."""
+        return self.paid_months_count_for(self.school_class, self.current_session)
+
+    @property
+    def is_fee_cleared(self) -> bool:
+        """True once all 12 monthly instalments of the current session are paid.
+
+        When True, the active fee tracker is locked (no further standard
+        monthly fee collection for this class/session) and the student is
+        ready to be promoted.
+        """
+        return self.paid_months_count >= MONTHS_PER_SESSION
+
+    @property
+    def fee_clearance_status(self) -> str:
+        """Human label, e.g. '12/12 Months Cleared' or '9/12 Months Paid'."""
+        if self.is_fee_cleared:
+            return f"{MONTHS_PER_SESSION}/{MONTHS_PER_SESSION} Months Cleared"
+        return f"{self.paid_months_count}/{MONTHS_PER_SESSION} Months Paid"
+
+    def is_session_cleared(self, school_class, session_year) -> bool:
+        """True when all 12 monthly instalments are paid for class+session."""
+        return self.paid_months_count_for(school_class, session_year) >= MONTHS_PER_SESSION
+
+    @transaction.atomic
+    def promote_to(self, new_class, force=False):
+        """Archive the finished academic session and advance the student.
+
+        * Saves the previous class, session year and fee-clearance status into
+          ``StudentAcademicHistory`` (permanent record, never lost).
+        * Moves the student into ``new_class`` and flips the status badge to
+          PROMOTED. Because the active fee tracker is derived per class, it
+          naturally resets to 0/12 for the new academic session.
+        * ``force=True`` bypasses the 12-month clearance requirement (used by
+          the bulk-action override).
+
+        Returns the created ``StudentAcademicHistory`` row.
+        """
+        if not self.is_fee_cleared and not force:
+            raise ValidationError(
+                f"{self.name} ({self.student_id}) has not completed "
+                f"{MONTHS_PER_SESSION}/{MONTHS_PER_SESSION} months of fees for "
+                f"{self.school_class.name} (Session {self.current_session}). "
+                "Promotion is not allowed until the session is fee-cleared."
+            )
+        if new_class.pk == self.school_class_id:
+            raise ValidationError(
+                f"{self.name} is already enrolled in {new_class.name}."
+            )
+
+        archived = StudentAcademicHistory.objects.create(
+            student=self,
+            school_class=self.school_class,
+            session_year=self.current_session,
+            fee_clearance_status=self.fee_clearance_status,
+            status_tag=StudentStatus.PROMOTED,
+        )
+        self.school_class = new_class
+        self.status = StudentStatus.PROMOTED
+        # Fee tracker is class-scoped, so it automatically resets to 0/12 in
+        # the new class — a fresh academic cycle begins.
+        self.save(update_fields=["school_class", "status", "updated_at"])
+        return archived
 
 
 class StudentAcademicHistory(models.Model):
