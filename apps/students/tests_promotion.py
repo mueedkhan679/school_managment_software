@@ -111,6 +111,74 @@ class PromotionWorkflowTestCase(TestCase):
         self.assertEqual(self.student.fee_clearance_status, "12/12 Months Cleared")
         self.assertEqual(self.student.current_session, self.SESSION_YEAR)
 
+    def test_extra_payments_do_not_count_toward_tracker(self):
+        """Extra/late/exam receipts (is_extra=True) never advance the 12-month
+        tracker — only standard monthly instalments do."""
+        self._create_fee(1, 2025, is_extra=True)
+        self._create_fee(2, 2025)
+        self.assertEqual(self.student.paid_months_count, 1)
+        self.assertFalse(self.student.has_cleared_fees)
+
+    def test_blank_session_year_fees_still_count_toward_current_session(self):
+        """Rows with a blank/missing session label (legacy data, or records
+        saved before the session-aware migration) must not be silently lost."""
+        StudentFee.objects.create(
+            student=self.student,
+            school_class=self.cls9,
+            fee_month=3,
+            fee_year=2025,
+            session_year="",
+            amount=Decimal("1500.00"),
+            payment_date=date(2025, 4, 5),
+            status=FeeStatus.PAID,
+        )
+        self.assertEqual(self.student.paid_months_count, 1)
+
+    def test_other_session_labels_are_not_double_counted(self):
+        """Months paid under a PREVIOUS session label must not inflate the
+        current session's tracker after the school rolls over."""
+        # Two months paid in the 2025-2026 session.
+        self._create_fee(1, 2025)
+        self._create_fee(2, 2025)
+        self.assertEqual(self.student.paid_months_count, 2)
+
+        # The school rolls over to the 2026-2027 session and one month is paid.
+        StudentFee.objects.create(
+            student=self.student,
+            school_class=self.cls9,
+            fee_month=1,
+            fee_year=2026,
+            session_year="2026-2027",
+            amount=Decimal("1500.00"),
+            payment_date=date(2026, 2, 5),
+            status=FeeStatus.PAID,
+        )
+        self.assertEqual(self.student.current_session, "2026-2027")
+        # Only the new session's month counts — old-session months excluded.
+        self.assertEqual(self.student.paid_months_count, 1)
+        self.assertFalse(self.student.has_cleared_fees)
+
+    def test_fees_for_other_classes_do_not_count(self):
+        """Only the CURRENT class's paid months advance the tracker."""
+        self._create_fee(5, 2025)  # paid in the current class
+        StudentFee.objects.create(
+            student=self.student,
+            school_class=self.cls10,
+            fee_month=6,
+            fee_year=2025,
+            session_year=self.SESSION_YEAR,
+            amount=Decimal("2000.00"),
+            payment_date=date(2025, 7, 5),
+            status=FeeStatus.PAID,
+        )
+        self.assertEqual(self.student.paid_months_count, 1)
+
+    def test_has_cleared_fees_alias_matches_is_fee_cleared(self):
+        self.assertFalse(self.student.has_cleared_fees)
+        self._pay_all_session_months()
+        self.assertTrue(self.student.has_cleared_fees)
+        self.assertEqual(self.student.has_cleared_fees, self.student.is_fee_cleared)
+
     def test_session_lock_blocks_new_monthly_fee_at_model_level(self):
         self._pay_all_session_months()
         # Monthly fee (month 7, fee_year 2025) is not a duplicate, but the

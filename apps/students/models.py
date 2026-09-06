@@ -146,15 +146,32 @@ class Student(models.Model):
         return f"{now_year}-{now_year + 1}"
 
     def paid_months_count_for(self, school_class, session_year) -> int:
-        """Number of distinct, PAID monthly instalments for a class+session."""
+        """Number of distinct PAID **standard** monthly instalments for a
+        class + session.
+
+        Counting rule (deliberately resilient to the ways fee rows drift):
+          * only ``status=PAID``, non-``is_extra`` records count — extra /
+            late / exam receipts never advance the 12-month tracker;
+          * a fee counts when its stored ``session_year`` equals the given
+            ``session_year`` (the current active session), **or** its label is
+            blank (legacy rows created before the session-aware migration /
+            records where the session wasn't auto-derived).
+        This guarantees 12 genuinely-paid standard months for the current
+        class are never under-counted because of a missing or lightly
+        inconsistent session label, while a mismatch on a *different* session
+        still excludes the row so sessions can't be double-counted.
+        """
+        from django.db.models import Q
+
         from apps.fees.models import FeeStatus
 
         return (
             self.fees.filter(
                 school_class=school_class,
                 status=FeeStatus.PAID,
-                session_year=session_year,
+                is_extra=False,
             )
+            .filter(Q(session_year=session_year) | Q(session_year=""))
             .values("fee_month")
             .distinct()
             .count()
@@ -174,6 +191,12 @@ class Student(models.Model):
         ready to be promoted.
         """
         return self.paid_months_count >= MONTHS_PER_SESSION
+
+    @property
+    def has_cleared_fees(self) -> bool:
+        """Alias for ``is_fee_cleared`` used by the admin change page and
+        templates to decide whether the active Promote button renders."""
+        return self.is_fee_cleared
 
     @property
     def fee_clearance_status(self) -> str:
