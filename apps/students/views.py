@@ -115,8 +115,8 @@ def student_detail(request, student_id):
     """View complete profile, fee history, and attendance records for a student."""
     student = _get_student(student_id)
 
-    # Fee history and summary
-    fees = student.fees.order_by("-fee_year", "-fee_month", "-payment_date")
+    # Fee history and summary (Current Active Class only)
+    fees = student.fees.filter(school_class=student.school_class).order_by("-fee_year", "-fee_month", "-payment_date")
     paid_fees = fees.filter(status=FeeStatus.PAID)
     total_paid_fees = paid_fees.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
 
