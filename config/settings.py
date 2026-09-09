@@ -293,6 +293,14 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'core:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
+# Tenant users live in per-tenant databases and must be looked up via the
+# TenantBackend.  ModelBackend is retained as the fallback so that superadmin
+# users (who live in the default/master DB) can still authenticate.
+AUTHENTICATION_BACKENDS = [
+    'apps.tenants.auth.TenantBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # Sessions expire after 8 hours of inactivity, or when the browser closes.
 SESSION_COOKIE_AGE = 60 * 60 * 8
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True

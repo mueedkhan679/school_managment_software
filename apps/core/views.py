@@ -3,8 +3,10 @@ from decimal import Decimal
 from django.db import models
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
+from apps.tenants.utils import with_tenant_prefix
 from apps.accounts.decorators import admin_required
 from apps.attendance.models import Attendance, AttendanceStatus
 from apps.classrooms.models import SchoolClass
@@ -25,11 +27,11 @@ def index(request):
     """Entry point: send visitors to login or to their role-based portal."""
     if request.user.is_authenticated:
         if request.user.is_teacher:
-            return redirect("teacher_portal:dashboard")
+            return redirect(with_tenant_prefix(reverse("teacher_portal:dashboard"), request))
         elif request.user.is_student:
-            return redirect("student_portal:dashboard")
-        return redirect("core:dashboard")
-    return redirect("accounts:login")
+            return redirect(with_tenant_prefix(reverse("student_portal:dashboard"), request))
+        return redirect(with_tenant_prefix(reverse("core:dashboard"), request))
+    return redirect(with_tenant_prefix(reverse("accounts:login"), request))
 
 
 @admin_required

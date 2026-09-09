@@ -167,7 +167,7 @@
             </div>
         {% endif %}
 
-        <form method="post" action="{% url 'accounts:login' %}" id="loginForm" novalidate>
+        <form method="post" action="{{ request.path }}" id="loginForm" novalidate>
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}">
 

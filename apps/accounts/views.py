@@ -6,6 +6,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .decorators import admin_required
+from apps.tenants.utils import with_tenant_prefix
 from .forms import ChangeCredentialsForm, LoginForm
 
 User = get_user_model()
@@ -43,13 +44,55 @@ def _safe_next_url(request, next_url):
     return None
 
 
-def _redirect_for_role(user):
-    """Return the default home landing page URL based on user role."""
+def _redirect_for_role(user, request=None):
+    """Return the default home landing page URL based on user role.
+
+    When called inside a tenant context (``request.tenant`` is set), the
+    returned URL is prefixed with ``/t/<slug>/`` so the browser stays inside
+    the tenant's URL space instead of bouncing to a global path (which would
+    lose the tenant DB alias).  :func:`with_tenant_prefix` also normalises the
+    reversed path, because ``reverse()`` resolves app names through the root
+    ``t/`` tenant include.
+    """
+    url_name: str
     if user.is_teacher:
-        return reverse("teacher_portal:dashboard")
+        url_name = "teacher_portal:dashboard"
     elif user.is_student:
-        return reverse("student_portal:dashboard")
-    return reverse("core:dashboard")
+        url_name = "student_portal:dashboard"
+    else:
+        url_name = "core:dashboard"
+
+    return with_tenant_prefix(reverse(url_name), request)
+
+
+def _get_user_in_tenant_context(request, username):
+    """Look up a user by username in the appropriate database.
+
+    Uses the tenant DB when ``request.tenant`` is set, otherwise the
+    default (master) database.
+    """
+    using = request.tenant.db_alias if getattr(request, "tenant", None) is not None else "default"
+    return User.objects.using(using).get(username=username)
+
+
+def _authenticate_tenant(request, username, password):
+    """Authenticate a user against the appropriate database.
+
+    When ``request.tenant`` is set the lookup happens in the tenant DB;
+    otherwise it falls back to the default ``ModelBackend`` path so that
+    superadmin / master-admin logins continue to work.
+    """
+    tenant = getattr(request, "tenant", None)
+    if tenant is not None:
+        alias = tenant.db_alias
+        try:
+            user = User.objects.using(alias).get(username=username)
+        except User.DoesNotExist:
+            return None
+        if not user.check_password(password) or not user.is_active:
+            return None
+        return user
+    return authenticate(request, username=username, password=password)
 
 
 def admin_login(request):
@@ -66,7 +109,7 @@ def admin_login(request):
     - Honors a validated ``next`` parameter; open redirects are blocked.
     """
     if request.user.is_authenticated:
-        return redirect(_redirect_for_role(request.user))
+        return redirect(_redirect_for_role(request.user, request))
 
     next_url = request.POST.get("next") or request.GET.get("next") or ""
     form = LoginForm(request.POST or None)
@@ -85,15 +128,15 @@ def admin_login(request):
         if ip_attempts >= MAX_FAILED_ATTEMPTS or user_attempts >= MAX_FAILED_ATTEMPTS:
             form.add_error(None, ERROR_TOO_MANY_ATTEMPTS)
         else:
-            user = authenticate(request, username=username, password=password)
+            user = _authenticate_tenant(request, username, password)
 
             if user is None:
                 cache.set(ip_key, ip_attempts + 1, LOCKOUT_DURATION_SECONDS)
                 cache.set(user_key, user_attempts + 1, LOCKOUT_DURATION_SECONDS)
                 # Distinguish a disabled account from a simple bad login.
                 try:
-                    existing = User.objects.get(username=username)
-                except User.DoesNotExist:
+                    existing = _get_user_in_tenant_context(request, username)
+                except Exception:
                     existing = None
                 if existing is not None and not existing.is_active:
                     form.add_error(None, ERROR_DISABLED_ACCOUNT)
@@ -102,7 +145,11 @@ def admin_login(request):
             else:
                 cache.delete(ip_key)
                 cache.delete(user_key)
-                login(request, user)  # cycles the session key (anti-fixation)
+                login(
+                    request,
+                    user,
+                    backend="apps.tenants.auth.TenantBackend",
+                )  # cycles the session key (anti-fixation)
 
                 # "Remember me": keep the session alive for two weeks,
                 # otherwise expire it as soon as the browser closes.
@@ -112,7 +159,7 @@ def admin_login(request):
                     request.session.set_expiry(0)
 
                 safe_next = _safe_next_url(request, next_url)
-                return redirect(safe_next or _redirect_for_role(user))
+                return redirect(safe_next or _redirect_for_role(user, request))
 
     return render(
         request,
@@ -129,7 +176,7 @@ def admin_logout(request):
     """
     logout(request)
     messages.success(request, "You have been logged out successfully.")
-    return redirect("accounts:login")
+    return redirect(with_tenant_prefix(reverse("accounts:login"), request))
 
 
 @admin_required
@@ -163,7 +210,7 @@ def change_credentials(request):
 
                 update_session_auth_hash(request, request.user)
                 messages.success(request, "Your credentials were updated successfully.")
-                return redirect("core:dashboard")
+                return redirect(with_tenant_prefix(reverse("core:dashboard"), request))
 
     return render(
         request,

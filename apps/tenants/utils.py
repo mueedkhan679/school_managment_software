@@ -31,6 +31,34 @@ def get_tenant_db_path(db_name: str) -> Path:
     return get_tenant_db_dir() / f"{db_name}.sqlite3"
 
 
+def with_tenant_prefix(path: str, request=None) -> str:
+    """Ensure a path is prefixed with the active tenant's ``/t/<slug>/`` prefix.
+
+    ``reverse()`` may resolve app names through the generic ``/t/`` tenant
+    include (registered before the catch-all ``''`` include), producing paths
+    like ``/t/dashboard/``.  This helper strips that generic ``/t`` prefix and,
+    when ``request.tenant`` is set, re-prefixes with the real ``/t/<slug>/``.
+
+    Absolute URLs (``http://``, ``https://``, ``//``) and paths already inside
+    the tenant's URL space are returned unchanged.
+    """
+    tenant = getattr(request, "tenant", None) if request is not None else None
+    prefix = f"/t/{tenant.slug}/" if tenant is not None else None
+
+    # Already correctly prefixed — leave it alone.
+    if prefix is not None and path.startswith(prefix):
+        return path
+
+    # Strip the generic /t/ prefix (from reverse() resolving via the t/ include).
+    if path.startswith("/t/"):
+        path = path[2:]
+
+    if tenant is None:
+        return path
+
+    return f"/t/{tenant.slug}{path}"
+
+
 def register_tenant_db(tenant) -> None:
     """Dynamically register a tenant's database alias in Django's connection handler.
 
@@ -63,8 +91,7 @@ def provision_tenant_db(tenant):
     """Create and fully migrate a new tenant database.
 
     Steps:
-      1. Remove any zero-byte remnant file that may have been left by a
-         previous failed provisioning attempt.
+      1. Remove any pre-existing database file (fresh start).
       2. Register the database alias.
       3. Run ``migrate`` against the tenant's database.
       4. Create a default Admin user for the school.
@@ -73,9 +100,9 @@ def provision_tenant_db(tenant):
     alias = tenant.db_alias
     db_path = get_tenant_db_path(tenant.db_name)
 
-    # If a previous run left a zero-byte file, remove it so migrate starts
-    # with a clean slate.
-    if db_path.exists() and db_path.stat().st_size == 0:
+    # Always start fresh: remove any pre-existing tenant DB file so
+    # ``migrate`` creates a clean schema from scratch.
+    if db_path.exists():
         db_path.unlink()
 
     try:

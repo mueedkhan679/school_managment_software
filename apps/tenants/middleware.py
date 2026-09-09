@@ -183,7 +183,36 @@ class TenantMiddleware:
             set_current_db_alias(None)
 
         try:
-            return self.get_response(request)
+            response = self.get_response(request)
         finally:
             # Always clear the thread-local so the next request starts clean.
             set_current_db_alias(None)
+
+        return self._fix_redirect(request, response)
+
+    @staticmethod
+    def _fix_redirect(request: HttpRequest, response: HttpResponse) -> HttpResponse:
+        """Adjust redirect Location headers to stay inside the tenant URL space.
+
+        Any relative redirect issued while a tenant is active is re-prefixed with
+        ``/t/<slug>/`` so the browser remains inside the tenant's URL scope and
+        the next request continues to route to the tenant's database.
+        """
+        from .utils import with_tenant_prefix
+
+        if response.status_code not in (301, 302):
+            return response
+        if getattr(request, "tenant", None) is None:
+            return response
+
+        location = response.get("Location", "")
+        if not location:
+            return response
+        # Don't touch absolute URLs (external redirects, OAuth, etc.).
+        if location.startswith(("http://", "https://", "//")):
+            return response
+
+        new_location = with_tenant_prefix(location, request)
+        if new_location != location:
+            response["Location"] = new_location
+        return response

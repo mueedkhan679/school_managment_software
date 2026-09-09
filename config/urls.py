@@ -25,10 +25,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # Master Admin Super-Admin portal — bypasses tenant middleware entirely.
     path('master-admin/', include('apps.tenants.urls')),
-    # Tenant-scoped school routes.  The TenantMiddleware strips the leading
-    # /t/<slug>/ prefix, so these patterns are matched against the remaining
-    # path (e.g. "/" or "/dashboard/").
-    path('t/', include('apps.tenants.tenant_urls')),
+    # Standalone app includes — registered BEFORE the tenant include so that
+    # ``reverse()`` resolves app names to their non-tenant paths (e.g.
+    # ``/accounts/login/`` not ``/t/accounts/login/``).  The ``with_tenant_prefix``
+    # helper in ``apps.tenants.utils`` then re-prefixes with ``/t/<slug>/`` when
+    # redirecting inside a tenant context.
     path('accounts/', include('apps.accounts.urls')),
     path('classrooms/', include('apps.classrooms.urls')),
     path('students/', include('apps.students.urls')),
@@ -40,8 +41,13 @@ urlpatterns = [
     # Mobile API: student portal data endpoint for the Flutter app
     path('student-portal/api/data/', StudentProfileView.as_view(), name='student_portal_api_data'),
     path('api/v1/', include('apps.api.urls')),
+    # Tenant-scoped school routes — placed AFTER all standalone app includes so
+    # that ``reverse()`` resolves to non-tenant paths.  The TenantMiddleware
+    # strips the leading ``/t/<slug>/`` prefix, so these patterns are matched
+    # against the remaining path (e.g. ``/`` or ``/dashboard/``).
+    path('t/', include('apps.tenants.tenant_urls')),
+    # Catch-all: core routes (index, dashboard) — must be last.
     path('', include('apps.core.urls')),
-
 ]
 
 if settings.DEBUG:
