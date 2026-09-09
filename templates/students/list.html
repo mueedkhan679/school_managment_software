@@ -181,6 +181,11 @@
                             </td>
                             <td style="text-align: right;">
                                 <div class="action-btn-group">
+                                    {% if s.has_cleared_fees %}
+                                        <a href="{% url 'admin:students_student_promote' s.pk %}" class="btn btn-xs" style="background-color: #28a745; color: white; border-color: #28a745;" title="Promote Student">
+                                            🚀 Promote
+                                        </a>
+                                    {% endif %}
                                     <a href="{% url 'students:detail' student_id=s.student_id %}" class="btn btn-outline btn-xs" title="View Profile">
                                         Profile
                                     </a>
