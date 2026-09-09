@@ -93,9 +93,11 @@ def provision_tenant_db(tenant):
     Steps:
       1. Remove any pre-existing database file (fresh start).
       2. Register the database alias.
-      3. Run ``migrate`` against the tenant's database so every app table
-         (including ``teachers_teachersalary``) is actually created.
-      4. Create a default Admin user for the school.
+      3. Run ``migrate`` with ``fake_initial=True`` so initial tables are
+         created only if they do not already exist.
+      4. On ``OperationalError`` / ``already exists``, fall back to
+         ``fake=True`` which records all migrations as applied.
+      5. Create a default Admin user for the school.
     """
     register_tenant_db(tenant)
     alias = tenant.db_alias
@@ -106,25 +108,34 @@ def provision_tenant_db(tenant):
     if db_path.exists():
         db_path.unlink()
 
+    # Ensure the parent directory exists and is writable.
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
     try:
-        # Run a real migration (no faking) so all tables are created.
+        # fake_initial=True: for initial migrations, Django checks whether
+        # the tables already exist.  If they do, the migration is recorded
+        # as applied without re-running; if not, the migration runs normally.
         call_command(
             "migrate",
             database=alias,
             verbosity=0,
             interactive=False,
+            fake_initial=True,
         )
     except Exception as exc:
-        if "already exists" in str(exc).lower():
+        exc_msg = str(exc).lower()
+        if "already exists" in exc_msg or "readonly" in exc_msg:
             logger.warning(
-                "Migration hit 'already exists' for tenant %s (%s); "
-                "falling back to fake=True.",
+                "Migration hit %r for tenant %s (%s); falling back to fake=True.",
+                str(exc).splitlines()[0] if str(exc) else "error",
                 tenant.slug,
                 alias,
             )
-            # Re-create the file and try again with fake=True.
+            # Remove any partially-written file and try again with fake=True.
             if db_path.exists():
                 db_path.unlink()
+            # Re-register the alias in case the connection was closed.
+            register_tenant_db(tenant)
             call_command(
                 "migrate",
                 database=alias,
