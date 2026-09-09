@@ -1,0 +1,224 @@
+<div class="modal-overlay no-print" id="admin-terminal-modal" style="display: none; align-items: flex-start; padding-top: 5vh; z-index: 9999;">
+    <div class="modal-card" style="width: 800px; max-width: 90vw; background: #1e1e1e; color: #d4d4d4; font-family: monospace; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div class="modal-header" style="border-bottom: 1px solid #333; padding: 10px 16px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ff5f56;"></span>
+                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e;"></span>
+                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #27c93f;"></span>
+                <span style="margin-left: 8px; font-size: 13px; color: #888;">Admin Command-Line Interface</span>
+            </div>
+            <button type="button" class="modal-close" style="color: #888;" onclick="toggleTerminal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 16px; height: 500px; max-height: 60vh; overflow-y: auto;" id="terminal-output">
+            <div style="margin-bottom: 16px;">
+                Welcome to the Admin Terminal.<br>
+                Type <code>help</code> to see available commands.<br>
+                Shortcut: press <code>~</code> or <code>Ctrl+K</code> to toggle this terminal.
+            </div>
+            <div id="terminal-history"></div>
+            
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                <span style="color: #27c93f;">admin@school:~$</span>
+                <input type="text" id="terminal-input" autocomplete="off" spellcheck="false" 
+                       style="flex-grow: 1; background: transparent; border: none; color: #d4d4d4; font-family: monospace; font-size: 14px; outline: none;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const terminalModal = document.getElementById('admin-terminal-modal');
+    const terminalInput = document.getElementById('terminal-input');
+    const terminalHistory = document.getElementById('terminal-history');
+    let commandHistory = [];
+    let historyIndex = -1;
+    
+    // Toggle terminal on ~ or Ctrl+K
+    document.addEventListener('keydown', function(e) {
+        // Prevent default if it's the exact shortcut
+        if (e.key === '~' || (e.ctrlKey && e.key === 'k') || (e.metaKey && e.key === 'k')) {
+            // Only trigger if not inside another input, except if it's ctrl+K which is more intentional
+            if (e.key === '~' && document.activeElement.tagName === 'INPUT' && document.activeElement !== terminalInput) {
+                return;
+            }
+            e.preventDefault();
+            toggleTerminal();
+        }
+        if (e.key === 'Escape' && terminalModal.style.display === 'flex') {
+            toggleTerminal();
+        }
+    });
+
+    function toggleTerminal() {
+        if (terminalModal.style.display === 'none' || terminalModal.style.display === '') {
+            terminalModal.style.display = 'flex';
+            terminalInput.focus();
+        } else {
+            terminalModal.style.display = 'none';
+        }
+    }
+
+    function appendToTerminal(html, isInput = false) {
+        const div = document.createElement('div');
+        div.style.marginBottom = '8px';
+        if (isInput) {
+            div.innerHTML = `<span style="color: #27c93f;">admin@school:~$</span> ${html}`;
+        } else {
+            div.innerHTML = html;
+        }
+        terminalHistory.appendChild(div);
+        
+        // Auto scroll to bottom
+        const outputContainer = document.getElementById('terminal-output');
+        outputContainer.scrollTop = outputContainer.scrollHeight;
+    }
+
+    terminalInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const command = this.value.trim();
+            if (command) {
+                commandHistory.push(command);
+                historyIndex = commandHistory.length;
+                appendToTerminal(`<span>${command}</span>`, true);
+                processCommand(command);
+            }
+            this.value = '';
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                this.value = commandHistory[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                this.value = commandHistory[historyIndex];
+            } else {
+                historyIndex = commandHistory.length;
+                this.value = '';
+            }
+        }
+    });
+
+    function processCommand(command) {
+        if (command === 'clear') {
+            terminalHistory.innerHTML = '';
+            return;
+        }
+        
+        const csrftoken = getCookie('csrftoken');
+        
+        fetch('/api/terminal/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ command: command })
+        })
+        .then(response => {
+            // Check if response is an attachment (like ZIP download)
+            const disposition = response.headers.get('Content-Disposition');
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                return response.blob().then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    
+                    // Extract filename
+                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    const matches = filenameRegex.exec(disposition);
+                    let filename = 'download.zip';
+                    if (matches != null && matches[1]) { 
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                    
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    appendToTerminal(`<span style="color: #58a6ff;">Download started: ${filename}</span>`);
+                });
+            } else {
+                return response.json().then(data => {
+                    if (data.status === 'success') {
+                        appendToTerminal(data.html || data.message);
+                    } else {
+                        appendToTerminal(`<span style="color: #ff5f56;">Error: ${data.message}</span>`);
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            appendToTerminal('<span style="color: #ff5f56;">Error executing command. Are you logged in?</span>');
+        });
+    }
+
+    // Dynamic actions called from terminal HTML output
+    function terminalHardDeleteStudent(studentId) {
+        if (!confirm(`Are you absolutely sure you want to completely hard delete Student ID ${studentId}? This cannot be undone.`)) return;
+        processCommand(`execute_hard_delete ${studentId}`);
+    }
+
+    function terminalHardDeleteAllStudents(classId) {
+        if (!confirm(`WARNING: Are you absolutely sure you want to completely hard delete ALL students in this class? This cannot be undone.`)) return;
+        processCommand(`execute_hard_delete_all ${classId}`);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+<style>
+/* Terminal specific styles inside the modal */
+#admin-terminal-modal table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #d4d4d4;
+}
+#admin-terminal-modal th, #admin-terminal-modal td {
+    padding: 6px 10px;
+    border: 1px solid #333;
+    text-align: left;
+}
+#admin-terminal-modal th {
+    background: #252526;
+    color: #58a6ff;
+}
+#admin-terminal-modal button {
+    background: transparent;
+    border: 1px solid #58a6ff;
+    color: #58a6ff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: monospace;
+}
+#admin-terminal-modal button.danger {
+    border-color: #ff5f56;
+    color: #ff5f56;
+}
+#admin-terminal-modal button:hover {
+    background: rgba(88, 166, 255, 0.1);
+}
+#admin-terminal-modal button.danger:hover {
+    background: rgba(255, 95, 86, 0.1);
+}
+</style>

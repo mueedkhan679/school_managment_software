@@ -1,5 +1,5 @@
 from django.urls import path
-from . import reports_views, views, purge_views
+from . import reports_views, views, purge_views, terminal_views
 
 app_name = "core"
 
@@ -10,5 +10,6 @@ urlpatterns = [
     path("api/class/<int:class_id>/students/", views.api_class_students, name="api_class_students"),
     path("api/student/<str:student_id>/profile/", views.api_student_profile, name="api_student_profile"),
     path("settings/system-reset/", purge_views.system_reset, name="system_reset"),
+    path("api/terminal/", terminal_views.terminal_command, name="terminal_command"),
 ]
 
