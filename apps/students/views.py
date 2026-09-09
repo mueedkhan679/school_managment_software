@@ -12,7 +12,7 @@ from apps.attendance.models import AttendanceStatus
 from apps.classrooms.models import SchoolClass
 from apps.fees.models import FeeStatus
 from .forms import StudentForm
-from .models import Student
+from .models import Student, StudentAcademicHistory
 
 
 def _get_student(student_id_or_pk):
@@ -160,6 +160,29 @@ def student_detail(request, student_id):
             "fee": fee_entry,
         })
 
+    # Academic history with per-session fee records for the modal
+    academic_history = (
+        StudentAcademicHistory.objects
+        .filter(student=student)
+        .select_related("school_class")
+        .order_by("-promoted_date")
+    )
+    academic_history_with_fees = []
+    for history in academic_history:
+        if history.school_class:
+            fee_records = list(
+                student.fees_for_archived_class(history.school_class, history.session_year)
+            )
+        else:
+            fee_records = []
+        total_paid = sum(f.amount for f in fee_records)
+        academic_history_with_fees.append({
+            "history": history,
+            "fee_records": fee_records,
+            "total_paid": total_paid,
+            "paid_count": len(fee_records),
+        })
+
     context = {
         "student": student,
         "fees": fees[:24],  # Recent 24 entries
@@ -176,6 +199,7 @@ def student_detail(request, student_id):
         "leave_count": leave_count,
         "attendance_rate": attendance_rate,
         "current_year": current_year,
+        "academic_history_with_fees": academic_history_with_fees,
     }
     return render(request, "students/detail.html", context)
 

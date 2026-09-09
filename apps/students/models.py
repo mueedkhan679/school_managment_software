@@ -147,19 +147,21 @@ class Student(models.Model):
 
     def paid_months_count_for(self, school_class, session_year) -> int:
         """Number of distinct PAID **standard** monthly instalments for a
-        class + session.
+        specific class + session.
 
-        Counting rule (deliberately resilient to the ways fee rows drift):
-          * only ``status=PAID``, non-``is_extra`` records count — extra /
-            late / exam receipts never advance the 12-month tracker;
-          * a fee counts when its stored ``session_year`` equals the given
-            ``session_year`` (the current active session), **or** its label is
-            blank (legacy rows created before the session-aware migration /
-            records where the session wasn't auto-derived).
-        This guarantees 12 genuinely-paid standard months for the current
-        class are never under-counted because of a missing or lightly
-        inconsistent session label, while a mismatch on a *different* session
-        still excludes the row so sessions can't be double-counted.
+        Isolation guarantees (critical for post-promotion correctness):
+          * Filters ``school_class=school_class`` — fees from the student's
+            **previous classes are never counted** here. After promotion the
+            student's ``school_class`` changes, so ``paid_months_count`` (which
+            passes ``self.school_class``) always operates on the new class only,
+            naturally resetting the tracker to 0/12.
+          * Only ``status=PAID``, non-``is_extra`` records count — extra / late /
+            exam receipts never advance the 12-month tracker.
+          * A fee counts when its stored ``session_year`` equals the given
+            ``session_year`` **or** its label is blank (legacy rows where the
+            session wasn't auto-derived before the migration). The
+            ``school_class`` guard above ensures blank-session rows from a
+            different class are never accidentally included.
         """
         from django.db.models import Q
 
@@ -167,7 +169,7 @@ class Student(models.Model):
 
         return (
             self.fees.filter(
-                school_class=school_class,
+                school_class=school_class,   # MUST match current class — guarantees reset after promotion
                 status=FeeStatus.PAID,
                 is_extra=False,
             )
@@ -179,7 +181,11 @@ class Student(models.Model):
 
     @property
     def paid_months_count(self) -> int:
-        """Distinct paid months in the current class for the current session."""
+        """Distinct paid months in the CURRENT class for the current session.
+
+        After promotion ``self.school_class`` changes to the new class, so this
+        counter automatically resets to 0/12 — no manual reset is needed.
+        """
         return self.paid_months_count_for(self.school_class, self.current_session)
 
     @property
@@ -208,6 +214,27 @@ class Student(models.Model):
     def is_session_cleared(self, school_class, session_year) -> bool:
         """True when all 12 monthly instalments are paid for class+session."""
         return self.paid_months_count_for(school_class, session_year) >= MONTHS_PER_SESSION
+
+    def fees_for_archived_class(self, school_class, session_year):
+        """Return all PAID standard fee records for a specific archived class + session.
+
+        Used by the student detail view to populate the Academic History modal
+        with the 12 paid receipts after the student has been promoted.
+        """
+        from django.db.models import Q
+
+        from apps.fees.models import FeeStatus
+
+        return (
+            self.fees.filter(
+                school_class=school_class,
+                status=FeeStatus.PAID,
+                is_extra=False,
+            )
+            .filter(Q(session_year=session_year) | Q(session_year=""))
+            .select_related("recorded_by")
+            .order_by("fee_month", "fee_year")
+        )
 
     @transaction.atomic
     def promote_to(self, new_class, force=False):

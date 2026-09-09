@@ -282,3 +282,115 @@ class FeeManagementTestCase(TestCase):
         self.assertEqual(data["student_id"], self.stu1.student_id)
         self.assertEqual(data["effective_monthly_fee"], 1500.0)
         self.assertIn(8, data["paid_months"])
+
+    # ------------------ Multi-Month Fee Collection & Lock Guard Tests ------------------
+
+    def test_create_multi_month_fee_payment_success(self):
+        """Admin can collect multiple months in a single transaction."""
+        self.client.force_login(self.admin)
+        # stu2 has effective monthly fee of 1200.00
+        # Collect for months 1, 2, 3 at total 3600.00
+        post_data = {
+            "student": self.stu2.id,
+            "fee_months": [1, 2, 3],
+            "fee_year": 2026,
+            "amount": "3600.00",
+            "payment_date": "2026-01-10",
+            "status": "PAID",
+            "reference": "",
+            "is_extra": False,
+        }
+        response = self.client.post(reverse("fees:create"), data=post_data)
+        self.assertEqual(response.status_code, 302)
+
+        created = StudentFee.objects.filter(student=self.stu2, fee_year=2026).order_by("fee_month")
+        self.assertEqual(created.count(), 3)
+        self.assertEqual(list(created.values_list("fee_month", flat=True)), [1, 2, 3])
+        for f in created:
+            self.assertEqual(f.amount, Decimal("1200.00"))
+            self.assertEqual(f.status, FeeStatus.PAID)
+            self.assertEqual(f.school_class, self.stu2.school_class)
+            self.assertEqual(f.session_year, self.stu2.current_session)
+            self.assertEqual(f.recorded_by, self.admin)
+        # Verify single combined reference shared across all 3 records
+        refs = set(created.values_list("reference", flat=True))
+        self.assertEqual(len(refs), 1)
+
+    def test_create_multi_month_fee_duplicate_protection(self):
+        """Selecting an already-paid month in multi-month collection raises validation error."""
+        self.client.force_login(self.admin)
+        # stu1 already has month 8 paid
+        post_data = {
+            "student": self.stu1.id,
+            "fee_months": [8, 9, 10],
+            "fee_year": 2026,
+            "amount": "4500.00",
+            "payment_date": "2026-09-10",
+            "status": "PAID",
+            "is_extra": False,
+        }
+        response = self.client.post(reverse("fees:create"), data=post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["form"].is_valid())
+        self.assertIn("already been recorded", str(response.context["form"].errors))
+
+    def test_create_multi_month_fee_lock_guard_exceeding_12_months(self):
+        """Total paid months for current session cannot exceed 12."""
+        self.client.force_login(self.admin)
+        # stu1 already has month 8 paid (1 month). Pay 10 more months (months 1-7, 9-11)
+        for m in [1, 2, 3, 4, 5, 6, 7, 9, 10, 11]:
+            StudentFee.objects.create(
+                student=self.stu1,
+                school_class=self.cls1,
+                session_year=self.stu1.current_session,
+                fee_month=m,
+                fee_year=2026,
+                amount=Decimal("1500.00"),
+                payment_date=date(2026, m, 1),
+                status=FeeStatus.PAID,
+            )
+        # stu1 now has 11 months paid for session. Attempting to collect 2 months (e.g. 12 and something else)
+        # should exceed the 12-month limit (11 + 2 = 13 > 12)
+        post_data = {
+            "student": self.stu1.id,
+            "fee_months": [12, 1],  # 2 months
+            "fee_year": 2026,
+            "amount": "3000.00",
+            "payment_date": "2026-12-01",
+            "status": "PAID",
+            "is_extra": False,
+        }
+        response = self.client.post(reverse("fees:create"), data=post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["form"].is_valid())
+        self.assertTrue(
+            "exceeds the 12-month session limit" in str(response.context["form"].errors)
+            or "already completed all 12 months" in str(response.context["form"].errors)
+            or "already been recorded" in str(response.context["form"].errors)
+        )
+
+    def test_voucher_displays_all_combined_months(self):
+        """Combined voucher displays all months paid under the shared reference."""
+        self.client.force_login(self.admin)
+        post_data = {
+            "student": self.stu2.id,
+            "fee_months": [4, 5],
+            "fee_year": 2026,
+            "amount": "2400.00",
+            "payment_date": "2026-04-10",
+            "status": "PAID",
+            "reference": "REC-COMBINED-001",
+            "is_extra": False,
+        }
+        response = self.client.post(reverse("fees:create"), data=post_data)
+        self.assertEqual(response.status_code, 302)
+
+        created = StudentFee.objects.filter(student=self.stu2, reference="REC-COMBINED-001")
+        first_fee = created.first()
+        voucher_res = self.client.get(reverse("fees:voucher", kwargs={"pk": first_fee.pk}))
+        self.assertEqual(voucher_res.status_code, 200)
+        self.assertContains(voucher_res, "REC-COMBINED-001")
+        self.assertContains(voucher_res, "April 2026")
+        self.assertContains(voucher_res, "May 2026")
+        self.assertEqual(voucher_res.context["total_voucher_amount"], Decimal("2400.00"))
+

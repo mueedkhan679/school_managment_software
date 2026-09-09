@@ -201,32 +201,55 @@
                         <th>Session Year</th>
                         <th>Final Promotion Status</th>
                         <th>Archive Date</th>
+                        <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for history in student.academic_history.all %}
+                    {% for item in academic_history_with_fees %}
                         <tr>
                             <td>
-                                {% if history.school_class %}
-                                    <strong>{{ history.school_class.name }}</strong>
+                                {% if item.history.school_class %}
+                                    <strong>{{ item.history.school_class.name }}</strong>
                                 {% else %}
                                     <span class="text-muted">Unknown Class</span>
                                 {% endif %}
                             </td>
-                            <td><strong>{{ history.session_year }}</strong></td>
+                            <td><strong>{{ item.history.session_year }}</strong></td>
                             <td>
-                                {% if history.status_tag == "PROMOTED" %}
-                                    <span class="badge badge-success">{{ history.get_status_tag_display|default:"Promoted" }}</span>
+                                {% if item.history.status_tag == "PROMOTED" %}
+                                    <span class="badge badge-success">{{ item.history.get_status_tag_display|default:"Promoted" }}</span>
                                 {% else %}
-                                    <span class="badge badge-outline">{{ history.get_status_tag_display|default:history.status_tag }}</span>
+                                    <span class="badge badge-outline">{{ item.history.get_status_tag_display|default:item.history.status_tag }}</span>
                                 {% endif %}
-                                <span class="text-xs text-muted" style="margin-left: 6px;">({{ history.fee_clearance_status }})</span>
+                                <span class="text-xs text-muted" style="margin-left: 6px;">({{ item.history.fee_clearance_status }})</span>
                             </td>
-                            <td>{{ history.promoted_date|date:"F j, Y" }}</td>
+                            <td>{{ item.history.promoted_date|date:"F j, Y" }}</td>
+                            <td style="text-align: right;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="openArchivedFeesModal('{{ item.history.school_class.name|default:'Unknown Class'|escapejs }}', '{{ item.history.session_year|escapejs }}', {{ forloop.counter }})">
+                                    View Fee Records
+                                </button>
+                                <template id="archived-fees-data-{{ forloop.counter }}">
+                                    {% for fee in item.fee_records %}
+                                        <tr>
+                                            <td><strong>{{ fee.get_fee_month_display }}</strong></td>
+                                            <td>{{ fee.fee_year }}</td>
+                                            <td>Rs {{ fee.amount }}</td>
+                                            <td>{{ fee.payment_date|date:"M d, Y" }}</td>
+                                            <td><span class="badge badge-outline">{{ fee.reference }}</span></td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted" style="padding: 16px;">
+                                                No standard fee payments recorded for this archived session.
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </template>
+                            </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center text-muted" style="padding: 24px;">
+                            <td colspan="5" class="text-center text-muted" style="padding: 24px;">
                                 No archived academic history found for this student.
                             </td>
                         </tr>
@@ -435,6 +458,40 @@
     </div>
 </div>
 
+<!-- Archived Fees Modal -->
+<div class="modal-overlay no-print" id="archived-fees-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 700px;">
+        <div class="modal-header">
+            <div>
+                <h3 style="margin-bottom: 4px;">Archived Fee Records</h3>
+                <p class="text-muted text-sm" id="archived-fees-subtitle" style="margin: 0;">Class: -, Session: -</p>
+            </div>
+            <button type="button" class="modal-close" onclick="closeArchivedFeesModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Year</th>
+                            <th>Amount</th>
+                            <th>Payment Date</th>
+                            <th>Reference / Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="archived-fees-tbody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeArchivedFeesModal()">Close</button>
+        </div>
+    </div>
+</div>
+
 <script>
 function confirmArchiveStudent(studentId, studentName) {
     const form = document.getElementById('archive-student-form');
@@ -444,6 +501,20 @@ function confirmArchiveStudent(studentId, studentName) {
 }
 function closeArchiveModal() {
     document.getElementById('archive-student-modal').style.display = 'none';
+}
+
+function openArchivedFeesModal(className, sessionYear, index) {
+    document.getElementById('archived-fees-subtitle').innerText = `Class: ${className} | Session: ${sessionYear}`;
+    
+    // Copy the HTML from the template tag into the modal's tbody
+    const templateHTML = document.getElementById(`archived-fees-data-${index}`).innerHTML;
+    document.getElementById('archived-fees-tbody').innerHTML = templateHTML;
+    
+    document.getElementById('archived-fees-modal').style.display = 'flex';
+}
+
+function closeArchivedFeesModal() {
+    document.getElementById('archived-fees-modal').style.display = 'none';
 }
 </script>
 {% endblock %}
