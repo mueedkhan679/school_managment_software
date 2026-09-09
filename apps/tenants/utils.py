@@ -70,8 +70,17 @@ def provision_tenant_db(tenant):
     register_tenant_db(tenant)
     alias = tenant.db_alias
 
-    # Run all migrations on the tenant DB (excluding the tenants app)
-    call_command("migrate", database=alias, verbosity=0, interactive=False)
+    # Run all migrations on the tenant DB (excluding the tenants app).
+    # Use fake_initial=True so the first run on a fresh SQLite database
+    # records the initial state without trying to re-create tables that
+    # were already built by the migrate command itself.
+    call_command(
+        "migrate",
+        database=alias,
+        verbosity=0,
+        interactive=False,
+        fake_initial=True,
+    )
 
     # Create the default school admin user inside the tenant DB
     from apps.accounts.models import Role
