@@ -92,81 +92,43 @@ def provision_tenant_db(tenant):
     """Create and fully migrate a new tenant database.
 
     Steps:
-      1. Remove any pre-existing database file (fresh start).
-      2. Register the database alias.
-      3. Run ``migrate`` with ``fake_initial=True`` so initial tables are
-         created only if they do not already exist.
-      4. On ``OperationalError`` / ``already exists``, fall back to
-         ``fake=True`` which records all migrations as applied.
-      5. Create a default Admin user for the school.
+      1. Ensure all connections are closed.
+      2. Wipe any pre-existing DB file to avoid locks and "table already exists".
+      3. Set permissions.
+      4. Run migrations cleanly.
+      5. Seed Admin and SchoolSettings.
     """
     register_tenant_db(tenant)
     alias = tenant.db_alias
     db_path = get_tenant_db_path(tenant.db_name)
-
-    # Ensure target database config has a busy timeout
-    if alias in connections:
-        connections[alias].close()
-
-    settings.DATABASES[alias]['OPTIONS'] = {
-        'timeout': 30,
-    }
-
-    # Ensure parent directory and file exist with loose permissions
     db_dir = db_path.parent
+    main_db = Path(settings.DATABASES['default']['NAME'])
+
+    # 1. Close connections
+    connections[alias].close()
+    connections['default'].close()
+
+    # 2. Fresh start: wipe the file
+    if db_path.exists():
+        db_path.unlink()
+
+    # 3. Permissions
     db_dir.mkdir(parents=True, exist_ok=True)
     os.chmod(db_dir, 0o777)
-
-    if not db_path.exists():
-        db_path.touch()
+    db_path.touch()
     os.chmod(db_path, 0o666)
-
-    # Ensure main database is writeable
-    main_db = settings.DATABASES['default']['NAME']
-    if os.path.exists(main_db):
+    if main_db.exists():
         os.chmod(main_db, 0o666)
 
+    # 4. Migrate cleanly
+    settings.DATABASES[alias]['OPTIONS'] = {'timeout': 30}
     try:
-        # fake_initial=True: for initial migrations, Django checks whether
-        # the tables already exist.  If they do, the migration is recorded
-        # as applied without re-running; if not, the migration runs normally.
-        call_command(
-            "migrate",
-            database=alias,
-            verbosity=0,
-            interactive=False,
-            fake_initial=True,
-        )
-    except Exception as exc:
-        exc_msg = str(exc).lower()
-        if "already exists" in exc_msg or "readonly" in exc_msg:
-            logger.warning(
-                "Migration hit %r for tenant %s (%s); falling back to fake=True.",
-                str(exc).splitlines()[0] if str(exc) else "error",
-                tenant.slug,
-                alias,
-            )
-            # Remove any partially-written file and try again with fake=True.
-            if db_path.exists():
-                db_path.unlink()
-            # Re-register the alias in case the connection was closed.
-            register_tenant_db(tenant)
-            
-            # Ensure timeout and permissions again if retrying
-            settings.DATABASES[alias]['OPTIONS'] = {'timeout': 30}
-            call_command(
-                "migrate",
-                database=alias,
-                verbosity=0,
-                interactive=False,
-                fake=True,
-            )
-        else:
-            raise
+        call_command('migrate', database=alias, interactive=False)
     finally:
         connections[alias].close()
+        connections['default'].close()
 
-    # Create the default school admin user inside the tenant DB
+    # 5. Seed Admin and SchoolSettings
     from apps.accounts.models import Role
     from django.contrib.auth import get_user_model
     User = get_user_model()
@@ -182,7 +144,6 @@ def provision_tenant_db(tenant):
         admin_user.set_password("changeme123")
         admin_user.save(using=alias)
 
-    # Create default SchoolSettings inside the tenant DB
     from apps.core.models import SchoolSettings
     if not SchoolSettings.objects.using(alias).filter(pk=1).exists():
         SchoolSettings.objects.using(alias).create(
