@@ -23,6 +23,12 @@ from apps.api.views import StudentProfileView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Master Admin Super-Admin portal — bypasses tenant middleware entirely.
+    path('master-admin/', include('apps.tenants.urls')),
+    # Tenant-scoped school routes.  The TenantMiddleware strips the leading
+    # /t/<slug>/ prefix, so these patterns are matched against the remaining
+    # path (e.g. "/" or "/dashboard/").
+    path('t/', include('apps.tenants.tenant_urls')),
     path('accounts/', include('apps.accounts.urls')),
     path('classrooms/', include('apps.classrooms.urls')),
     path('students/', include('apps.students.urls')),

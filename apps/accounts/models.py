@@ -13,6 +13,10 @@ class User(AbstractUser):
 
     Passwords are always hashed by Django (PBKDF2 by default) - never stored in
     plain text. The ``role`` field drives role-based permissions across the system.
+
+    ``is_superadmin`` is a master-portal flag: only users flagged as super-admins
+    can access ``/master-admin/``.  School-admin users (role=ADMIN but
+    is_superadmin=False) stay inside their own tenant.
     """
 
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.ADMIN)
@@ -25,6 +29,17 @@ class User(AbstractUser):
         blank=True,
         null=True,
         verbose_name="FCM device token",
+    )
+    # Master-admin portal access flag.
+    is_superadmin = models.BooleanField(
+        default=False,
+        help_text="Designates access to the /master-admin/ super-admin portal.",
+    )
+
+    # Master-admin portal access flag.
+    is_superadmin = models.BooleanField(
+        default=False,
+        help_text="Designates access to the /master-admin/ super-admin portal.",
     )
 
     class Meta:

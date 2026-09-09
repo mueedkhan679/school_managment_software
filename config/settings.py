@@ -66,11 +66,19 @@ INSTALLED_APPS = [
     'apps.fees',
     'apps.attendance',
     'apps.api',
+    # Multi-Tenant SaaS engine (must come after auth/contenttypes so its migrations
+    # can create the tenant registry in the master DB before school-scoped apps run).
+    # Multi-Tenant SaaS engine (must come after auth/contenttypes so its migrations
+    # can create the tenant registry in the master DB before school-scoped apps run).
+    'apps.tenants',
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    # Multi-tenant identification + Kill Switch (must run before session/auth so
+    # the tenant DB is selected before any school-scoped queries happen).
+    'apps.tenants.middleware.TenantMiddleware',
 ]
 
 
@@ -89,6 +97,8 @@ MIDDLEWARE.extend([
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ])
+
+ROOT_URLCONF = 'config.urls'
 
 ROOT_URLCONF = 'config.urls'
 
@@ -128,6 +138,44 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+# -- Multi-Tenant SaaS engine -------------------------------------------------
+# All school-scoped data (students, fees, attendance, teachers, classrooms,
+# accounts) is isolated per tenant in its own SQLite database. The tenant
+# registry itself lives in the master ``default`` database so the super-admin
+# can manage tenants without first being inside one.
+#
+# Tenant identification (priority order):
+#   1. HTTP header X-Tenant-Key            (API / server-to-server calls)
+#   2. Query parameter ?tenant=<slug>      (browser / deep links)
+#   3. URL path prefix   /t/<slug>/...     (browser, default on localhost)
+#   4. Subdomain         <slug>.<domain>   (production, when TENANT_DOMAIN_MODE=subdomain)
+#
+DATABASE_ROUTERS = ['apps.tenants.db_router.TenantRouter']
+
+# Directory that holds each tenant's SQLite database file.  In production this
+# would be a mounted volume or persistent disk.  Defaults to a sibling dir of
+# BASE_DIR so the master database is not cluttered with per-tenant files.
+TENANT_DATABASES_DIR = os.environ.get(
+    "TENANT_DATABASES_DIR", str(BASE_DIR.parent / "tenant_databases")
+)
+
+# When True, tenant is resolved from the request subdomain rather than the URL
+# path prefix.  Requires each tenant subdomain to resolve to this server
+# (DNS / hosts file / wildcard A record).
+TENANT_DOMAIN_MODE = os.environ.get("TENANT_DOMAIN_MODE", "path").strip().lower()
+assert TENANT_DOMAIN_MODE in {"path", "subdomain"}, TENANT_DOMAIN_MODE
+
+# Master admin portal URL prefix.  Never routed through the tenant middleware.
+MASTER_ADMIN_URL_PREFIX = os.environ.get("MASTER_ADMIN_URL_PREFIX", "/master-admin/")
+
+# Default password for newly-provisioned school admin accounts.  In production
+# this should be overridden by MASTER_DEFAULT_ADMIN_PASSWORD or rotated
+# immediately after provisioning.
+MASTER_DEFAULT_ADMIN_PASSWORD = os.environ.get(
+    "MASTER_DEFAULT_ADMIN_PASSWORD", "changeme123"
+)
+
 
 # Custom user model (roles: ADMIN / TEACHER / STUDENT)
 AUTH_USER_MODEL = 'accounts.User'
@@ -191,6 +239,41 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# ---------------------------------------------------------------------------
+# Multi-Tenant SaaS engine
+# ---------------------------------------------------------------------------
+# Tenant registry (``apps.tenants``) lives in the master ``default`` DB.
+# All school-scoped apps (students, fees, attendance, teachers, classrooms,
+# accounts) are routed to the active tenant's SQLite file by the router below.
+DATABASE_ROUTERS = ['apps.tenants.db_router.TenantRouter']
+
+# Directory that holds each tenant's SQLite database file.  Defaults to a
+# sibling directory of the project so the master ``db.sqlite3`` is not
+# cluttered with per-tenant files.
+TENANT_DATABASES_DIR = os.environ.get(
+    'TENANT_DATABASES_DIR',
+    str(BASE_DIR.parent / 'tenant_databases'),
+)
+
+# Master-admin portal URL prefix.  URLs under this prefix deliberately bypass
+# the tenant middleware — only super-admins may access them.
+MASTER_ADMIN_URL_PREFIX = os.environ.get(
+    'MASTER_ADMIN_URL_PREFIX', '/master-admin/',
+)
+
+# Default password for the initial school-admin account created inside each
+# tenant DB.  Override via MASTER_DEFAULT_ADMIN_PASSWORD in production.
+MASTER_DEFAULT_ADMIN_PASSWORD = os.environ.get(
+    'MASTER_DEFAULT_ADMIN_PASSWORD', 'changeme123',
+)
+
+# When set to "subdomain", tenant is resolved from the requesting host's
+# subdomain instead of (or in addition to) the URL path prefix.  For this dev
+# environment we keep the default "path" mode.
+TENANT_IDENTIFICATION_MODE = os.environ.get(
+    'TENANT_IDENTIFICATION_MODE', 'path',
+).lower()
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
