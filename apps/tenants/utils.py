@@ -104,6 +104,10 @@ def provision_tenant_db(tenant):
     alias = tenant.db_alias
     db_path = get_tenant_db_path(tenant.db_name)
 
+    # Ensure no stale connections exist before fresh provisioning.
+    if alias in connections:
+        connections[alias].close()
+
     # Always start fresh: remove any pre-existing tenant DB file so
     # ``migrate`` creates a clean schema from scratch.
     if db_path.exists():
