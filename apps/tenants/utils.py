@@ -93,7 +93,8 @@ def provision_tenant_db(tenant):
     Steps:
       1. Remove any pre-existing database file (fresh start).
       2. Register the database alias.
-      3. Run ``migrate`` against the tenant's database.
+      3. Run ``migrate`` against the tenant's database so every app table
+         (including ``teachers_teachersalary``) is actually created.
       4. Create a default Admin user for the school.
     """
     register_tenant_db(tenant)
@@ -106,12 +107,12 @@ def provision_tenant_db(tenant):
         db_path.unlink()
 
     try:
+        # Run a real migration (no faking) so all tables are created.
         call_command(
             "migrate",
             database=alias,
             verbosity=0,
             interactive=False,
-            fake_initial=True,
         )
     except Exception as exc:
         if "already exists" in str(exc).lower():
@@ -121,6 +122,9 @@ def provision_tenant_db(tenant):
                 tenant.slug,
                 alias,
             )
+            # Re-create the file and try again with fake=True.
+            if db_path.exists():
+                db_path.unlink()
             call_command(
                 "migrate",
                 database=alias,
