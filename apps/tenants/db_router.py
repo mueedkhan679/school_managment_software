@@ -1,19 +1,23 @@
-"""Dynamic database router for multi-tenant isolation.
+"""
+Dynamic database router for multi-tenant isolation.
 
 Routing rules:
   * Models belonging to the ``tenants`` app always use the ``default``
     (master) database — the tenant registry must live in one central place.
-  * The Django ``auth``, ``contenttypes``, ``sessions``, ``admin`` apps are
-    routed to the *tenant* database when a tenant context is active, so each
-    school gets its own users, sessions, and admin log. When no tenant context
-    exists (e.g. master-admin views), they fall back to ``default``.
+  * The Django ``sessions`` app is routed to the ``default`` database
+    exclusively.  All tenants share one session table, which simplifies
+    provisioning (no per-tenant ``django_session`` table to create).
+  * The Django ``auth``, ``contenttypes``, ``admin`` apps are routed to the
+    *tenant* database when a tenant context is active, so each school gets
+    its own users and admin log.  When no tenant context exists (e.g.
+    master-admin views), they fall back to ``default``.
   * All other app models (``students``, ``fees``, ``attendance``, etc.) are
     routed to the active tenant's database.
-  * ``allow_migrate`` scopes migrations: the ``tenants`` app is migrated only
-    on ``default``; framework shared apps (``auth``, ``contenttypes``, ...) are
-    migrated on *every* database (so each tenant DB gets its own copy); all
-    other apps are migrated on any database that is NOT ``default`` (tenant
-    databases).
+  * ``allow_migrate`` scopes migrations: the ``tenants`` and ``sessions``
+    apps are migrated only on ``default``; framework shared apps (``auth``,
+    ``contenttypes``, ...) are migrated on *every* database (so each tenant
+    DB gets its own copy); all other apps are migrated on any database that
+    is NOT ``default`` (tenant databases).
 """
 
 from __future__ import annotations
@@ -24,12 +28,12 @@ from typing import Any
 # Thread-local storage set by TenantMiddleware
 _thread_locals = threading.local()
 
-# Apps whose tables must live in the master (default) database exclusively.
-MASTER_APPS = frozenset({"tenants"})
+# Apps whose tables must live ONLY in the master (default) database.
+MASTER_APPS = frozenset({"tenants", "sessions"})
 
 # Framework-level apps that should exist in every tenant DB (and also in
 # the master DB so the super-admin login flow works there too).
-SHARED_FRAMEWORK_APPS = frozenset({"auth", "contenttypes", "sessions", "admin"})
+SHARED_FRAMEWORK_APPS = frozenset({"auth", "contenttypes", "admin"})
 
 
 def get_current_db_alias() -> str | None:
@@ -48,7 +52,7 @@ class TenantRouter:
     def _route(self, model, **hints: Any) -> str:
         app_label = model._meta.app_label
 
-        # Tenant registry always goes to master.
+        # Tenant registry and sessions always go to master.
         if app_label in MASTER_APPS:
             return "default"
 
@@ -71,9 +75,9 @@ class TenantRouter:
     def allow_migrate(self, db: str, app_label: str, model_name: str | None = None, **hints: Any) -> bool:
         """Control which models are migrated to which database.
 
-        * ``tenants`` app: only migrate on ``default``.
-        * Shared framework apps (``auth``, ``contenttypes``, ``sessions``,
-          ``admin``): migrate on *every* database (master + each tenant DB).
+        * ``tenants`` and ``sessions`` apps: only migrate on ``default``.
+        * Shared framework apps (``auth``, ``contenttypes``, ``admin``):
+          migrate on *every* database (master + each tenant DB).
         * All other apps: migrate on any database that is NOT ``default``
           (i.e. tenant databases), so the master DB stays free of
           school-scoped tables.
