@@ -122,6 +122,11 @@ def provision_tenant_db(tenant):
     db_path.touch(exist_ok=True)
     os.chmod(db_path, 0o666)
 
+    # Ensure main database is writeable
+    main_db = settings.DATABASES['default']['NAME']
+    if os.path.exists(main_db):
+        os.chmod(main_db, 0o666)
+
     try:
         # fake_initial=True: for initial migrations, Django checks whether
         # the tables already exist.  If they do, the migration is recorded
