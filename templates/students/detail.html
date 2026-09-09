@@ -183,6 +183,59 @@
         </div>
     </div>
 
+    <!-- Academic History Panel -->
+    <div class="panel" style="margin-bottom: 24px;">
+        <div class="panel-header">
+            <div>
+                <h3>📜 Academic History & Archived Sessions</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">Historical records of completed classes and promotions.</p>
+            </div>
+            <span class="badge badge-outline">{{ student.academic_history.count }} Records</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Previous Class</th>
+                        <th>Session Year</th>
+                        <th>Final Promotion Status</th>
+                        <th>Archive Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for history in student.academic_history.all %}
+                        <tr>
+                            <td>
+                                {% if history.school_class %}
+                                    <strong>{{ history.school_class.name }}</strong>
+                                {% else %}
+                                    <span class="text-muted">Unknown Class</span>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ history.session_year }}</strong></td>
+                            <td>
+                                {% if history.status_tag == "PROMOTED" %}
+                                    <span class="badge badge-success">{{ history.get_status_tag_display|default:"Promoted" }}</span>
+                                {% else %}
+                                    <span class="badge badge-outline">{{ history.get_status_tag_display|default:history.status_tag }}</span>
+                                {% endif %}
+                                <span class="text-xs text-muted" style="margin-left: 6px;">({{ history.fee_clearance_status }})</span>
+                            </td>
+                            <td>{{ history.promoted_date|date:"F j, Y" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted" style="padding: 24px;">
+                                No archived academic history found for this student.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Two Column Row: Fee History & Attendance History -->
     <div class="dashboard-row-2col">
         <!-- Fee Payments Tab / Panel -->
