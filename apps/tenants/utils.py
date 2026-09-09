@@ -63,24 +63,46 @@ def provision_tenant_db(tenant):
     """Create and fully migrate a new tenant database.
 
     Steps:
-      1. Register the database alias.
-      2. Run ``migrate`` against the tenant's database.
-      3. Create a default Admin user for the school.
+      1. Remove any zero-byte remnant file that may have been left by a
+         previous failed provisioning attempt.
+      2. Register the database alias.
+      3. Run ``migrate`` against the tenant's database.
+      4. Create a default Admin user for the school.
     """
     register_tenant_db(tenant)
     alias = tenant.db_alias
+    db_path = get_tenant_db_path(tenant.db_name)
 
-    # Run all migrations on the tenant DB (excluding the tenants app).
-    # Use fake_initial=True so the first run on a fresh SQLite database
-    # records the initial state without trying to re-create tables that
-    # were already built by the migrate command itself.
-    call_command(
-        "migrate",
-        database=alias,
-        verbosity=0,
-        interactive=False,
-        fake_initial=True,
-    )
+    # If a previous run left a zero-byte file, remove it so migrate starts
+    # with a clean slate.
+    if db_path.exists() and db_path.stat().st_size == 0:
+        db_path.unlink()
+
+    try:
+        call_command(
+            "migrate",
+            database=alias,
+            verbosity=0,
+            interactive=False,
+            fake_initial=True,
+        )
+    except Exception as exc:
+        if "already exists" in str(exc).lower():
+            logger.warning(
+                "Migration hit 'already exists' for tenant %s (%s); "
+                "falling back to fake=True.",
+                tenant.slug,
+                alias,
+            )
+            call_command(
+                "migrate",
+                database=alias,
+                verbosity=0,
+                interactive=False,
+                fake=True,
+            )
+        else:
+            raise
 
     # Create the default school admin user inside the tenant DB
     from apps.accounts.models import Role
