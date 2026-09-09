@@ -41,6 +41,7 @@ class StudentAdmin(admin.ModelAdmin):
         "name",
         "school_class",
         "fee_progress",
+        "promote_action",
         "status",
         "is_active",
     )
@@ -63,6 +64,20 @@ class StudentAdmin(admin.ModelAdmin):
             color,
             label,
             obj.current_session,
+        )
+
+    @admin.display(description="Promote")
+    def promote_action(self, obj):
+        """Action button to promote a student directly from the list view."""
+        if obj.has_cleared_fees:
+            promote_url = reverse("admin:students_student_promote", args=[obj.pk])
+            return format_html(
+                '<a class="button" href="{}" style="background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-weight: bold;">🚀 Promote</a>',
+                promote_url
+            )
+        return format_html(
+            '<span style="color: #6c757d; font-size: 0.9em;">{}</span>',
+            f"{obj.paid_months_count}/{MONTHS_PER_SESSION} Paid"
         )
 
     @admin.action(description="Promote selected students to a new class")
