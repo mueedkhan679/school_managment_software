@@ -89,6 +89,28 @@
                 </tr>
             </thead>
             <tbody>
+                {% for item in related_fees %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <strong>Monthly Tuition Fee</strong>
+                        {% if item.is_extra %}
+                            <span class="badge badge-warning text-xs">Extra / Special Charge</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.get_fee_month_display }} {{ item.fee_year }}</td>
+                    <td>
+                        {% if item.status == "PAID" %}
+                            <span class="badge badge-success">PAID</span>
+                        {% else %}
+                            <span class="badge badge-warning">PENDING</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <strong style="font-size: 16px;">Rs {{ item.amount|floatformat:2 }}</strong>
+                    </td>
+                </tr>
+                {% empty %}
                 <tr>
                     <td>1</td>
                     <td>
@@ -109,10 +131,11 @@
                         <strong style="font-size: 16px;">Rs {{ fee.amount|floatformat:2 }}</strong>
                     </td>
                 </tr>
+                {% endfor %}
                 <tr style="background: #f8fafc; font-weight: 700;">
                     <td colspan="4" style="text-align: right; padding-right: 16px;">Total Paid Amount:</td>
                     <td style="text-align: right; font-size: 18px; color: var(--primary);">
-                        Rs {{ fee.amount|floatformat:2 }}
+                        Rs {{ total_voucher_amount|default:fee.amount|floatformat:2 }}
                     </td>
                 </tr>
             </tbody>

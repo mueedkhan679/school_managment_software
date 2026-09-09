@@ -1,12 +1,14 @@
 from decimal import Decimal
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
+from django.views.generic import View
 
 from apps.accounts.decorators import admin_required
 from apps.classrooms.models import SchoolClass
@@ -152,22 +154,12 @@ def fee_list(request):
     return render(request, "fees/list.html", context)
 
 
-@admin_required
-def fee_create(request):
-    """Record a new fee collection."""
-    if request.method == "POST":
-        form = StudentFeeForm(request.POST)
-        if form.is_valid():
-            fee = form.save(commit=False)
-            fee.recorded_by = request.user
-            fee.save()
-            messages.success(
-                request,
-                f"Fee payment of Rs {fee.amount:.2f} for {fee.student.name} "
-                f"({fee.get_fee_month_display()} {fee.fee_year}) has been recorded successfully.",
-            )
-            return redirect("fees:voucher", pk=fee.pk)
-    else:
+@method_decorator(admin_required, name="dispatch")
+class FeeCreateView(View):
+    """Record new fee collection(s) with multi-month support."""
+    template_name = "fees/form.html"
+
+    def get(self, request, *args, **kwargs):
         initial = {}
         # Pre-select student if student_id or pk is passed in GET
         student_param = request.GET.get("student_id") or request.GET.get("student")
@@ -185,18 +177,119 @@ def fee_create(request):
         month_param = request.GET.get("month")
         if month_param and month_param.isdigit():
             initial["fee_month"] = int(month_param)
+            initial["fee_months"] = [str(month_param)]
         year_param = request.GET.get("year")
         if year_param and year_param.isdigit():
             initial["fee_year"] = int(year_param)
 
         form = StudentFeeForm(initial=initial)
+        context = {
+            "form": form,
+            "title": "Record Student Fee Payment",
+            "action_text": "Collect Fee & Generate Receipt",
+            "months_choices": MONTHS,
+        }
+        return render(request, self.template_name, context)
 
-    context = {
-        "form": form,
-        "title": "Record Student Fee Payment",
-        "action_text": "Collect Fee & Generate Receipt",
-    }
-    return render(request, "fees/form.html", context)
+    def post(self, request, *args, **kwargs):
+        form = StudentFeeForm(request.POST)
+        if form.is_valid():
+            return self.form_valid(form)
+        return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        context = {
+            "form": form,
+            "title": "Record Student Fee Payment",
+            "action_text": "Collect Fee & Generate Receipt",
+            "months_choices": MONTHS,
+        }
+        return render(self.request, self.template_name, context)
+
+    def form_valid(self, form):
+        cleaned_data = form.cleaned_data
+        student = cleaned_data["student"]
+        selected_months = cleaned_data.get("selected_months", [])
+        if not selected_months and cleaned_data.get("fee_month"):
+            selected_months = [int(cleaned_data["fee_month"])]
+
+        fee_year = cleaned_data["fee_year"]
+        payment_date = cleaned_data["payment_date"]
+        status = cleaned_data.get("status") or FeeStatus.PAID
+        reference = cleaned_data.get("reference", "").strip()
+        is_extra = cleaned_data.get("is_extra", False)
+        total_amount = cleaned_data.get("amount") or Decimal("0.00")
+
+        school_class = student.school_class
+        session_year = student.current_session or f"{fee_year}-{fee_year + 1}"
+
+        # Calculate per-month amount
+        if len(selected_months) > 1 and total_amount > 0:
+            per_month_amount = (total_amount / Decimal(len(selected_months))).quantize(Decimal("0.01"))
+        else:
+            per_month_amount = total_amount
+
+        created_fees = []
+        with transaction.atomic():
+            for month in sorted(selected_months):
+                if not is_extra:
+                    # Check for existing payments to avoid duplicate fee entries for any already-paid month
+                    if StudentFee.objects.filter(
+                        student=student,
+                        fee_month=month,
+                        fee_year=fee_year,
+                        is_extra=False,
+                    ).exists():
+                        continue
+
+                    # Fee Lock Guard: ensure total paid months for current session cannot exceed 12
+                    if school_class and student.paid_months_count_for(school_class, session_year) >= 12:
+                        break
+
+                fee = StudentFee(
+                    student=student,
+                    school_class=school_class,
+                    session_year=session_year,
+                    fee_month=month,
+                    fee_year=fee_year,
+                    amount=per_month_amount,
+                    payment_date=payment_date,
+                    status=status,
+                    reference=reference,
+                    is_extra=is_extra,
+                    recorded_by=self.request.user,
+                )
+                fee.save()
+                created_fees.append(fee)
+
+        if not created_fees:
+            messages.warning(
+                self.request,
+                f"No new fee records were created for {student.name}. The selected month(s) may already be paid or the 12-month session limit has been reached."
+            )
+            return redirect("fees:list")
+
+        if len(created_fees) == 1:
+            fee = created_fees[0]
+            messages.success(
+                self.request,
+                f"Fee payment of Rs {fee.amount:.2f} for {student.name} "
+                f"({fee.get_fee_month_display()} {fee.fee_year}) has been recorded successfully.",
+            )
+        else:
+            months_names = ", ".join(f.get_fee_month_display() for f in created_fees)
+            total_sum = sum(f.amount for f in created_fees)
+            messages.success(
+                self.request,
+                f"Fee payment of Rs {total_sum:.2f} for {student.name} for {len(created_fees)} months "
+                f"({months_names} {fee_year}) has been recorded successfully.",
+            )
+
+        return redirect("fees:voucher", pk=created_fees[0].pk)
+
+
+# Direct view callable for URL routing
+fee_create = FeeCreateView.as_view()
 
 
 @admin_required
@@ -220,6 +313,7 @@ def fee_update(request, pk):
         "fee": fee,
         "title": f"Edit Fee Record: {fee.student.name} ({fee.get_fee_month_display()} {fee.fee_year})",
         "action_text": "Save Changes",
+        "months_choices": MONTHS,
     }
     return render(request, "fees/form.html", context)
 
@@ -258,6 +352,18 @@ def fee_voucher(request, pk):
     )
     student = fee.student
 
+    # If this fee shares a reference with other fees (combined voucher)
+    if fee.reference:
+        related_fees = list(
+            StudentFee.objects.filter(
+                student=student, reference=fee.reference
+            ).order_by("fee_year", "fee_month")
+        )
+    else:
+        related_fees = [fee]
+
+    total_voucher_amount = sum(f.amount for f in related_fees)
+
     # Calculate student financial standing
     paid_fees = student.fees.filter(status=FeeStatus.PAID)
     total_paid_all_time = paid_fees.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
@@ -270,6 +376,8 @@ def fee_voucher(request, pk):
 
     context = {
         "fee": fee,
+        "related_fees": related_fees,
+        "total_voucher_amount": total_voucher_amount,
         "student": student,
         "total_paid_all_time": total_paid_all_time,
         "current_year_paid": current_year_paid,
@@ -288,18 +396,34 @@ def api_student_fee_info(request, student_id):
     year = int(request.GET.get("year", timezone.now().year))
 
     paid_months = list(
-        student.fees.filter(fee_year=year, status=FeeStatus.PAID).values_list(
+        student.fees.filter(fee_year=year, status=FeeStatus.PAID, is_extra=False).values_list(
             "fee_month", flat=True
         )
+    )
+
+    session_year = student.current_session
+    paid_session_count = (
+        student.paid_months_count_for(student.school_class, session_year)
+        if student.school_class
+        else 0
+    )
+    is_cleared = (
+        student.is_session_cleared(student.school_class, session_year)
+        if student.school_class
+        else False
     )
 
     data = {
         "student_id": student.student_id,
         "name": student.name,
-        "class_name": student.school_class.name,
+        "class_name": student.school_class.name if student.school_class else "N/A",
         "effective_monthly_fee": float(student.effective_monthly_fee),
         "yearly_fee": float(student.yearly_fee),
         "paid_months": paid_months,
+        "session_year": session_year,
+        "paid_session_count": paid_session_count,
+        "is_cleared": is_cleared,
+        "months_per_session": 12,
     }
     return JsonResponse(data)
 
