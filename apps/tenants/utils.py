@@ -113,14 +113,14 @@ def provision_tenant_db(tenant):
     if db_path.exists():
         db_path.unlink()
 
-    # Ensure the parent directory exists and is writable.
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Ensure directory permissions
+    # Ensure parent directory and file exist with loose permissions
     db_dir = db_path.parent
-    os.chmod(db_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-    if os.path.exists(db_path):
-        os.chmod(db_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
+    db_dir.mkdir(parents=True, exist_ok=True)
+    os.chmod(db_dir, 0o777)
+
+    # Ensure file exists & set read-write permissions for all processes
+    db_path.touch(exist_ok=True)
+    os.chmod(db_path, 0o666)
 
     try:
         # fake_initial=True: for initial migrations, Django checks whether
