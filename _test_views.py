@@ -7,6 +7,7 @@ import sys
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 import django
 django.setup()
+import re
 
 from django.test import Client
 from django.contrib.auth import get_user_model
@@ -161,6 +162,124 @@ else:
     print("  [SKIP] No admin user in tenant DB")
     results.append(("school_reset_password POST", None))
 
+
+# Re-activate the tenant (it was suspended during the kill-switch test)
+# so the login flow can proceed.
+Tenant.objects.filter(slug=new_t.slug).update(is_active=True)
+new_t.refresh_from_db()
+
+# 11. Tenant login flow — verify form action and post-login redirect stay
+#     inside the tenant URL space (no more "No school registered with
+#     identifier 'accounts'" middleware error).
+# ---------------------------------------------------------------------------
+print()
+print("=" * 60)
+print(f"TEST: Tenant Login Flow (run_id={RUN_ID})")
+print("=" * 60)
+
+register_tenant_db(new_t)
+tenant_client = Client()
+admin_user = User.objects.using(new_t.db_alias).filter(
+    username=f"admin_{new_t.slug.replace('-', '_')}").first()
+
+if admin_user:
+    # Log in as the tenant admin directly (bypass form) to establish a
+    # session, then verify the login page renders with the correct form
+    # action and that a POST to the tenant-scoped login URL succeeds.
+    tenant_client.force_login(admin_user, backend="django.contrib.auth.backends.ModelBackend")
+
+    # Verify the login page is accessible inside the tenant context.
+
+    login_url = f"/t/{new_t.slug}/accounts/login/"
+    resp = tenant_client.get(login_url)
+    ok_t = check("tenant login page GET",
+                 resp.status_code == 200,
+                 f"status={resp.status_code}")
+    results.append(("tenant login page GET", ok_t))
+
+    # Verify the form action is the tenant-scoped path (not /accounts/login/).
+    content = resp.content.decode("utf-8")
+    ok_t2 = check("  form action is request.path (tenant-scoped)",
+                  f'action="{login_url}"' in content
+                  or 'action="/t/' in content,
+                  f"found tenant-scoped action in form")
+    results.append(("  form action tenant-scoped", ok_t2))
+
+    # Verify the form does NOT contain the hardcoded global URL.
+    ok_t3 = check("  form action NOT /accounts/login/",
+                  'action="/accounts/login/"' not in content,
+                  "no hardcoded global login URL in form")
+    results.append(("  form action not global", ok_t3))
+
+    # Log out and test the full POST login flow inside the tenant context.
+    tenant_client.logout()
+
+    # GET the login page first to obtain the CSRF token in the session.
+    _get = tenant_client.get(login_url)
+    html = _get.content.decode("utf-8")
+    csrf_token = None
+    for pattern in (
+        r'name="csrfmiddlewaretoken"\s+id="csrfmiddlewaretoken"\s+value="([^"]+)"',
+        r'csrfmiddlewaretoken["\'][^>]*value=["\']([^"\']+)["\'"]',
+        r'name=["\']csrfmiddlewaretoken["\']\s+value=["\']([^"\']+)["\']',
+    ):
+        m = re.search(pattern, html)
+        if m:
+            csrf_token = m.group(1)
+            break
+    if not csrf_token:
+        # Fallback: scan for any hidden input with csrfmiddlewaretoken name
+        m = re.search(r'<input[^>]+name=["\']csrfmiddlewaretoken["\'][^>]+value=["\']([^"\']+)["\']', html)
+        if m:
+            csrf_token = m.group(1)
+    if not csrf_token:
+        # Last resort: scan raw text
+        idx = html.find("csrfmiddlewaretoken")
+        if idx != -1:
+            seg = html[idx:idx + 300]
+            vm = re.search(r"value=\"([^\"]+)\"", seg)
+            if vm:
+                csrf_token = vm.group(1)
+    resp = tenant_client.post(login_url, {
+        "username": admin_user.username,
+        "password": "newpass123",
+    }, follow=False)
+    ok_t4 = check("tenant login POST succeeds",
+                  resp.status_code == 302,
+                  f"status={resp.status_code}")
+    results.append(("tenant login POST", ok_t4))
+
+    if ok_t4:
+        redirect_url = resp.url or ""
+        ok_t5 = check("  redirect is tenant-scoped (not /dashboard/)",
+                      redirect_url.startswith(f"/t/{new_t.slug}/"),
+                      f"redirect={redirect_url}")
+        results.append(("  redirect tenant-scoped", ok_t5))
+
+        resp2 = tenant_client.get(redirect_url, follow=False)
+        ok_t6 = check("  follow redirect -- valid tenant page",
+                      resp2.status_code == 200,
+                      f"status={resp2.status_code}")
+        results.append(("  follow redirect OK", ok_t6))
+
+else:
+    print("  [SKIP] No admin user in tenant DB")
+    results.append(("tenant login page GET", None))
+    results.append(("  form action tenant-scoped", None))
+    results.append(("  form action not global", None))
+    results.append(("tenant login POST", None))
+    results.append(("  redirect tenant-scoped", None))
+    results.append(("  follow redirect OK", None))
+
+# Cleanup
+try:
+    delete_tenant_db(new_t)
+    new_t.delete()
+    print(f"  [OK] Cleaned up test tenant '{new_t.school_name}'")
+except Exception as e:
+    print(f"  [WARN] Cleanup failed: {e}")
+
+# ---------------------------------------------------------------------------
 # 10. Cleanup
 print()
 print("  --- Cleanup ---")
@@ -171,31 +290,22 @@ try:
           f"'{new_t.school_name}' and its DB")
 except Exception as e:
     print(f"  [WARN] Cleanup failed: {e}")
-
 # Summary
+# ---------------------------------------------------------------------------
 print()
 print("=" * 60)
 print("SUMMARY")
 print("=" * 60)
 all_passed = True
-for name, passed in results:
-    if passed is None:
-        status = "SKIP"
-    else:
-        status = "PASS" if passed else "FAIL"
-        if not passed:
-            all_passed = False
+for name, ok in results:
+    if ok is None:
+        continue
+    if not ok:
+        all_passed = False
+    status = "PASS" if ok else "FAIL"
     print(f"  [{status}] {name}")
 
-print(f"\nOverall: "
+print()
+print(f"Overall: "
       f"{'ALL TESTS PASSED' if all_passed else 'SOME TESTS FAILED'}")
 sys.exit(0 if all_passed else 1)
-
-if ok:
-    new_t.refresh_from_db()
-    ok2 = check("  fields updated",
-                new_t.school_name == f"Test School {RUN_ID} (Updated)"
-                and new_t.admin_email == f"updated@{TEST_SLUG}.local",
-                f"name={new_t.school_name}, email={new_t.admin_email}")
-    results.append(("school_edit POST - fields", ok2))
-results.append(("school_edit POST", ok))
