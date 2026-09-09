@@ -130,16 +130,13 @@ def provision_tenant_db(tenant):
         # fake_initial=True: for initial migrations, Django checks whether
         # the tables already exist.  If they do, the migration is recorded
         # as applied without re-running; if not, the migration runs normally.
-        try:
-            call_command(
-                "migrate",
-                database=alias,
-                verbosity=0,
-                interactive=False,
-                fake_initial=True,
-            )
-        finally:
-            connections[alias].close()
+        call_command(
+            "migrate",
+            database=alias,
+            verbosity=0,
+            interactive=False,
+            fake_initial=True,
+        )
     except Exception as exc:
         exc_msg = str(exc).lower()
         if "already exists" in exc_msg or "readonly" in exc_msg:
@@ -157,18 +154,17 @@ def provision_tenant_db(tenant):
             
             # Ensure timeout and permissions again if retrying
             settings.DATABASES[alias]['OPTIONS'] = {'timeout': 30}
-            try:
-                call_command(
-                    "migrate",
-                    database=alias,
-                    verbosity=0,
-                    interactive=False,
-                    fake=True,
-                )
-            finally:
-                connections[alias].close()
+            call_command(
+                "migrate",
+                database=alias,
+                verbosity=0,
+                interactive=False,
+                fake=True,
+            )
         else:
             raise
+    finally:
+        connections[alias].close()
 
     # Create the default school admin user inside the tenant DB
     from apps.accounts.models import Role
