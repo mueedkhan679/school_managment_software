@@ -104,22 +104,21 @@ def provision_tenant_db(tenant):
     alias = tenant.db_alias
     db_path = get_tenant_db_path(tenant.db_name)
 
-    # Ensure no stale connections exist before fresh provisioning.
+    # Ensure target database config has a busy timeout
     if alias in connections:
         connections[alias].close()
 
-    # Always start fresh: remove any pre-existing tenant DB file so
-    # ``migrate`` creates a clean schema from scratch.
-    if db_path.exists():
-        db_path.unlink()
+    settings.DATABASES[alias]['OPTIONS'] = {
+        'timeout': 30,
+    }
 
     # Ensure parent directory and file exist with loose permissions
     db_dir = db_path.parent
     db_dir.mkdir(parents=True, exist_ok=True)
     os.chmod(db_dir, 0o777)
 
-    # Ensure file exists & set read-write permissions for all processes
-    db_path.touch(exist_ok=True)
+    if not db_path.exists():
+        db_path.touch()
     os.chmod(db_path, 0o666)
 
     # Ensure main database is writeable
@@ -131,13 +130,16 @@ def provision_tenant_db(tenant):
         # fake_initial=True: for initial migrations, Django checks whether
         # the tables already exist.  If they do, the migration is recorded
         # as applied without re-running; if not, the migration runs normally.
-        call_command(
-            "migrate",
-            database=alias,
-            verbosity=0,
-            interactive=False,
-            fake_initial=True,
-        )
+        try:
+            call_command(
+                "migrate",
+                database=alias,
+                verbosity=0,
+                interactive=False,
+                fake_initial=True,
+            )
+        finally:
+            connections[alias].close()
     except Exception as exc:
         exc_msg = str(exc).lower()
         if "already exists" in exc_msg or "readonly" in exc_msg:
@@ -152,13 +154,19 @@ def provision_tenant_db(tenant):
                 db_path.unlink()
             # Re-register the alias in case the connection was closed.
             register_tenant_db(tenant)
-            call_command(
-                "migrate",
-                database=alias,
-                verbosity=0,
-                interactive=False,
-                fake=True,
-            )
+            
+            # Ensure timeout and permissions again if retrying
+            settings.DATABASES[alias]['OPTIONS'] = {'timeout': 30}
+            try:
+                call_command(
+                    "migrate",
+                    database=alias,
+                    verbosity=0,
+                    interactive=False,
+                    fake=True,
+                )
+            finally:
+                connections[alias].close()
         else:
             raise
 
