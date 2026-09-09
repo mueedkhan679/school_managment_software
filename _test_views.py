@@ -174,6 +174,7 @@ new_t.refresh_from_db()
 # ---------------------------------------------------------------------------
 print()
 print("=" * 60)
+print("=" * 60)
 print(f"TEST: Tenant Login Flow (run_id={RUN_ID})")
 print("=" * 60)
 
@@ -182,16 +183,12 @@ tenant_client = Client()
 admin_user = User.objects.using(new_t.db_alias).filter(
     username=f"admin_{new_t.slug.replace('-', '_')}").first()
 
+
 if admin_user:
-    # Log in as the tenant admin directly (bypass form) to establish a
-    # session, then verify the login page renders with the correct form
-    # action and that a POST to the tenant-scoped login URL succeeds.
-    tenant_client.force_login(admin_user, backend="django.contrib.auth.backends.ModelBackend")
-
-    # Verify the login page is accessible inside the tenant context.
-
+    # --- Check login page form (without authentication) ---
+    anon_client = Client()
     login_url = f"/t/{new_t.slug}/accounts/login/"
-    resp = tenant_client.get(login_url)
+    resp = anon_client.get(login_url)
     ok_t = check("tenant login page GET",
                  resp.status_code == 200,
                  f"status={resp.status_code}")
@@ -211,35 +208,8 @@ if admin_user:
                   "no hardcoded global login URL in form")
     results.append(("  form action not global", ok_t3))
 
-    # Log out and test the full POST login flow inside the tenant context.
+    # --- Test full POST login flow inside the tenant context ---
     tenant_client.logout()
-
-    # GET the login page first to obtain the CSRF token in the session.
-    _get = tenant_client.get(login_url)
-    html = _get.content.decode("utf-8")
-    csrf_token = None
-    for pattern in (
-        r'name="csrfmiddlewaretoken"\s+id="csrfmiddlewaretoken"\s+value="([^"]+)"',
-        r'csrfmiddlewaretoken["\'][^>]*value=["\']([^"\']+)["\'"]',
-        r'name=["\']csrfmiddlewaretoken["\']\s+value=["\']([^"\']+)["\']',
-    ):
-        m = re.search(pattern, html)
-        if m:
-            csrf_token = m.group(1)
-            break
-    if not csrf_token:
-        # Fallback: scan for any hidden input with csrfmiddlewaretoken name
-        m = re.search(r'<input[^>]+name=["\']csrfmiddlewaretoken["\'][^>]+value=["\']([^"\']+)["\']', html)
-        if m:
-            csrf_token = m.group(1)
-    if not csrf_token:
-        # Last resort: scan raw text
-        idx = html.find("csrfmiddlewaretoken")
-        if idx != -1:
-            seg = html[idx:idx + 300]
-            vm = re.search(r"value=\"([^\"]+)\"", seg)
-            if vm:
-                csrf_token = vm.group(1)
     resp = tenant_client.post(login_url, {
         "username": admin_user.username,
         "password": "newpass123",
@@ -261,7 +231,6 @@ if admin_user:
                       resp2.status_code == 200,
                       f"status={resp2.status_code}")
         results.append(("  follow redirect OK", ok_t6))
-
 else:
     print("  [SKIP] No admin user in tenant DB")
     results.append(("tenant login page GET", None))
@@ -270,6 +239,9 @@ else:
     results.append(("tenant login POST", None))
     results.append(("  redirect tenant-scoped", None))
     results.append(("  follow redirect OK", None))
+
+
+    # --- Test full POST login flow inside the tenant context ---
 
 # Cleanup
 try:
