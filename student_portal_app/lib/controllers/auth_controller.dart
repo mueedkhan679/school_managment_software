@@ -58,13 +58,21 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String username, String password) async {
+  Future<bool> login(
+    String username,
+    String password, {
+    String? schoolSlug,
+  }) async {
     _status = AuthStatus.authenticating;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final res = await _apiService.login(username, password);
+      final res = await _apiService.login(
+        username,
+        password,
+        tenantSlug: schoolSlug,
+      );
       if (res['status'] == 'success' || res['status'] != 'error') {
         final payload = res['payload'] != null ? res['payload'] as Map<String, dynamic> : res;
         _session = UserSession.fromJson(payload);
@@ -129,7 +137,13 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Preserve the school/tenant identifier across logout so the login form
+    // comes pre-filled and the next session still routes to the same school.
+    final slug = await _storageService.getTenantSlug();
     await _storageService.clearAll();
+    if (slug != null && slug.isNotEmpty) {
+      await _storageService.saveTenantSlug(slug);
+    }
     _session = null;
     _status = AuthStatus.unauthenticated;
     notifyListeners();

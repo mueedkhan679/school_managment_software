@@ -4,7 +4,8 @@ Request flow:
   1. Skip tenant resolution for bypassed paths (master-admin, admin, static,
      media, favicon).
   2. Resolve the active tenant using, in priority order:
-       a. ``HTTP_X_TENANT_KEY`` header  (API / server-to-server calls)
+       a. ``HTTP_X_TENANT_KEY`` / ``HTTP_X_TENANT_SLUG`` header
+          (API / mobile app / server-to-server calls)
        b. ``?tenant=<slug>`` query param (browser / deep links)
        c. URL path prefix ``/t/<slug>/...`` (browser, default on localhost)
        d. Subdomain ``<slug>.<domain>`` (production, when enabled)
@@ -35,7 +36,7 @@ from django.shortcuts import render
 
 from .db_router import set_current_db_alias
 from .models import Tenant
-from .utils import register_tenant_db
+from .utils import ensure_tenant_migrations, register_tenant_db
 
 logger = logging.getLogger("tenants.middleware")
 
@@ -94,8 +95,13 @@ class TenantMiddleware:
         tenant_slug: str | None = None
         identification_method: str | None = None
 
-        # 1. HTTP header X-Tenant-Key
+        # 1. HTTP header X-Tenant-Key or X-Tenant-Slug
+        #    (API / server-to-server calls — the Flutter mobile app sends
+        #    ``X-Tenant-Slug`` on every request so authentication and data
+        #    queries are routed to the correct tenant database.)
         header_key = request.META.get("HTTP_X_TENANT_KEY")
+        if not header_key:
+            header_key = request.META.get("HTTP_X_TENANT_SLUG")
         if header_key:
             tenant_slug = str(header_key).strip().lower()
             identification_method = "header"
@@ -177,11 +183,20 @@ class TenantMiddleware:
             # Register the tenant's DB connection if not already done.
             try:
                 register_tenant_db(tenant)
+                # Self-heal the tenant schema on the fly: if any expected table
+                # (e.g. teachers_teachersalary) is missing — even when Django's
+                # migration history claims it was applied — run / fake-apply the
+                # missing migrations automatically so the user never has to run
+                # manual SQL deletes or management commands again.
+                if getattr(settings, "TENANT_AUTO_REPAIR_ENABLED", True):
+                    ensure_tenant_migrations(tenant)
             except Exception:  # noqa: S110
-                logger.exception("failed_to_register_tenant_db slug=%s", tenant_slug)
+                logger.exception(
+                    "failed_to_load_or_repair_tenant_db slug=%s", tenant_slug
+                )
                 return HttpResponseForbidden(
                     "<h1>Service Unavailable</h1>"
-                    "<p>This school's database could not be loaded. Please try again later.</p>"
+                    "<p>This school's database could not be verified. Please try again later.</p>"
                 )
 
             # Set tenant context.

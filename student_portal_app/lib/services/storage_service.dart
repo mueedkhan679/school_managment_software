@@ -12,8 +12,21 @@ class StorageService {
   static const String _keyRole = 'role';
   static const String _keyRememberMe = 'remember_me';
   static const String _keyFcmToken = 'fcm_token';
+  static const String _keyTenantSlug = 'tenant_slug';
 
   static const String _keySessionCookie = 'session_cookie';
+
+  /// The active school/tenant identifier (slug, e.g. ``demo-school``).
+  /// Sent with every API request (``X-Tenant-Slug`` header / ``tenant`` body
+  /// field) so the backend routes authentication and data queries to the
+  /// correct per-school database.
+  Future<void> saveTenantSlug(String slug) async {
+    await _storage.write(key: _keyTenantSlug, value: slug);
+  }
+
+  Future<String?> getTenantSlug() async {
+    return await _storage.read(key: _keyTenantSlug);
+  }
 
   Future<void> saveTokens({required String access, required String refresh}) async {
     await _storage.write(key: _keyAccessToken, value: access);

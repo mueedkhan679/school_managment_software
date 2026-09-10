@@ -146,7 +146,7 @@ else:
 # can manage tenants without first being inside one.
 #
 # Tenant identification (priority order):
-#   1. HTTP header X-Tenant-Key            (API / server-to-server calls)
+#   1. HTTP header X-Tenant-Key or X-Tenant-Slug (API / mobile app / server-to-server)
 #   2. Query parameter ?tenant=<slug>      (browser / deep links)
 #   3. URL path prefix   /t/<slug>/...     (browser, default on localhost)
 #   4. Subdomain         <slug>.<domain>   (production, when TENANT_DOMAIN_MODE=subdomain)
@@ -175,6 +175,15 @@ MASTER_ADMIN_URL_PREFIX = os.environ.get("MASTER_ADMIN_URL_PREFIX", "/master-adm
 MASTER_DEFAULT_ADMIN_PASSWORD = os.environ.get(
     "MASTER_DEFAULT_ADMIN_PASSWORD", "changeme123"
 )
+
+# When True the TenantMiddleware verifies every tenant DB schema on first load
+# and repairs it on the fly: if critical tables (e.g. teachers_teachersalary)
+# are missing — even when django_migrations claims they were applied — the
+# missing migrations are run / fake-applied automatically.  Disable only in
+# tightly-controlled environments.
+TENANT_AUTO_REPAIR_ENABLED = os.environ.get(
+    "TENANT_AUTO_REPAIR_ENABLED", "True"
+).strip().lower() in ("1", "true", "yes", "y", "on")
 
 
 # Custom user model (roles: ADMIN / TEACHER / STUDENT)

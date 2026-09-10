@@ -9,13 +9,35 @@ class ApiService {
   static const String baseUrl = 'https://mueed563.pythonanywhere.com';
   final StorageService _storageService = StorageService();
 
-  Future<Map<String, String>> _getHeaders({bool requireAuth = true}) async {
+  /// Resolves the school/tenant identifier to send with API requests.
+  /// An explicit [tenantSlug] (e.g. typed on the login form) wins over the
+  /// persisted one.
+  Future<String?> _resolveTenantSlug([String? tenantSlug]) async {
+    final explicit = tenantSlug?.trim();
+    if (explicit != null && explicit.isNotEmpty) return explicit;
+    final saved = await _storageService.getTenantSlug();
+    return (saved != null && saved.trim().isNotEmpty) ? saved.trim() : null;
+  }
+
+  Future<Map<String, String>> _getHeaders({
+    bool requireAuth = true,
+    String? tenantSlug,
+  }) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
     };
-    
+
+    // Route every request to the correct school database on the backend.
+    // ``X-Tenant-Key`` is understood by older deployments; ``X-Tenant-Slug``
+    // is the canonical name. Sending both keeps compatibility.
+    final slug = await _resolveTenantSlug(tenantSlug);
+    if (slug != null) {
+      headers['X-Tenant-Slug'] = slug;
+      headers['X-Tenant-Key'] = slug;
+    }
+
     final cookie = await _storageService.getSessionCookie();
     if (cookie != null && cookie.isNotEmpty) {
       headers['Cookie'] = cookie;
@@ -30,41 +52,61 @@ class ApiService {
     return headers;
   }
 
-  Future<Map<String, dynamic>> login(String username, String password) async {
+  Future<Map<String, dynamic>> login(
+    String username,
+    String password, {
+    String? tenantSlug,
+  }) async {
     const endpoint = '$baseUrl/api/v1/auth/login/';
     final url = Uri.parse(endpoint);
-    
+
     debugPrint('====================================');
     debugPrint('LOGIN URL: $url');
     debugPrint('====================================');
-    
+
     try {
+      final slug = await _resolveTenantSlug(tenantSlug);
       final response = await http.post(
         url,
-        headers: await _getHeaders(requireAuth: false),
+        headers: await _getHeaders(requireAuth: false, tenantSlug: slug),
         body: jsonEncode({
           'username': username,
           'password': password,
+          // Fallback identification channel: the backend also accepts the
+          // school in the body when the header is missing.
+          if (slug != null) 'tenant': slug,
         }),
       );
-      
+
       debugPrint('LOGIN RESPONSE HEADERS: ${response.headers}');
-      
+
       final rawCookie = response.headers['set-cookie'];
       if (rawCookie != null) {
         await _storageService.saveSessionCookie(rawCookie);
       }
-      
+
       debugPrint('Login Status Code ($endpoint): ${response.statusCode}');
       debugPrint('Login Response Body ($endpoint): ${response.body}');
-      
+
       // Process response with robust error handling
       final result = _processResponse(response);
-      
+
       if (result['status'] != 'error' && response.statusCode >= 200 && response.statusCode < 300) {
         debugPrint('✓ Login successful on exact URL: $endpoint');
+        // Persist the canonical school slug returned by the backend so every
+        // subsequent request is routed to the right tenant database, even
+        // after an app restart (and even if the user typed the school name).
+        final school = result['school'];
+        if (school is Map && school['slug'] != null) {
+          final canonical = school['slug'].toString();
+          if (canonical.isNotEmpty) {
+            await _storageService.saveTenantSlug(canonical);
+          }
+        } else if (slug != null) {
+          await _storageService.saveTenantSlug(slug);
+        }
       }
-      
+
       return result;
     } catch (e) {
       debugPrint('Network error on $endpoint: $e');

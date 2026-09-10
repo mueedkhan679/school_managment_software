@@ -66,17 +66,106 @@ def _get_teacher_profile(user):
 class StudentLoginView(APIView):
     """POST /api/v1/auth/login/
     Student authentication endpoint accepting Username or Student Registration ID.
+
+    Tenant routing: the caller must identify its school either via the
+    ``X-Tenant-Key`` / ``X-Tenant-Slug`` header (preferred), the ``?tenant=``
+    query parameter, or the ``tenant`` (``school_slug``/``school``) field of the
+    JSON body.  The authentication queries are then routed to that school's
+    own tenant database (``tenant_<slug>.sqlite3``) instead of the master
+    database — where tenant users do not exist — which is what previously
+    caused spurious "Invalid credentials" errors for the mobile app.
     """
     permission_classes = [AllowAny]
 
+    def _resolve_body_tenant(self, request):
+        """Resolve the tenant from the login request body (fallback path).
+
+        Returns ``(tenant, error_message)``.  ``error_message`` is a string
+        when the caller supplied an unknown school identifier.
+        """
+        from apps.tenants.models import Tenant
+
+        raw = None
+        for key in ("tenant", "school", "school_slug", "tenant_slug"):
+            value = request.data.get(key) if hasattr(request, "data") else None
+            if value and str(value).strip():
+                raw = str(value).strip()
+                break
+        if not raw:
+            return None, None
+
+        # Accept the exact slug, a case-insensitive slug, or the school name.
+        tenant = (
+            Tenant.objects.filter(slug=raw.lower()).first()
+            or Tenant.objects.filter(slug__iexact=raw).first()
+            or Tenant.objects.filter(school_name__iexact=raw).first()
+        )
+        if tenant is None:
+            return None, (
+                f"Unknown school '{raw}'. Ask your school for its School ID "
+                "or check the spelling."
+            )
+        return tenant, None
+
     def post(self, request, *args, **kwargs):
+        # Ensure the authentication queries run against the correct tenant
+        # database even when the client only passed the school in the body
+        # (the middleware already handles the header / query-param / URL-path
+        # methods and sets ``request.tenant`` for those).
+        from apps.tenants.db_router import set_current_db_alias
+        from apps.tenants.utils import register_tenant_db
+
+        tenant = getattr(request, "tenant", None)
+        body_tenant = None
+        if tenant is None:
+            body_tenant, error_message = self._resolve_body_tenant(request)
+            if error_message:
+                return Response(
+                    {"status": "error", "message": error_message},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if body_tenant is not None:
+                if not body_tenant.is_active:
+                    return Response(
+                        {
+                            "status": "error",
+                            "message": "This school account is suspended. "
+                            "Please contact support.",
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                if body_tenant.is_locked:
+                    return Response(
+                        {
+                            "status": "error",
+                            "message": "This school portal is currently locked. "
+                            "Please try again later.",
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                register_tenant_db(body_tenant)
+                tenant = body_tenant
+                # Route auth/DB queries to the tenant DB for this request.
+                # The TenantMiddleware's ``finally`` clears the thread-local
+                # after the response, so no manual restore is required.
+                set_current_db_alias(tenant.db_alias)
+                request.tenant = tenant
+                request.tenant_slug = tenant.slug
+
         serializer = CustomTokenObtainPairSerializer(data=request.data)
         if serializer.is_valid():
+            school_payload = None
+            if tenant is not None:
+                school_payload = {
+                    "slug": tenant.slug,
+                    "name": tenant.school_name,
+                }
             return Response(
                 {
                     "status": "success",
                     "message": "Login successful",
                     "payload": serializer.validated_data,
+                    "school": school_payload,
                 },
                 status=status.HTTP_200_OK,
             )

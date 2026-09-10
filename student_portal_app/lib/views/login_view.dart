@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/student_controller.dart';
 import '../controllers/teacher_controller.dart';
+import '../services/storage_service.dart';
 import 'main_scaffold_view.dart';
 import 'teacher_dashboard_view.dart';
 import '../widgets/modern_loader.dart';
@@ -19,12 +20,29 @@ class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _schoolController = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill the School ID from the previous session so returning users
+    // only need their username and password.
+    _loadSavedSchool();
+  }
+
+  Future<void> _loadSavedSchool() async {
+    final slug = await StorageService().getTenantSlug();
+    if (slug != null && slug.isNotEmpty && mounted) {
+      setState(() => _schoolController.text = slug);
+    }
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _schoolController.dispose();
     super.dispose();
   }
 
@@ -37,6 +55,9 @@ class _LoginViewState extends State<LoginView> {
     final success = await auth.login(
       _usernameController.text.trim(),
       _passwordController.text,
+      schoolSlug: _schoolController.text.trim().isNotEmpty
+          ? _schoolController.text.trim()
+          : null,
     );
 
                        if (success && mounted) {
@@ -123,6 +144,32 @@ class _LoginViewState extends State<LoginView> {
                       ),
                     ).animate().fadeIn(delay: 300.ms),
                     const SizedBox(height: 36),
+
+                    // School / Tenant ID Input — routes the login to the
+                    // correct school's database on the backend.
+                    TextFormField(
+                      controller: _schoolController,
+                      keyboardType: TextInputType.text,
+                      autocorrect: false,
+                      textCapitalization: TextCapitalization.none,
+                      decoration: InputDecoration(
+                        labelText: 'School ID',
+                        hintText: 'e.g. demo-school',
+                        prefixIcon: const Icon(Icons.apartment_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Please enter your School ID';
+                        }
+                        return null;
+                      },
+                    ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1, end: 0),
+                    const SizedBox(height: 18),
 
                     // Username / Student ID Input
                     TextFormField(
