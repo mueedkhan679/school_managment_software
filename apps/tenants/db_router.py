@@ -71,10 +71,20 @@ class TenantRouter:
         return self._route(model, **hints)
 
     def allow_relation(self, obj1: Any, obj2: Any, **hints: Any) -> bool:
-        """Only allow relations within the same database."""
+        """Allow relations if both objects are in the same DB, or if one is master."""
         db1 = self._route(type(obj1))
         db2 = self._route(type(obj2))
-        return db1 == db2
+
+        # Always allow if in same DB
+        if db1 == db2:
+            return True
+
+        # Allow if either is a MASTER_APP (sessions, tenants, etc.)
+        # This fixes cross-DB foreign key errors (e.g. User -> StudentFee)
+        if db1 == "default" or db2 == "default":
+            return True
+
+        return False
 
     def allow_migrate(self, db: str, app_label: str, model_name: str | None = None, **hints: Any) -> bool:
         """Control which models are migrated to which database.
