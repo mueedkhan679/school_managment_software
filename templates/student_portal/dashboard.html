@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Student Portal — Personal Dashboard{% endblock %}
 
@@ -17,10 +18,10 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'student_portal:fees' %}" class="btn btn-primary">
+            <a href="{% tenant_url 'student_portal:fees' %}" class="btn btn-primary">
                 <span>💰</span> View Fee Ledger
             </a>
-            <a href="{% url 'student_portal:attendance' %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'student_portal:attendance' %}" class="btn btn-ghost">
                 <span>📋</span> View Attendance
             </a>
         </div>

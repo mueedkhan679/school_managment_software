@@ -75,7 +75,7 @@
                 {% if request.user.is_admin %}
                     <a href="{% tenant_url 'accounts:change_credentials' %}" class="sidebar-user-settings" title="Change Credentials">⚙️</a>
                 {% endif %}
-                <form method="post" action="{% url 'accounts:logout' %}" class="sidebar-user-logout-form">
+                <form method="post" action="{% tenant_url 'accounts:logout' %}" class="sidebar-user-logout-form">
                     {% csrf_token %}
                     <button type="submit" class="sidebar-user-logout" title="Logout" aria-label="Logout">
                         <span aria-hidden="true">🚪</span>

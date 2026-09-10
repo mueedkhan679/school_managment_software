@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Fee Management — {{ school_name }}{% endblock %}
 
@@ -16,7 +17,7 @@
             <button type="button" class="btn btn-ghost" onclick="openDefaulterModal()">
                 <span aria-hidden="true">📋</span> Generate Defaulter List
             </button>
-            <a href="{% url 'fees:create' %}" class="btn btn-primary">
+            <a href="{% tenant_url 'fees:create' %}" class="btn btn-primary">
                 <span aria-hidden="true">💳</span> Collect Fee
             </a>
         </div>
@@ -71,7 +72,7 @@
 
     <!-- Search & Multi-filter Panel -->
     <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'fees:list' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'fees:list' %}" class="filter-form">
             <div class="filter-row">
                 <!-- Search Box -->
                 <div class="filter-col search-box-col">
@@ -142,7 +143,7 @@
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-primary">Filter</button>
                         {% if query or selected_month or selected_year or selected_class or selected_status %}
-                            <a href="{% url 'fees:list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                            <a href="{% tenant_url 'fees:list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
                         {% endif %}
                     </div>
                 </div>
@@ -181,17 +182,17 @@
                     {% for f in page_obj %}
                         <tr>
                             <td>
-                                <a href="{% url 'fees:voucher' pk=f.pk %}" class="table-link font-semibold">
+                                <a href="{% tenant_url 'fees:voucher' pk=f.pk %}" class="table-link font-semibold">
                                     <code>{{ f.reference|default:"—" }}</code>
                                 </a>
                             </td>
                             <td>
-                                <a href="{% url 'students:detail' student_id=f.student.student_id %}" class="table-link">
+                                <a href="{% tenant_url 'students:detail' student_id=f.student.student_id %}" class="table-link">
                                     <code>{{ f.student.student_id }}</code>
                                 </a>
                             </td>
                             <td>
-                                <a href="{% url 'students:detail' student_id=f.student.student_id %}" class="table-link">
+                                <a href="{% tenant_url 'students:detail' student_id=f.student.student_id %}" class="table-link">
                                     <strong>{{ f.student.name }}</strong>
                                 </a>
                             </td>
@@ -217,10 +218,10 @@
                             </td>
                             <td style="text-align: right;">
                                 <div class="action-btn-group">
-                                    <a href="{% url 'fees:voucher' pk=f.pk %}" class="btn btn-outline btn-xs" title="Print Receipt">
+                                    <a href="{% tenant_url 'fees:voucher' pk=f.pk %}" class="btn btn-outline btn-xs" title="Print Receipt">
                                         Voucher
                                     </a>
-                                    <a href="{% url 'fees:update' pk=f.pk %}" class="btn btn-ghost btn-xs" title="Edit Record">
+                                    <a href="{% tenant_url 'fees:update' pk=f.pk %}" class="btn btn-ghost btn-xs" title="Edit Record">
                                         Edit
                                     </a>
                                     <button type="button" class="btn btn-danger-ghost btn-xs"
@@ -310,7 +311,7 @@ function closeDeleteFeeModal() {
             </div>
             <button type="button" class="modal-close-btn" onclick="closeDefaulterModal()" aria-label="Close">&times;</button>
         </div>
-        <form method="get" action="{% url 'fees:defaulter_list' %}">
+        <form method="get" action="{% tenant_url 'fees:defaulter_list' %}">
             <div class="modal-body">
                 <div class="form-group" style="margin-bottom: 12px;">
                     <label class="filter-lbl" for="defaulter-class-select">Class</label>

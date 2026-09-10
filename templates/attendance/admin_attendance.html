@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Attendance Records — {{ school_name }}{% endblock %}
 
@@ -13,7 +14,7 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'attendance:admin_attendance_mark' %}" class="btn btn-primary">
+            <a href="{% tenant_url 'attendance:admin_attendance_mark' %}" class="btn btn-primary">
                 <span aria-hidden="true">📝</span> Mark Daily Attendance
             </a>
         </div>
@@ -68,7 +69,7 @@
 
     <!-- Search & Multi-filter Panel -->
     <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'attendance:admin_attendance' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'attendance:admin_attendance' %}" class="filter-form">
             <div class="filter-row">
                 <!-- Search Box -->
                 <div class="filter-col search-box-col">
@@ -152,7 +153,7 @@
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-primary">Filter</button>
                         {% if student_query or selected_date or selected_month or selected_year or selected_class or selected_marked_by %}
-                            <a href="{% url 'attendance:admin_attendance' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                            <a href="{% tenant_url 'attendance:admin_attendance' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
                         {% endif %}
                     </div>
                 </div>
@@ -192,7 +193,7 @@
                                 <strong>{{ att.date|date:"Y-m-d" }}</strong>
                             </td>
                             <td>
-                                <a href="{% url 'students:detail' student_id=att.student.student_id %}" class="table-link">
+                                <a href="{% tenant_url 'students:detail' student_id=att.student.student_id %}" class="table-link">
                                     <code>{{ att.student.student_id }}</code>
                                 </a>
                             </td>
@@ -201,7 +202,7 @@
                                     {% if att.student.photo %}
                                         <img src="{{ att.student.photo.url }}" alt="" style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;">
                                     {% endif %}
-                                    <a href="{% url 'students:detail' student_id=att.student.student_id %}" class="table-link">
+                                    <a href="{% tenant_url 'students:detail' student_id=att.student.student_id %}" class="table-link">
                                         <strong>{{ att.student.name }}</strong>
                                     </a>
                                 </div>

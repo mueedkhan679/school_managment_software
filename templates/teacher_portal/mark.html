@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Mark Attendance — Teacher Portal{% endblock %}
 
@@ -17,7 +18,7 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'teacher_portal:dashboard' %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'teacher_portal:dashboard' %}" class="btn btn-ghost">
                 &larr; Back to Portal
             </a>
         </div>
@@ -25,7 +26,7 @@
 
     <!-- Class & Date Selection Form -->
     <div class="panel" style="padding: 20px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'teacher_portal:mark' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'teacher_portal:mark' %}" class="filter-form">
             <div class="filter-row" style="align-items: flex-end;">
                 <div class="filter-col" style="flex: 1; min-width: 200px;">
                     <label class="filter-lbl" for="class_id">Select Assigned Class <span class="text-danger">*</span></label>
@@ -74,7 +75,7 @@
             </div>
 
             {% if roster %}
-                <form method="post" action="{% url 'teacher_portal:mark' %}">
+                <form method="post" action="{% tenant_url 'teacher_portal:mark' %}">
                     {% csrf_token %}
                     <input type="hidden" name="class_id" value="{{ selected_class.id }}">
                     <input type="hidden" name="date" value="{{ date_str }}">
@@ -133,7 +134,7 @@
                     </div>
 
                     <div style="padding: 20px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border-color);">
-                        <a href="{% url 'teacher_portal:dashboard' %}" class="btn btn-ghost">Cancel</a>
+                        <a href="{% tenant_url 'teacher_portal:dashboard' %}" class="btn btn-ghost">Cancel</a>
                         <button type="submit" class="btn btn-primary btn-lg">
                             💾 Save Class Attendance
                         </button>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Attendance History — Teacher Portal{% endblock %}
 
@@ -17,10 +18,10 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'teacher_portal:mark' %}" class="btn btn-primary">
+            <a href="{% tenant_url 'teacher_portal:mark' %}" class="btn btn-primary">
                 <span>📝</span> Mark Attendance
             </a>
-            <a href="{% url 'teacher_portal:dashboard' %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'teacher_portal:dashboard' %}" class="btn btn-ghost">
                 &larr; Back to Portal
             </a>
         </div>
@@ -28,7 +29,7 @@
 
     <!-- Filter Panel -->
     <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'teacher_portal:history' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'teacher_portal:history' %}" class="filter-form">
             <div class="filter-row">
                 <div class="filter-col" style="min-width: 160px;">
                     <label class="filter-lbl" for="class-select">Class</label>
@@ -56,7 +57,7 @@
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-primary">Filter</button>
                         {% if selected_class or selected_date %}
-                            <a href="{% url 'teacher_portal:history' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                            <a href="{% tenant_url 'teacher_portal:history' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
                         {% endif %}
                     </div>
                 </div>

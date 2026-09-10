@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Teacher Management — {{ school_name }}{% endblock %}
 
@@ -13,10 +14,10 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'teachers:salary_list' %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'teachers:salary_list' %}" class="btn btn-ghost">
                 <span>💸</span> Salary Disbursements
             </a>
-            <a href="{% url 'teachers:create' %}" class="btn btn-primary">
+            <a href="{% tenant_url 'teachers:create' %}" class="btn btn-primary">
                 <span aria-hidden="true">➕</span> Register Teacher
             </a>
         </div>
@@ -71,7 +72,7 @@
 
     <!-- Search and Filter Panel -->
     <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'teachers:list' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'teachers:list' %}" class="filter-form">
             <div class="filter-row">
                 <!-- Search box -->
                 <div class="filter-col search-box-col">
@@ -116,7 +117,7 @@
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-primary">Filter</button>
                         {% if query or selected_class or selected_status != "active" %}
-                            <a href="{% url 'teachers:list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                            <a href="{% tenant_url 'teachers:list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
                         {% endif %}
                     </div>
                 </div>
@@ -166,12 +167,12 @@
                                 </div>
                             </td>
                             <td>
-                                <a href="{% url 'teachers:detail' teacher_id=t.teacher_id %}" class="table-link">
+                                <a href="{% tenant_url 'teachers:detail' teacher_id=t.teacher_id %}" class="table-link">
                                     <code>{{ t.teacher_id }}</code>
                                 </a>
                             </td>
                             <td>
-                                <a href="{% url 'teachers:detail' teacher_id=t.teacher_id %}" class="table-link font-semibold">
+                                <a href="{% tenant_url 'teachers:detail' teacher_id=t.teacher_id %}" class="table-link font-semibold">
                                     <strong>{{ t.name }}</strong>
                                 </a>
                             </td>
@@ -185,7 +186,7 @@
                                     {% if classes %}
                                         <div class="teacher-tag-list">
                                             {% for c in classes %}
-                                                <a href="{% url 'classrooms:detail' pk=c.pk %}" class="teacher-tag" style="text-decoration: none;">{{ c.name }}</a>
+                                                <a href="{% tenant_url 'classrooms:detail' pk=c.pk %}" class="teacher-tag" style="text-decoration: none;">{{ c.name }}</a>
                                             {% endfor %}
                                         </div>
                                     {% else %}
@@ -202,13 +203,13 @@
                             </td>
                             <td style="text-align: right;">
                                 <div class="action-btn-group">
-                                    <a href="{% url 'teachers:salary_create' %}?teacher={{ t.id }}" class="btn btn-outline btn-xs" title="Pay Salary">
+                                    <a href="{% tenant_url 'teachers:salary_create' %}?teacher={{ t.id }}" class="btn btn-outline btn-xs" title="Pay Salary">
                                         Pay
                                     </a>
-                                    <a href="{% url 'teachers:detail' teacher_id=t.teacher_id %}" class="btn btn-outline btn-xs" title="View Profile">
+                                    <a href="{% tenant_url 'teachers:detail' teacher_id=t.teacher_id %}" class="btn btn-outline btn-xs" title="View Profile">
                                         Profile
                                     </a>
-                                    <a href="{% url 'teachers:update' teacher_id=t.teacher_id %}" class="btn btn-ghost btn-xs" title="Edit Teacher">
+                                    <a href="{% tenant_url 'teachers:update' teacher_id=t.teacher_id %}" class="btn btn-ghost btn-xs" title="Edit Teacher">
                                         Edit
                                     </a>
                                     {% if t.is_active %}
@@ -218,7 +219,7 @@
                                             Archive
                                         </button>
                                     {% else %}
-                                        <form method="post" action="{% url 'teachers:restore' teacher_id=t.teacher_id %}" style="display: inline;">
+                                        <form method="post" action="{% tenant_url 'teachers:restore' teacher_id=t.teacher_id %}" style="display: inline;">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-outline btn-xs text-success" title="Restore Teacher">
                                                 Restore

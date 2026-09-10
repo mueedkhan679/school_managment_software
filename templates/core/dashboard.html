@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Dashboard — {{ school_name }}{% endblock %}
 
@@ -18,7 +19,7 @@
                 <span class="dash-date-text">{{ today_date|date:"M j, Y" }}</span>
             </div>
             <!-- Academic Year Dropdown (uses existing filter) -->
-            <form method="GET" action="{% url 'core:dashboard' %}" class="dash-acad-form">
+            <form method="GET" action="{% tenant_url 'core:dashboard' %}" class="dash-acad-form">
                 <label for="academic-year" class="dash-acad-label">Academic Year:</label>
                 <select name="year" id="academic-year" class="dash-acad-select" onchange="this.form.submit()">
                     <option value="">All Years</option>
@@ -52,7 +53,7 @@
             <span class="text-muted text-xs">(All-time accumulated records)</span>
         {% endif %}
         {% if selected_year or selected_month %}
-            <a href="{% url 'core:dashboard' %}" class="btn btn-outline btn-xs">Reset Filters</a>
+            <a href="{% tenant_url 'core:dashboard' %}" class="btn btn-outline btn-xs">Reset Filters</a>
         {% endif %}
     </div>
 
@@ -90,8 +91,8 @@
 
         <!-- Metric: Teacher QR Check-in (compact live card) -->
         <div class="dash-metric-card" id="teacherQrCard" style="flex-direction: column; align-items: center; text-align: center;">
-            <a href="{% url 'teachers:attendance_qr_png' %}" target="_blank" rel="noopener" title="Open QR image">
-                <img id="qrImgMini" src="{% url 'teachers:attendance_qr_png' %}"
+            <a href="{% tenant_url 'teachers:attendance_qr_png' %}" target="_blank" rel="noopener" title="Open QR image">
+                <img id="qrImgMini" src="{% tenant_url 'teachers:attendance_qr_png' %}"
                      alt="Teacher check-in QR" width="140" height="140"
                      style="border-radius: 12px; background: #fff; padding: 6px; border: 1px solid var(--border);">
             </a>
@@ -108,7 +109,7 @@
                 <span style="display: flex; justify-content: center; gap: 6px; margin-top: 8px;">
                     <button type="button" class="dash-icon-btn" title="Refresh code" onclick="window.DashboardQR.refresh()">↻</button>
                     <button type="button" class="dash-icon-btn" title="Expand / Fullscreen" onclick="window.DashboardQR.expand()">⛶</button>
-                    <a class="dash-icon-btn" title="Open full page" href="{% url 'teachers:attendance_qr' %}" style="text-decoration: none;">↗</a>
+                    <a class="dash-icon-btn" title="Open full page" href="{% tenant_url 'teachers:attendance_qr' %}" style="text-decoration: none;">↗</a>
                 </span>
             </div>
         </div>
@@ -121,7 +122,7 @@
             <span class="dash-card-badge">{{ admission_scope_label }}</span>
         </div>
         <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-bottom: 14px;">
-            <form method="GET" action="{% url 'core:dashboard' %}" class="dash-acad-form" style="margin: 0;">
+            <form method="GET" action="{% tenant_url 'core:dashboard' %}" class="dash-acad-form" style="margin: 0;">
                 <label for="admission-class-filter" class="dash-acad-label">Filter by Class:</label>
                 <select name="class_id" id="admission-class-filter" class="dash-acad-select" onchange="this.form.submit()">
                     <option value="">All Classes</option>
@@ -286,7 +287,7 @@
         <!-- Pending note + link to full register -->
         <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <span class="text-sm text-muted">Attendance closes daily at <strong>10:00 AM</strong>.</span>
-            <a href="{% url 'teachers:attendance_list' %}?range=today" class="btn btn-ghost btn-xs">Open Teacher Register &rarr;</a>
+            <a href="{% tenant_url 'teachers:attendance_list' %}?range=today" class="btn btn-ghost btn-xs">Open Teacher Register &rarr;</a>
         </div>
     </div>
 
@@ -298,18 +299,18 @@
                 Live &bull; auto-syncs every few seconds &bull;
                 <span id="qrModalPresent" class="badge badge-success">–</span> present today
             </p>
-            <img id="qrImgLarge" src="{% url 'teachers:attendance_qr_png' %}"
+            <img id="qrImgLarge" src="{% tenant_url 'teachers:attendance_qr_png' %}"
                  alt="Teacher check-in QR (large)" width="320" height="320"
                  style="border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: #fff;">
             <div style="margin-top: 18px; display: flex; justify-content: center; gap: 10px;">
                 <button type="button" class="btn btn-outline btn-sm" onclick="window.DashboardQR.refresh()">↻ Refresh</button>
-                <a href="{% url 'teachers:attendance_qr' %}" class="btn btn-primary btn-sm">Open Full Page</a>
+                <a href="{% tenant_url 'teachers:attendance_qr' %}" class="btn btn-primary btn-sm">Open Full Page</a>
                 <button type="button" class="btn btn-ghost btn-sm" onclick="window.DashboardQR.close()">✕ Close</button>
             </div>
         </div>
     </div>
     <script>
-        window.DASHBOARD_QR_URL = "{% url 'teachers:attendance_qr_png' %}";
+        window.DASHBOARD_QR_URL = "{% tenant_url 'teachers:attendance_qr_png' %}";
     </script>
     <script src="{% static 'js/dashboard.js' %}?v=1"></script>
 
@@ -408,7 +409,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span class="badge badge-primary">{{ total_classes }} Classes Available</span>
-                <a href="{% url 'classrooms:list' %}" class="btn btn-outline btn-sm">Manage Classes &rarr;</a>
+                <a href="{% tenant_url 'classrooms:list' %}" class="btn btn-outline btn-sm">Manage Classes &rarr;</a>
             </div>
         </div>
 

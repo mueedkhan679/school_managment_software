@@ -1,4 +1,5 @@
 {% load static %}
+{% load tenant_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -92,7 +93,7 @@
             <strong>Admin phone:</strong> {{ tenant.admin_phone|default:"—" }}
         </div>
 
-        <a href="{% url 'accounts:login' %}" class="btn-ghost">Return to Login</a>
+        <a href="{% tenant_url 'accounts:login' %}" class="btn-ghost">Return to Login</a>
     </div>
 </body>
 </html>

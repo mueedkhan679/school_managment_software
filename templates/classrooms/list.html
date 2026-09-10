@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Class Management — {{ school_name }}{% endblock %}
 
@@ -73,7 +74,7 @@
                         <tr>
                             <td><span class="badge badge-outline">#{{ sc.order }}</span></td>
                             <td>
-                                <a href="{% url 'classrooms:detail' pk=sc.pk %}" class="table-link font-semibold">
+                                <a href="{% tenant_url 'classrooms:detail' pk=sc.pk %}" class="table-link font-semibold">
                                     <strong>{{ sc.name }}</strong>
                                 </a>
                             </td>
@@ -106,10 +107,10 @@
                             </td>
                             <td style="text-align: right;">
                                 <div class="action-btn-group">
-                                    <a href="{% url 'classrooms:detail' pk=sc.pk %}" class="btn btn-outline btn-xs" title="View Students">
+                                    <a href="{% tenant_url 'classrooms:detail' pk=sc.pk %}" class="btn btn-outline btn-xs" title="View Students">
                                         View
                                     </a>
-                                    <a href="{% url 'classrooms:update' pk=sc.pk %}" class="btn btn-ghost btn-xs" title="Edit Class">
+                                    <a href="{% tenant_url 'classrooms:update' pk=sc.pk %}" class="btn btn-ghost btn-xs" title="Edit Class">
                                         Edit
                                     </a>
                                     <button type="button" class="btn btn-danger-ghost btn-xs"
@@ -140,7 +141,7 @@
             <h3>Add New Class</h3>
             <button type="button" class="modal-close" onclick="closeAddClassModal()">&times;</button>
         </div>
-        <form method="post" action="{% url 'classrooms:create' %}">
+        <form method="post" action="{% tenant_url 'classrooms:create' %}">
             {% csrf_token %}
             <div class="modal-body">
                 {% if form.non_field_errors %}

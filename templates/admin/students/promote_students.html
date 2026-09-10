@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}
+{% load tenant_tags %}
 {% load i18n admin_urls %}
 
 {% block title %}{% translate "Promote students" %}{% endblock %}
@@ -7,9 +8,9 @@
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
-    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
-    &rsaquo; <a href="{% url 'admin:app_list' app_label='students' %}">{{ opts.app_config.verbose_name }}</a>
-    &rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    <a href="{% tenant_url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% tenant_url 'admin:app_list' app_label='students' %}">{{ opts.app_config.verbose_name }}</a>
+    &rsaquo; <a href="{% tenant_url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
     &rsaquo; {% translate 'Promote multiple students' %}
 </div>
 {% endblock %}
@@ -94,7 +95,7 @@
 
     <div class="submit-row">
         <input type="submit" value="Promote Students" class="default" name="_save" />
-        <a href="{% url opts|admin_urlname:'changelist' %}" class="button cancel-link">{% translate "Cancel" %}</a>
+        <a href="{% tenant_url opts|admin_urlname:'changelist' %}" class="button cancel-link">{% translate "Cancel" %}</a>
     </div>
 
     <p class="help" style="margin-top: 8px;">

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Salary Payslip #{{ salary.reference }} — {{ teacher.name }} — {{ school_name }}{% endblock %}
 
@@ -8,8 +9,8 @@
     <div class="dashboard-header no-print">
         <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                <a href="{% url 'teachers:salary_list' %}" class="btn btn-ghost btn-xs">&larr; All Salary Disbursements</a>
-                <a href="{% url 'teachers:detail' teacher_id=teacher.teacher_id %}" class="btn btn-ghost btn-xs">Teacher Profile</a>
+                <a href="{% tenant_url 'teachers:salary_list' %}" class="btn btn-ghost btn-xs">&larr; All Salary Disbursements</a>
+                <a href="{% tenant_url 'teachers:detail' teacher_id=teacher.teacher_id %}" class="btn btn-ghost btn-xs">Teacher Profile</a>
             </div>
             <h1 class="dashboard-title">Official Salary Payslip Voucher</h1>
             <p class="dashboard-subtitle">
@@ -20,7 +21,7 @@
             <button type="button" class="btn btn-primary" onclick="window.print()">
                 <span>🖨️</span> Print Payslip
             </button>
-            <a href="{% url 'teachers:salary_update' pk=salary.pk %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'teachers:salary_update' pk=salary.pk %}" class="btn btn-ghost">
                 <span>✏️</span> Edit Record
             </a>
         </div>

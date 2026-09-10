@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}{{ teacher.name }} ({{ teacher.teacher_id }}) — Teacher Profile — {{ school_name }}{% endblock %}
 
@@ -8,7 +9,7 @@
     <div class="dashboard-header no-print">
         <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-                <a href="{% url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Faculty</a>
+                <a href="{% tenant_url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Faculty</a>
                 {% if teacher.is_active %}
                     <span class="badge badge-success">Active Faculty</span>
                 {% else %}
@@ -24,10 +25,10 @@
             <button type="button" class="btn btn-ghost" onclick="window.print()">
                 <span>🖨️</span> Print Profile
             </button>
-            <a href="{% url 'teachers:salary_create' %}?teacher={{ teacher.id }}" class="btn btn-primary">
+            <a href="{% tenant_url 'teachers:salary_create' %}?teacher={{ teacher.id }}" class="btn btn-primary">
                 <span>💸</span> Pay Salary
             </a>
-            <a href="{% url 'teachers:update' teacher_id=teacher.teacher_id %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'teachers:update' teacher_id=teacher.teacher_id %}" class="btn btn-ghost">
                 <span>✏️</span> Edit Profile
             </a>
             {% if teacher.is_active %}
@@ -36,7 +37,7 @@
                     <span>📦</span> Archive
                 </button>
             {% else %}
-                <form method="post" action="{% url 'teachers:restore' teacher_id=teacher.teacher_id %}" style="display: inline;">
+                <form method="post" action="{% tenant_url 'teachers:restore' teacher_id=teacher.teacher_id %}" style="display: inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline text-success">
                         <span>♻️</span> Restore Faculty
@@ -95,7 +96,7 @@
                         <span class="info-label">Assigned Classes</span>
                         <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
                             {% for c in assigned_classes %}
-                                <a href="{% url 'classrooms:detail' pk=c.pk %}" class="badge badge-outline" style="text-decoration: none;">
+                                <a href="{% tenant_url 'classrooms:detail' pk=c.pk %}" class="badge badge-outline" style="text-decoration: none;">
                                     🏫 {{ c.name }}
                                 </a>
                             {% empty %}
@@ -200,7 +201,7 @@
                     Annual salary status for {{ current_year }} and historical payment ledger.
                 </p>
             </div>
-            <a href="{% url 'teachers:salary_create' %}?teacher={{ teacher.id }}" class="btn btn-primary btn-xs">
+            <a href="{% tenant_url 'teachers:salary_create' %}?teacher={{ teacher.id }}" class="btn btn-primary btn-xs">
                 <span>➕</span> Disburse Salary
             </a>
         </div>
@@ -217,7 +218,7 @@
                         {% if m.is_paid %}
                             <span style="font-size: 9.5px; font-weight: 600;">PAID</span>
                         {% else %}
-                            <a href="{% url 'teachers:salary_create' %}?teacher={{ teacher.id }}&month={{ m.month_num }}&year={{ current_year }}" style="font-size: 9.5px; color: var(--primary); text-decoration: none; display: block; font-weight: 600;" title="Pay salary for {{ m.month_name }}">
+                            <a href="{% tenant_url 'teachers:salary_create' %}?teacher={{ teacher.id }}&month={{ m.month_num }}&year={{ current_year }}" style="font-size: 9.5px; color: var(--primary); text-decoration: none; display: block; font-weight: 600;" title="Pay salary for {{ m.month_name }}">
                                 + Pay
                             </a>
                         {% endif %}
@@ -243,7 +244,7 @@
                     {% for s in salaries %}
                         <tr>
                             <td>
-                                <a href="{% url 'teachers:salary_voucher' pk=s.pk %}" class="table-link font-semibold">
+                                <a href="{% tenant_url 'teachers:salary_voucher' pk=s.pk %}" class="table-link font-semibold">
                                     <code>{{ s.reference|default:"View" }}</code>
                                 </a>
                             </td>
@@ -264,10 +265,10 @@
                             <td>{{ s.recorded_by.username|default:"Admin" }}</td>
                             <td style="text-align: right;">
                                 <div class="action-btn-group">
-                                    <a href="{% url 'teachers:salary_voucher' pk=s.pk %}" class="btn btn-outline btn-xs" title="Print Payslip">
+                                    <a href="{% tenant_url 'teachers:salary_voucher' pk=s.pk %}" class="btn btn-outline btn-xs" title="Print Payslip">
                                         Payslip
                                     </a>
-                                    <a href="{% url 'teachers:salary_update' pk=s.pk %}" class="btn btn-ghost btn-xs" title="Edit">
+                                    <a href="{% tenant_url 'teachers:salary_update' pk=s.pk %}" class="btn btn-ghost btn-xs" title="Edit">
                                         Edit
                                     </a>
                                 </div>

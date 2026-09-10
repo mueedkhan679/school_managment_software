@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}{{ school_class.name }} — Class Details — {{ school_name }}{% endblock %}
 
@@ -8,7 +9,7 @@
     <div class="dashboard-header">
         <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                <a href="{% url 'classrooms:list' %}" class="btn btn-ghost btn-xs">&larr; All Classes</a>
+                <a href="{% tenant_url 'classrooms:list' %}" class="btn btn-ghost btn-xs">&larr; All Classes</a>
                 <span class="badge badge-outline">Order #{{ school_class.order }}</span>
             </div>
             <h1 class="dashboard-title">{{ school_class.name }}</h1>
@@ -17,7 +18,7 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'classrooms:update' pk=school_class.pk %}" class="btn btn-primary">
+            <a href="{% tenant_url 'classrooms:update' pk=school_class.pk %}" class="btn btn-primary">
                 <span>✏️</span> Edit Class
             </a>
             <button type="button" class="btn btn-danger-ghost"

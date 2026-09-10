@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Defaulter List {{ report_year }} — {{ school_name }}{% endblock %}
 
@@ -8,7 +9,7 @@
     <div class="dashboard-header">
         <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                <a href="{% url 'fees:list' %}" class="btn btn-ghost btn-xs">&larr; Fee Management</a>
+                <a href="{% tenant_url 'fees:list' %}" class="btn btn-ghost btn-xs">&larr; Fee Management</a>
             </div>
             <h1 class="dashboard-title">Defaulter List {{ report_year }}</h1>
             <p class="dashboard-subtitle">
@@ -17,7 +18,7 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'fees:defaulter_list_print' %}?{% if selected_class %}class_id={{ selected_class.pk }}&amp;{% endif %}year={{ report_year }}"
+            <a href="{% tenant_url 'fees:defaulter_list_print' %}?{% if selected_class %}class_id={{ selected_class.pk }}&amp;{% endif %}year={{ report_year }}"
                target="_blank" rel="noopener" class="btn btn-primary">
                 <span aria-hidden="true">🖨️</span> Download PDF / Print
             </a>
@@ -62,7 +63,7 @@
 
     <!-- Refine Filters -->
     <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'fees:defaulter_list' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'fees:defaulter_list' %}" class="filter-form">
             <div class="filter-row">
                 <div class="filter-col">
                     <label class="filter-lbl" for="dl-class-select">Class</label>

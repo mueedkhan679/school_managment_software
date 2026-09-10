@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}{{ student.name }} ({{ student.student_id }}) — Student Profile — {{ school_name }}{% endblock %}
 
@@ -8,7 +9,7 @@
     <div class="dashboard-header no-print">
         <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-                <a href="{% url 'students:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Students</a>
+                <a href="{% tenant_url 'students:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Students</a>
                 <span class="badge badge-outline">Class: {{ student.school_class.name }}</span>
                 {% if student.is_active %}
                     <span class="badge badge-success">Active</span>
@@ -25,7 +26,7 @@
             <button type="button" class="btn btn-ghost" onclick="window.print()">
                 <span>🖨️</span> Print Profile
             </button>
-            <a href="{% url 'students:update' student_id=student.student_id %}" class="btn btn-primary">
+            <a href="{% tenant_url 'students:update' student_id=student.student_id %}" class="btn btn-primary">
                 <span>✏️</span> Edit Profile
             </a>
             {% if student.is_active %}
@@ -34,7 +35,7 @@
                     <span>📦</span> Archive
                 </button>
             {% else %}
-                <form method="post" action="{% url 'students:restore' student_id=student.student_id %}" style="display: inline;">
+                <form method="post" action="{% tenant_url 'students:restore' student_id=student.student_id %}" style="display: inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline text-success">
                         <span>♻️</span> Restore Student
@@ -96,7 +97,7 @@
                     <div class="info-item">
                         <span class="info-label">Class / Grade</span>
                         <strong class="info-value text-primary">
-                            <a href="{% url 'classrooms:detail' pk=student.school_class.pk %}">{{ student.school_class.name }}</a>
+                            <a href="{% tenant_url 'classrooms:detail' pk=student.school_class.pk %}">{{ student.school_class.name }}</a>
                         </strong>
                     </div>
                     <div class="info-item">
@@ -268,7 +269,7 @@
                     <h3>💳 Fee Schedule & History</h3>
                     <p class="text-muted text-sm" style="margin: 2px 0 0;">Annual billing status for {{ current_year }} and historical records.</p>
                 </div>
-                <a href="{% url 'fees:create' %}?student={{ student.id }}" class="btn btn-primary btn-xs">
+                <a href="{% tenant_url 'fees:create' %}?student={{ student.id }}" class="btn btn-primary btn-xs">
                     <span>➕</span> Collect Fee
                 </a>
             </div>
@@ -285,7 +286,7 @@
                             {% if m.is_paid %}
                                 <span style="font-size: 9.5px; font-weight: 600;">PAID</span>
                             {% else %}
-                                <a href="{% url 'fees:create' %}?student={{ student.id }}&month={{ m.month_num }}&year={{ current_year }}" class="no-print" style="font-size: 9.5px; color: var(--primary); text-decoration: none; display: block; font-weight: 600;" title="Collect fee for {{ m.month_name }}">
+                                <a href="{% tenant_url 'fees:create' %}?student={{ student.id }}&month={{ m.month_num }}&year={{ current_year }}" class="no-print" style="font-size: 9.5px; color: var(--primary); text-decoration: none; display: block; font-weight: 600;" title="Collect fee for {{ m.month_name }}">
                                     + Pay
                                 </a>
                             {% endif %}
@@ -324,7 +325,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{% url 'fees:voucher' pk=f.pk %}" class="table-link">
+                                    <a href="{% tenant_url 'fees:voucher' pk=f.pk %}" class="table-link">
                                         <code class="text-xs">{{ f.reference|default:"View" }}</code>
                                     </a>
                                 </td>

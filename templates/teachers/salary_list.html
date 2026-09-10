@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Salary Disbursements — {{ school_name }}{% endblock %}
 
@@ -8,7 +9,7 @@
     <div class="dashboard-header">
         <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                <a href="{% url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Faculty</a>
+                <a href="{% tenant_url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Faculty</a>
             </div>
             <h1 class="dashboard-title">Teacher Salary Disbursements</h1>
             <p class="dashboard-subtitle">
@@ -16,7 +17,7 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'teachers:salary_create' %}" class="btn btn-primary">
+            <a href="{% tenant_url 'teachers:salary_create' %}" class="btn btn-primary">
                 <span aria-hidden="true">💸</span> Disburse Salary
             </a>
         </div>
@@ -60,7 +61,7 @@
 
     <!-- Search & Filter Panel -->
     <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'teachers:salary_list' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'teachers:salary_list' %}" class="filter-form">
             <div class="filter-row">
                 <!-- Search Box -->
                 <div class="filter-col search-box-col">
@@ -118,7 +119,7 @@
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-primary">Filter</button>
                         {% if query or selected_month or selected_year or selected_status %}
-                            <a href="{% url 'teachers:salary_list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                            <a href="{% tenant_url 'teachers:salary_list' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
                         {% endif %}
                     </div>
                 </div>
@@ -157,17 +158,17 @@
                     {% for s in page_obj %}
                         <tr>
                             <td>
-                                <a href="{% url 'teachers:salary_voucher' pk=s.pk %}" class="table-link font-semibold">
+                                <a href="{% tenant_url 'teachers:salary_voucher' pk=s.pk %}" class="table-link font-semibold">
                                     <code>{{ s.reference|default:"—" }}</code>
                                 </a>
                             </td>
                             <td>
-                                <a href="{% url 'teachers:detail' teacher_id=s.teacher.teacher_id %}" class="table-link">
+                                <a href="{% tenant_url 'teachers:detail' teacher_id=s.teacher.teacher_id %}" class="table-link">
                                     <code>{{ s.teacher.teacher_id }}</code>
                                 </a>
                             </td>
                             <td>
-                                <a href="{% url 'teachers:detail' teacher_id=s.teacher.teacher_id %}" class="table-link">
+                                <a href="{% tenant_url 'teachers:detail' teacher_id=s.teacher.teacher_id %}" class="table-link">
                                     <strong>{{ s.teacher.name }}</strong>
                                 </a>
                             </td>
@@ -188,10 +189,10 @@
                             <td>{{ s.recorded_by.username|default:"Admin" }}</td>
                             <td style="text-align: right;">
                                 <div class="action-btn-group">
-                                    <a href="{% url 'teachers:salary_voucher' pk=s.pk %}" class="btn btn-outline btn-xs" title="Print Payslip">
+                                    <a href="{% tenant_url 'teachers:salary_voucher' pk=s.pk %}" class="btn btn-outline btn-xs" title="Print Payslip">
                                         Payslip
                                     </a>
-                                    <a href="{% url 'teachers:salary_update' pk=s.pk %}" class="btn btn-ghost btn-xs" title="Edit">
+                                    <a href="{% tenant_url 'teachers:salary_update' pk=s.pk %}" class="btn btn-ghost btn-xs" title="Edit">
                                         Edit
                                     </a>
                                     <button type="button" class="btn btn-danger-ghost btn-xs"

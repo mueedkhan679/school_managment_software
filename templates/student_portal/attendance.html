@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Attendance Summary — Student Portal{% endblock %}
 
@@ -17,7 +18,7 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'student_portal:dashboard' %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'student_portal:dashboard' %}" class="btn btn-ghost">
                 &larr; Back to Portal
             </a>
         </div>
@@ -72,7 +73,7 @@
 
     <!-- Filter Panel -->
     <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'student_portal:attendance' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'student_portal:attendance' %}" class="filter-form">
             <div class="filter-row">
                 <div class="filter-col" style="min-width: 140px;">
                     <label class="filter-lbl" for="month-select">Month</label>
@@ -96,7 +97,7 @@
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-primary">Filter</button>
                         {% if selected_month or selected_year %}
-                            <a href="{% url 'student_portal:attendance' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                            <a href="{% tenant_url 'student_portal:attendance' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
                         {% endif %}
                     </div>
                 </div>

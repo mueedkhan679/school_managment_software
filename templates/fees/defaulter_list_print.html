@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Defaulter List {{ report_year }} — {{ scope_label }} — {{ school_name }}{% endblock %}
 
@@ -13,8 +14,8 @@
     <div class="dashboard-header no-print">
         <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                <a href="{% url 'fees:defaulter_list' %}?{% if selected_class %}class_id={{ selected_class.pk }}&amp;{% endif %}year={{ report_year }}" class="btn btn-ghost btn-xs">&larr; Back to Report</a>
-                <a href="{% url 'fees:list' %}" class="btn btn-ghost btn-xs">Fee Management</a>
+                <a href="{% tenant_url 'fees:defaulter_list' %}?{% if selected_class %}class_id={{ selected_class.pk }}&amp;{% endif %}year={{ report_year }}" class="btn btn-ghost btn-xs">&larr; Back to Report</a>
+                <a href="{% tenant_url 'fees:list' %}" class="btn btn-ghost btn-xs">Fee Management</a>
             </div>
             <h1 class="dashboard-title">Defaulter List — Print Preview</h1>
             <p class="dashboard-subtitle">

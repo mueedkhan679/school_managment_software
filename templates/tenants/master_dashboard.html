@@ -1,4 +1,5 @@
 {% load static %}
+{% load tenant_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,7 +46,7 @@
         <div style="display: flex; align-items: center; gap: 12px;">
             <span style="font-size: 13px;">{{ request.user.username }}</span>
             <span class="badge">SUPER ADMIN</span>
-            <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
+            <form method="post" action="{% tenant_url 'accounts:logout' %}" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit" style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;">🚪 Logout</button>
             </form>
@@ -78,7 +79,7 @@
             <form method="get" class="search-box">
                 <input type="text" name="q" value="{{ query }}" placeholder="Search schools...">
             </form>
-            <a href="{% url 'tenants:school_add' %}" class="btn-primary">+ Add New School</a>
+            <a href="{% tenant_url 'tenants:school_add' %}" class="btn-primary">+ Add New School</a>
         </div>
 
         <table class="tenant-table">
@@ -114,8 +115,8 @@
                     <td>{{ tenant.created_at|date:"M d, Y" }}</td>
                     <td>
                         <div class="actions-cell">
-                            <a href="{% url 'tenants:school_edit' tenant.slug %}">Edit</a>
-                            <form method="post" action="{% url 'tenants:school_toggle' tenant.slug %}" style="display:inline;">
+                            <a href="{% tenant_url 'tenants:school_edit' tenant.slug %}">Edit</a>
+                            <form method="post" action="{% tenant_url 'tenants:school_toggle' tenant.slug %}" style="display:inline;">
                                 {% csrf_token %}
                                 {% if tenant.is_active %}
                                     <button type="submit" class="btn-warning" onclick="return confirm('Suspend {{ tenant.school_name }}? All users will be blocked.')">Suspend</button>
@@ -123,8 +124,8 @@
                                     <button type="submit" class="btn-success">Activate</button>
                                 {% endif %}
                             </form>
-                            <a href="{% url 'tenants:school_reset_password' tenant.slug %}">Reset Password</a>
-                            <form method="post" action="{% url 'tenants:school_delete' tenant.slug %}" style="display:inline;">
+                            <a href="{% tenant_url 'tenants:school_reset_password' tenant.slug %}">Reset Password</a>
+                            <form method="post" action="{% tenant_url 'tenants:school_delete' tenant.slug %}" style="display:inline;">
                                 {% csrf_token %}
                                 <button type="submit" class="btn-danger" onclick="return confirm('PERMANENTLY DELETE {{ tenant.school_name }} and ALL its data? This cannot be undone!')">Delete</button>
                             </form>

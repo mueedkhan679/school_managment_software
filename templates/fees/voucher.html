@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Fee Voucher #{{ fee.reference }} — {{ student.name }} — {{ school_name }}{% endblock %}
 
@@ -8,8 +9,8 @@
     <div class="dashboard-header no-print">
         <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                <a href="{% url 'fees:list' %}" class="btn btn-ghost btn-xs">&larr; All Transactions</a>
-                <a href="{% url 'students:detail' student_id=student.student_id %}" class="btn btn-ghost btn-xs">Student Profile</a>
+                <a href="{% tenant_url 'fees:list' %}" class="btn btn-ghost btn-xs">&larr; All Transactions</a>
+                <a href="{% tenant_url 'students:detail' student_id=student.student_id %}" class="btn btn-ghost btn-xs">Student Profile</a>
             </div>
             <h1 class="dashboard-title">Fee Receipt Voucher</h1>
             <p class="dashboard-subtitle">
@@ -20,7 +21,7 @@
             <button type="button" class="btn btn-primary" onclick="window.print()">
                 <span>🖨️</span> Print Voucher
             </button>
-            <a href="{% url 'fees:update' pk=fee.pk %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'fees:update' pk=fee.pk %}" class="btn btn-ghost">
                 <span>✏️</span> Edit Record
             </a>
         </div>

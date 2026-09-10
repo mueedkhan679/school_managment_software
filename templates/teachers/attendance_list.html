@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Teacher Attendance Register — {{ school_name }}{% endblock %}
 
@@ -17,8 +18,8 @@
     <div class="dashboard-header no-print">
         <div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                <a href="{% url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Teachers</a>
-                <a href="{% url 'teachers:attendance_qr' %}" class="btn btn-ghost btn-xs">QR Check-in</a>
+                <a href="{% tenant_url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Teachers</a>
+                <a href="{% tenant_url 'teachers:attendance_qr' %}" class="btn btn-ghost btn-xs">QR Check-in</a>
             </div>
             <h1 class="dashboard-title">Teacher Attendance Register</h1>
             <p class="dashboard-subtitle">
@@ -51,7 +52,7 @@
 
     <!-- Filters -->
     <div class="panel no-print" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'teachers:attendance_list' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'teachers:attendance_list' %}" class="filter-form">
             <div class="filter-row">
                 <div class="filter-col">
                     <label class="filter-lbl" for="f-range">Date Range</label>
@@ -94,7 +95,7 @@
                 </div>
                 <div class="filter-col" style="align-self: flex-end;">
                     <button type="submit" class="btn btn-primary">Apply Filters</button>
-                    <a href="{% url 'teachers:attendance_list' %}" class="btn btn-ghost">Reset</a>
+                    <a href="{% tenant_url 'teachers:attendance_list' %}" class="btn btn-ghost">Reset</a>
                 </div>
             </div>
         </form>
@@ -162,7 +163,7 @@
                                         Edit
                                     </button>
                                     <div class="dropdown-menu" id="status-edit-{{ record.id }}" style="display: none; position: absolute; background: white; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 4px; z-index: 10;">
-                                        <form method="post" action="{% url 'teachers:attendance_update' pk=record.id %}">
+                                        <form method="post" action="{% tenant_url 'teachers:attendance_update' pk=record.id %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                             <button type="submit" name="status" value="PRESENT" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; padding: 8px 12px; cursor: pointer;">✅ Present</button>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% load static %}
 {% block title %}Financial Reports & Analytics — {{ school_name }}{% endblock %}
 
@@ -28,7 +29,7 @@
 
     <!-- Filters Panel (Hidden on print) -->
     <div class="panel no-print" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'core:reports' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'core:reports' %}" class="filter-form">
             <div class="filter-row">
                 <!-- Month -->
                 <div class="filter-col" style="min-width: 140px;">
@@ -73,7 +74,7 @@
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-primary">Generate Report</button>
                         {% if selected_class_id or selected_year != today_date.year or selected_month != today_date.month %}
-                            <a href="{% url 'core:reports' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
+                            <a href="{% tenant_url 'core:reports' %}" class="btn btn-ghost" title="Reset Filters">Reset</a>
                         {% endif %}
                     </div>
                 </div>
@@ -269,7 +270,7 @@
                     {% for cr in class_reports %}
                         <tr>
                             <td>
-                                <a href="{% url 'classrooms:detail' pk=cr.class.pk %}" class="table-link font-semibold">
+                                <a href="{% tenant_url 'classrooms:detail' pk=cr.class.pk %}" class="table-link font-semibold">
                                     <strong>{{ cr.class.name }}</strong>
                                 </a>
                             </td>

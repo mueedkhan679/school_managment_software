@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tenant_tags %}
 {% block title %}User Account Management — {{ school_name }}{% endblock %}
 
 {% block content %}
@@ -12,10 +13,10 @@
             </p>
         </div>
         <div class="dashboard-actions">
-            <a href="{% url 'accounts:id_card_batch_students' %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'accounts:id_card_batch_students' %}" class="btn btn-ghost">
                 <span>🪪</span> Student ID Cards
             </a>
-            <a href="{% url 'accounts:id_card_batch_teachers' %}" class="btn btn-ghost">
+            <a href="{% tenant_url 'accounts:id_card_batch_teachers' %}" class="btn btn-ghost">
                 <span>🪪</span> Teacher ID Cards
             </a>
             <button type="button" class="btn btn-primary" onclick="openCreateModal()">
@@ -62,7 +63,7 @@
 
     <!-- Search & Filter Panel -->
     <div class="panel" style="padding: 18px 24px; margin-bottom: 24px;">
-        <form method="get" action="{% url 'accounts:account_list' %}" class="filter-form">
+        <form method="get" action="{% tenant_url 'accounts:account_list' %}" class="filter-form">
             <div class="filter-row">
                 <div class="filter-col search-box-col">
                     <label class="filter-lbl" for="acc-search">Search Accounts</label>
@@ -94,7 +95,7 @@
                     <div style="display:flex;gap:8px;">
                         <button type="submit" class="btn btn-primary">Filter</button>
                         {% if query or role_filter or status_filter %}
-                            <a href="{% url 'accounts:account_list' %}" class="btn btn-ghost">Reset</a>
+                            <a href="{% tenant_url 'accounts:account_list' %}" class="btn btn-ghost">Reset</a>
                         {% endif %}
                     </div>
                 </div>
@@ -140,11 +141,11 @@
                             </td>
                             <td>
                                 {% if student %}
-                                    <a href="{% url 'students:detail' student_id=student.student_id %}" class="table-link">
+                                    <a href="{% tenant_url 'students:detail' student_id=student.student_id %}" class="table-link">
                                         {{ student.name }}
                                     </a>
                                 {% elif teacher %}
-                                    <a href="{% url 'teachers:detail' teacher_id=teacher.teacher_id %}" class="table-link">
+                                    <a href="{% tenant_url 'teachers:detail' teacher_id=teacher.teacher_id %}" class="table-link">
                                         {{ teacher.name }}
                                     </a>
                                 {% else %}
@@ -169,14 +170,14 @@
                             <td style="text-align:right;">
                                 <div class="action-btn-group">
                                     <!-- Toggle Status -->
-                                    <form method="post" action="{% url 'accounts:account_toggle_status' user_id=acc.id %}" style="display:inline;">
+                                    <form method="post" action="{% tenant_url 'accounts:account_toggle_status' user_id=acc.id %}" style="display:inline;">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-ghost btn-xs" title="{% if acc.is_active %}Disable{% else %}Activate{% endif %} Account">
                                             {% if acc.is_active %}Disable{% else %}Activate{% endif %}
                                         </button>
                                     </form>
                                     <!-- Reset Password -->
-                                    <a href="{% url 'accounts:account_reset_password' user_id=acc.id %}" class="btn btn-outline btn-xs" title="Reset Password">
+                                    <a href="{% tenant_url 'accounts:account_reset_password' user_id=acc.id %}" class="btn btn-outline btn-xs" title="Reset Password">
                                         Reset PW
                                     </a>
                                     <!-- Delete -->
@@ -225,7 +226,7 @@
             <h3>Generate System Account</h3>
             <button type="button" class="modal-close" onclick="closeCreateModal()">&times;</button>
         </div>
-        <form method="post" action="{% url 'accounts:account_create' %}">
+        <form method="post" action="{% tenant_url 'accounts:account_create' %}">
             {% csrf_token %}
             <div class="modal-body">
                 <!-- Profile Type + Selection -->
