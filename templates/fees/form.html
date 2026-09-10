@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const year = yearInput ? yearInput.value : new Date().getFullYear();
 
-        fetch(`/fees/api/student-info/${studentId}/?year=${year}`)
+        fetch(`{% tenant_url 'fees:api_student_fee_info' student_id=0 %}`.replace('0', studentId) + `?year=${year}`)
             .then(res => res.json())
             .then(data => {
                 if (data && data.effective_monthly_fee !== undefined) {
