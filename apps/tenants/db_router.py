@@ -50,6 +50,10 @@ class TenantRouter:
     """Routes reads and writes to the correct database based on tenant context."""
 
     def _route(self, model, **hints: Any) -> str:
+        # Check if model is a class, if not (e.g. SimpleLazyObject), return 'default'
+        if not hasattr(model, '_meta'):
+            return "default"
+
         app_label = model._meta.app_label
 
         # Tenant registry and sessions always go to master.
