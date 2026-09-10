@@ -314,6 +314,7 @@ raw_origins = os.environ.get(
     "http://127.0.0.1:8000,http://localhost:8000,http://127.0.0.1,http://localhost"
 )
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+CSRF_TRUSTED_ORIGINS.append('https://mueed563.pythonanywhere.com')
 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
