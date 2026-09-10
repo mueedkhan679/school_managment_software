@@ -1,7 +1,7 @@
-{% load static %}
+{% load static tenant_tags %}
 <aside class="app-sidebar" id="appSidebar">
     <div class="sidebar-top">
-        <a class="sidebar-brand" href="{% if request.user.is_teacher %}{% url 'teacher_portal:dashboard' %}{% elif request.user.is_student %}{% url 'student_portal:dashboard' %}{% else %}{% url 'core:dashboard' %}{% endif %}">
+        <a class="sidebar-brand" href="{% if request.user.is_teacher %}{% tenant_url 'teacher_portal:dashboard' %}{% elif request.user.is_student %}{% tenant_url 'student_portal:dashboard' %}{% else %}{% tenant_url 'core:dashboard' %}{% endif %}">
             {% if school_logo %}
                 <span class="sidebar-brand-icon"><img src="{{ school_logo.url }}" alt="" class="sidebar-brand-logo-img"></span>
             {% else %}
@@ -12,51 +12,51 @@
 
         <nav class="sidebar-nav">
             {% if request.user.is_authenticated and request.user.is_teacher %}
-                <a href="{% url 'teacher_portal:dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <a href="{% tenant_url 'teacher_portal:dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">📊</span><span>Dashboard</span>
                 </a>
-                <a href="{% url 'teacher_portal:mark' %}" class="sidebar-link {% if request.resolver_match.url_name == 'mark' %}active{% endif %}">
+                <a href="{% tenant_url 'teacher_portal:mark' %}" class="sidebar-link {% if request.resolver_match.url_name == 'mark' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">📝</span><span>Mark Attendance</span>
                 </a>
-                <a href="{% url 'teacher_portal:history' %}" class="sidebar-link {% if request.resolver_match.url_name == 'history' %}active{% endif %}">
+                <a href="{% tenant_url 'teacher_portal:history' %}" class="sidebar-link {% if request.resolver_match.url_name == 'history' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">📋</span><span>Attendance History</span>
                 </a>
             {% elif request.user.is_authenticated and request.user.is_student %}
-                <a href="{% url 'student_portal:dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <a href="{% tenant_url 'student_portal:dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">👨‍🎓</span><span>My Dashboard</span>
                 </a>
-                <a href="{% url 'student_portal:fees' %}" class="sidebar-link {% if request.resolver_match.url_name == 'fees' %}active{% endif %}">
+                <a href="{% tenant_url 'student_portal:fees' %}" class="sidebar-link {% if request.resolver_match.url_name == 'fees' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">💰</span><span>Fee Summary</span>
                 </a>
-                <a href="{% url 'student_portal:attendance' %}" class="sidebar-link {% if request.resolver_match.url_name == 'attendance' %}active{% endif %}">
+                <a href="{% tenant_url 'student_portal:attendance' %}" class="sidebar-link {% if request.resolver_match.url_name == 'attendance' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">📋</span><span>Attendance Summary</span>
                 </a>
             {% else %}
-                <a href="{% url 'core:dashboard' %}" class="sidebar-link {% if request.resolver_match.app_name == 'core' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <a href="{% tenant_url 'core:dashboard' %}" class="sidebar-link {% if request.resolver_match.app_name == 'core' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">📊</span><span>Dashboard</span>
                 </a>
-                <a href="{% url 'classrooms:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'classrooms' %}active{% endif %}">
+                <a href="{% tenant_url 'classrooms:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'classrooms' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">🏫</span><span>Classes</span>
                 </a>
-                <a href="{% url 'students:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'students' %}active{% endif %}">
+                <a href="{% tenant_url 'students:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'students' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">👨‍🎓</span><span>Students</span>
                 </a>
-                <a href="{% url 'teachers:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'teachers' and request.resolver_match.url_name == 'list' %}active{% endif %}">
+                <a href="{% tenant_url 'teachers:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'teachers' and request.resolver_match.url_name == 'list' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">👨‍🏫</span><span>Teachers</span>
                 </a>
-                <a href="{% url 'teachers:attendance_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'attendance_list' %}active{% endif %}">
+                <a href="{% tenant_url 'teachers:attendance_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'attendance_list' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">🧾</span><span>Teacher Attendance</span>
                 </a>
-                <a href="{% url 'fees:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'fees' %}active{% endif %}">
+                <a href="{% tenant_url 'fees:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'fees' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">💰</span><span>Fees</span>
                 </a>
-                <a href="{% url 'attendance:admin_attendance' %}" class="sidebar-link {% if request.resolver_match.app_name == 'attendance' %}active{% endif %}">
+                <a href="{% tenant_url 'attendance:admin_attendance' %}" class="sidebar-link {% if request.resolver_match.app_name == 'attendance' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">📅</span><span>Attendance</span>
                 </a>
-                <a href="{% url 'core:reports' %}" class="sidebar-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+                <a href="{% tenant_url 'core:reports' %}" class="sidebar-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">📈</span><span>Reports</span>
                 </a>
-                <a href="{% url 'accounts:account_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'account_list' or request.resolver_match.url_name|slice:':2' == 'id' %}active{% endif %}">
+                <a href="{% tenant_url 'accounts:account_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'account_list' or request.resolver_match.url_name|slice:':2' == 'id' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">🪪</span><span>ID Management</span>
                 </a>
             {% endif %}
@@ -73,7 +73,7 @@
             </div>
             <div class="sidebar-user-actions">
                 {% if request.user.is_admin %}
-                    <a href="{% url 'accounts:change_credentials' %}" class="sidebar-user-settings" title="Change Credentials">⚙️</a>
+                    <a href="{% tenant_url 'accounts:change_credentials' %}" class="sidebar-user-settings" title="Change Credentials">⚙️</a>
                 {% endif %}
                 <form method="post" action="{% url 'accounts:logout' %}" class="sidebar-user-logout-form">
                     {% csrf_token %}
