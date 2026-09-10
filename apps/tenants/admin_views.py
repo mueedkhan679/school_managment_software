@@ -2,7 +2,6 @@
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.db import connections
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 import logging
@@ -14,7 +13,12 @@ from apps.accounts.models import Role
 
 from .decorators import superadmin_required
 from .models import Tenant
-from .utils import delete_tenant_db, provision_tenant_db, register_tenant_db
+from .utils import (
+    delete_tenant_db,
+    ensure_tenant_admin,
+    provision_tenant_db,
+    register_tenant_db,
+)
 
 User = get_user_model()
 
@@ -181,25 +185,33 @@ def school_lock(request, slug):
 
 @superadmin_required
 def school_reset_password(request, slug):
-    """Forcibly reset a school admin's password."""
+    """Forcibly reset (or create) a school admin's password.
+
+    Guarantees an ADMIN-role user exists inside the tenant database before the
+    form is rendered or a password change is applied, so tenant login can never
+    fail with a 403 Access Denied caused by a missing local user/role record.
+    """
     tenant = get_object_or_404(Tenant, slug=slug)
 
-    # Ensure tenant DB is registered
-    register_tenant_db(tenant)
-    alias = tenant.db_alias
-    admin_users = User.objects.none()
+    # Ensure the tenant DB is registered.
+    try:
+        register_tenant_db(tenant)
+    except Exception as e:
+        logger.exception(f"Failed to register tenant DB for {tenant.slug}: {e}")
+        messages.error(request, "Could not connect to the school's database.")
+        return redirect("tenants:master_dashboard")
 
-    if alias in connections.databases:
-        try:
-            # 2. Extract role properly
-            role_val = Role.ADMIN.value if hasattr(Role.ADMIN, 'value') else str(Role.ADMIN)
-            
-            # 3. Robust query with fallback
-            admin_users = User.objects.using(alias).filter(role=role_val)
-            if not admin_users.exists():
-                admin_users = User.objects.using(alias).filter(username__startswith='admin_')
-        except Exception as e:
-            logger.exception(f"Failed to fetch admin users for tenant {tenant.slug}: {e}")
+    # Make sure there is at least one ADMIN-role account in the tenant DB.
+    try:
+        ensure_tenant_admin(tenant)
+    except Exception as e:
+        logger.exception(f"Failed to ensure admin for tenant {tenant.slug}: {e}")
+        messages.error(request, "Could not verify the school's admin account.")
+        return redirect("tenants:master_dashboard")
+
+    alias = tenant.db_alias
+    role_val = Role.ADMIN.value if hasattr(Role.ADMIN, 'value') else str(Role.ADMIN)
+    admin_users = User.objects.using(alias).filter(role=role_val).order_by("id")
 
     if request.method == "POST":
         user_id = request.POST.get("user_id")
@@ -209,18 +221,46 @@ def school_reset_password(request, slug):
             messages.error(request, "Password must be at least 6 characters.")
             return redirect("tenants:school_reset_password", slug=slug)
 
-        try:
-            target_user = User.objects.using(alias).get(id=int(user_id))
-            target_user.set_password(new_password)
-            target_user.save(using=alias, update_fields=["password"])
-            messages.success(
-                request,
-                f"Password for '{target_user.username}' at {tenant.school_name} has been reset."
-            )
-            return redirect("tenants:master_dashboard")
-        except Exception as e:
-            logger.exception(f"Error resetting password for user {user_id} in {tenant.slug}: {e}")
-            messages.error(request, "Error resetting password.")
+        target = None
+        if user_id:
+            try:
+                target = admin_users.get(id=int(user_id))
+            except (ValueError, TypeError, User.DoesNotExist):
+                target = None
+
+        if target is None:
+            # The selected account is missing (e.g. stale/admin deleted) or the
+            # tenant DB has no admin at all — never leave the school without a
+            # working admin.  Fall back to / create the guaranteed admin record.
+            target = admin_users.first()
+            if target is not None:
+                messages.info(
+                    request,
+                    "The selected account was not found; the existing admin account's "
+                    "password was reset instead.",
+                )
+
+        if target is None:
+            try:
+                ensure_tenant_admin(tenant, admin_password=new_password)
+                messages.success(
+                    request,
+                    f"Created a new admin account for '{tenant.school_name}' "
+                    "and set its password.",
+                )
+                return redirect("tenants:master_dashboard")
+            except Exception as e:
+                logger.exception(f"Failed to create admin for tenant {tenant.slug}: {e}")
+                messages.error(request, "Could not create the admin account.")
+                return redirect("tenants:school_reset_password", slug=slug)
+
+        target.set_password(new_password)
+        target.save(using=alias, update_fields=["password"])
+        messages.success(
+            request,
+            f"Password for '{target.username}' at {tenant.school_name} has been reset."
+        )
+        return redirect("tenants:master_dashboard")
 
     context = {
         "tenant": tenant,

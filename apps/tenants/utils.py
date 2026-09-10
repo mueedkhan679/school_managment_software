@@ -88,6 +88,67 @@ def register_tenant_db(tenant) -> None:
     }
 
 
+def ensure_tenant_admin(tenant, admin_username=None, admin_password=None):
+    """Guarantee the tenant DB contains an enabled ADMIN-role User record.
+
+    The tenant portal authorizes administrators through ``request.user.role``
+    (see ``apps/accounts/decorators.py`` — a missing/broken role record leads
+    to a 403 Access Denied).  This helper eliminates that failure mode so that
+    every tenant created or managed from the Master Admin panel always has a
+    local admin account:
+
+    * If an ADMIN-role user already exists in the tenant DB it is returned; its
+      password is only changed when ``admin_password`` is explicitly supplied.
+    * Otherwise the user ``admin_<slug>`` (or ``admin_username``) is created
+      inside the tenant database with ``role=ADMIN``, ``is_staff=True`` and
+      ``is_active=True``, using ``admin_password`` (or the configured default).
+
+    Returns the admin :class:`django.contrib.auth.models.User` instance.
+    """
+    from apps.accounts.models import Role
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+
+    register_tenant_db(tenant)
+    alias = tenant.db_alias
+
+    if not admin_username:
+        admin_username = f"admin_{tenant.slug.replace('-', '_')}"
+
+    # Prefer any existing ADMIN-role account (handles custom naming schemes).
+    admin = (
+        User.objects.using(alias).filter(role=Role.ADMIN).order_by("id").first()
+    )
+    if admin is None:
+        # A record may exist under the requested username but with a
+        # broken/empty role — adopt and repair it instead of duplicating.
+        admin = (
+            User.objects.using(alias)
+            .filter(username__iexact=admin_username)
+            .first()
+        )
+
+    if admin is None:
+        admin = User(username=admin_username)
+
+    # Force the attributes the authorization layer depends on.
+    admin.role = Role.ADMIN
+    admin.is_staff = True
+    admin.is_active = True
+
+    if admin_password:
+        admin.set_password(admin_password)
+    elif not admin.password or admin.password.startswith("!"):
+        # Unusable/empty password → fall back to the configured default.
+        admin.set_password(
+            getattr(settings, "MASTER_DEFAULT_ADMIN_PASSWORD", "changeme123")
+        )
+
+    admin.save(using=alias)
+    return admin
+
+
 def provision_tenant_db(tenant, admin_username=None, admin_password=None):
     """Create and fully migrate a new tenant database.
 
@@ -141,30 +202,15 @@ def provision_tenant_db(tenant, admin_username=None, admin_password=None):
         connections[alias].close()
         connections['default'].close()
 
-    # 5. Seed Admin and SchoolSettings
-    from apps.accounts.models import Role
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-
-    # Use custom credentials supplied by the Master Admin, falling back to
-    # sensible defaults so existing callers that don't pass credentials still
-    # work.
-    if not admin_username:
-        admin_username = f"admin_{tenant.slug.replace('-', '_')}"
-    if not admin_password:
-        admin_password = getattr(
-            settings, "MASTER_DEFAULT_ADMIN_PASSWORD", "changeme123"
-        )
-
-    if not User.objects.using(alias).filter(username=admin_username).exists():
-        admin_user = User(
-            username=admin_username,
-            role=Role.ADMIN,
-            is_staff=True,
-            is_active=True,
-        )
-        admin_user.set_password(admin_password)
-        admin_user.save(using=alias)
+    # 5. Seed the ADMIN user and SchoolSettings.
+    # The ADMIN-role user is created explicitly inside the tenant DB so the
+    # tenant portal can always authenticate/authorize an administrator
+    # (no 403 Access Denied from a missing local user/role record).
+    admin_username = ensure_tenant_admin(
+        tenant,
+        admin_username=admin_username or None,
+        admin_password=admin_password or None,
+    ).username
 
     from apps.core.models import SchoolSettings
     if not SchoolSettings.objects.using(alias).filter(pk=1).exists():
