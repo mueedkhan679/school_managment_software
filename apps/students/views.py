@@ -84,16 +84,39 @@ def student_list(request):
 
 @admin_required
 def student_create(request):
-    """Register a new student with atomic STU-00000X auto ID generation."""
+    """Register a new student with atomic STU-00000X auto ID generation.
+
+    Enforces the tenant's ``max_students`` seat limit: when the number of
+    active students has reached or exceeded the quota, creation is blocked
+    and an explanatory message is shown to the user.
+    """
+    tenant = getattr(request, "tenant", None)
+
     if request.method == "POST":
         form = StudentForm(request.POST, request.FILES)
         if form.is_valid():
-            student = form.save()
-            messages.success(
-                request,
-                f"Student '{student.name}' registered successfully with ID {student.student_id}.",
-            )
-            return redirect("students:detail", student_id=student.student_id)
+            # --- Seat-limit enforcement ---------------------------------
+            # Only enforce when inside a tenant context (school portal).
+            if tenant is not None:
+                active_count = Student.objects.filter(is_active=True).count()
+                if active_count >= tenant.max_students:
+                    form.add_error(
+                        None,
+                        "Student limit is full. "
+                        "Please contact the portal admin to extend your seats.",
+                    )
+            # If no errors were added (seat limit OK or no tenant context),
+            # proceed with saving the student.
+            if not form.errors:
+                student = form.save()
+                messages.success(
+                    request,
+                    f"Student '{student.name}' registered successfully "
+                    f"with ID {student.student_id}.",
+                )
+                return redirect(
+                    "students:detail", student_id=student.student_id
+                )
     else:
         # Preselect class if passed in GET param
         initial = {}

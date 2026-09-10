@@ -35,7 +35,7 @@
             {% endfor %}
         {% endif %}
 
-        <form method="post" action="{% tenant_url 'tenants:school_add' %}">
+        <form method="post" action="{% if tenant %}{% tenant_url 'tenants:school_edit' tenant.slug %}{% else %}{% tenant_url 'tenants:school_add' %}{% endif %}">
             {% csrf_token %}
 
             <div class="form-group">
@@ -51,6 +51,22 @@
                 <input type="text" name="slug" id="slug" required
                        pattern="[a-z0-9-]+" placeholder="e.g. al-huda-academy">
                 <div class="help-text">Lowercase letters, numbers, and hyphens only. This becomes the school's URL: /t/&lt;slug&gt;/</div>
+            </div>
+
+            <div class="form-group">
+                <label for="admin_username">Admin Username *</label>
+                <input type="text" name="admin_username" id="admin_username" required
+                       placeholder="e.g. admin_alhuda"
+                       pattern="[a-zA-Z0-9_]+"
+                       title="Only letters, numbers, and underscores are allowed.">
+                <div class="help-text">Custom username for the initial school admin account. This account will be created in the tenant's database.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="admin_password">Admin Password *</label>
+                <input type="password" name="admin_password" id="admin_password" required
+                       minlength="8" placeholder="At least 8 characters">
+                <div class="help-text">Password for the initial admin account. It will be securely hashed (PBKDF2) before storage.</div>
             </div>
             {% endif %}
 

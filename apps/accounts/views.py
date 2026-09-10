@@ -24,6 +24,10 @@ MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_DURATION_SECONDS = 300
 REMEMBER_ME_SECONDS = 14 * 24 * 60 * 60  # "Remember me" keeps the session 2 weeks
 
+LOCK_MESSAGE = (
+    "Portal is blocked by the portal admin, please contact portal support."
+)
+
 
 def _get_client_ip(request):
     """Retrieve the client IP address from request headers."""
@@ -107,7 +111,23 @@ def admin_login(request):
       * STUDENT -> Student Portal
     - Rotates the session key on login (anti-fixation).
     - Honors a validated ``next`` parameter; open redirects are blocked.
+    - Blocks login when the tenant's portal is locked (``is_locked=True``).
     """
+    # Defense-in-depth: the TenantMiddleware already blocks locked tenants,
+    # but we double-check here so that any login *attempt* — even if it
+    # somehow reaches the view — is intercepted with the exact message.
+    tenant = getattr(request, "tenant", None)
+    if tenant is not None and tenant.is_locked:
+        return render(
+            request,
+            "tenants/locked.html",
+            {
+                "tenant": tenant,
+                "lock_message": LOCK_MESSAGE,
+            },
+            status=403,
+        )
+
     if request.user.is_authenticated:
         return redirect(_redirect_for_role(request.user, request))
 

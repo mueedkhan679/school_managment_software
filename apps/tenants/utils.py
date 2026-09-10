@@ -88,7 +88,7 @@ def register_tenant_db(tenant) -> None:
     }
 
 
-def provision_tenant_db(tenant):
+def provision_tenant_db(tenant, admin_username=None, admin_password=None):
     """Create and fully migrate a new tenant database.
 
     Steps:
@@ -96,7 +96,12 @@ def provision_tenant_db(tenant):
       2. Wipe any pre-existing DB file to avoid locks and "table already exists".
       3. Set permissions.
       4. Run migrations cleanly.
-      5. Seed Admin and SchoolSettings.
+      5. Seed Admin and SchoolSettings using the provided credentials.
+
+    ``admin_username`` and ``admin_password`` allow the Master Admin to choose
+    custom credentials for the school's initial admin account.  When omitted the
+    classic defaults (``admin_<slug>`` / ``MASTER_DEFAULT_ADMIN_PASSWORD``) are
+    used so existing callers keep working.
     """
     register_tenant_db(tenant)
     alias = tenant.db_alias
@@ -141,7 +146,16 @@ def provision_tenant_db(tenant):
     from django.contrib.auth import get_user_model
     User = get_user_model()
 
-    admin_username = f"admin_{tenant.slug.replace('-', '_')}"
+    # Use custom credentials supplied by the Master Admin, falling back to
+    # sensible defaults so existing callers that don't pass credentials still
+    # work.
+    if not admin_username:
+        admin_username = f"admin_{tenant.slug.replace('-', '_')}"
+    if not admin_password:
+        admin_password = getattr(
+            settings, "MASTER_DEFAULT_ADMIN_PASSWORD", "changeme123"
+        )
+
     if not User.objects.using(alias).filter(username=admin_username).exists():
         admin_user = User(
             username=admin_username,
@@ -149,7 +163,7 @@ def provision_tenant_db(tenant):
             is_staff=True,
             is_active=True,
         )
-        admin_user.set_password("changeme123")
+        admin_user.set_password(admin_password)
         admin_user.save(using=alias)
 
     from apps.core.models import SchoolSettings

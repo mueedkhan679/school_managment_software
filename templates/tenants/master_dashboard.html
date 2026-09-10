@@ -22,6 +22,9 @@
         .tenant-table tr:hover { background: #fafafa; }
         .badge-active { background: #d4edda; color: #155724; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
         .badge-suspended { background: #f8d7da; color: #721c24; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-locked { background: #e2d9f3; color: #4a148c; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-unlocked { background: #d1ecf1; color: #0c5460; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .stat-locked { color: #6f42c1; }
         .actions-cell { display: flex; gap: 6px; flex-wrap: wrap; }
         .actions-cell a, .actions-cell button { font-size: 12px; padding: 4px 10px; border-radius: 4px; text-decoration: none; border: 1px solid #ccc; background: #fff; cursor: pointer; color: #333; }
         .actions-cell a:hover, .actions-cell button:hover { background: #f0f0f0; }
@@ -73,6 +76,10 @@
                 <div class="label">Suspended</div>
                 <div class="value" style="color: #dc3545;">{{ suspended_count }}</div>
             </div>
+            <div class="stat-card">
+                <div class="label">Locked</div>
+                <div class="value stat-locked">{{ locked_count }}</div>
+            </div>
         </div>
 
         <div class="toolbar">
@@ -89,6 +96,8 @@
                     <th>Slug / URL</th>
                     <th>Contact</th>
                     <th>Status</th>
+                    <th>Lock</th>
+                    <th>Max Students</th>
                     <th>Created</th>
                     <th>Actions</th>
                 </tr>
@@ -112,6 +121,14 @@
                             <span class="badge-suspended">● Suspended</span>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if tenant.is_locked %}
+                            <span class="badge-locked">🔒 Locked</span>
+                        {% else %}
+                            <span class="badge-unlocked">🔓 Unlocked</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ tenant.max_students }}</td>
                     <td>{{ tenant.created_at|date:"M d, Y" }}</td>
                     <td>
                         <div class="actions-cell">
@@ -124,6 +141,14 @@
                                     <button type="submit" class="btn-success">Activate</button>
                                 {% endif %}
                             </form>
+                            <form method="post" action="{% tenant_url 'tenants:school_lock' tenant.slug %}" style="display:inline;">
+                                {% csrf_token %}
+                                {% if tenant.is_locked %}
+                                    <button type="submit" class="btn-warning" onclick="return confirm('Unlock {{ tenant.school_name }}?')" title="Unlock Portal">Unlock</button>
+                                {% else %}
+                                    <button type="submit" class="btn-warning" onclick="return confirm('Lock {{ tenant.school_name }}? Users will be blocked from logging in.')" title="Lock Portal">Lock</button>
+                                {% endif %}
+                            </form>
                             <a href="{% tenant_url 'tenants:school_reset_password' tenant.slug %}">Reset Password</a>
                             <form method="post" action="{% tenant_url 'tenants:school_delete' tenant.slug %}" style="display:inline;">
                                 {% csrf_token %}
@@ -134,7 +159,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 40px; color: #888;">
+                    <td colspan="8" style="text-align: center; padding: 40px; color: #888;">
                         No schools registered yet. Click "Add New School" to get started.
                     </td>
                 </tr>

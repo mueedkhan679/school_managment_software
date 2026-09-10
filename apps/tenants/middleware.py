@@ -156,6 +156,24 @@ class TenantMiddleware:
                     status=403,
                 )
 
+            # Portal Lock enforcement.
+            if tenant.is_locked:
+                logger.info(
+                    "tenant_locked slug=%s method=%s path=%s",
+                    tenant_slug,
+                    identification_method,
+                    path,
+                )
+                return render(
+                    request,
+                    "tenants/locked.html",
+                    {
+                        "tenant": tenant,
+                        "identification_method": identification_method,
+                    },
+                    status=403,
+                )
+
             # Register the tenant's DB connection if not already done.
             try:
                 register_tenant_db(tenant)

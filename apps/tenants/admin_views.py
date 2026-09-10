@@ -3,6 +3,7 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db import connections
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 import logging
 
@@ -34,19 +35,28 @@ def master_dashboard(request):
         "total_count": Tenant.objects.count(),
         "active_count": Tenant.objects.filter(is_active=True).count(),
         "suspended_count": Tenant.objects.filter(is_active=False).count(),
+        "locked_count": Tenant.objects.filter(is_locked=True).count(),
     }
     return render(request, "tenants/master_dashboard.html", context)
 
 
 @superadmin_required
 def school_add(request):
-    """Create a new tenant school and provision its database."""
+    """Create a new tenant school and provision its database.
+
+    The Master Admin may optionally supply custom admin credentials
+    (username + password) for the initial superuser account that gets
+    seeded inside the new tenant's database.  When omitted, sensible
+    defaults are used by :func:`provision_tenant_db`.
+    """
     if request.method == "POST":
         school_name = request.POST.get("school_name", "").strip()
         slug = request.POST.get("slug", "").strip().lower().replace(" ", "-")
         admin_email = request.POST.get("admin_email", "").strip()
         admin_phone = request.POST.get("admin_phone", "").strip()
         max_students = request.POST.get("max_students", "500").strip()
+        admin_username = request.POST.get("admin_username", "").strip()
+        admin_password = request.POST.get("admin_password", "").strip()
 
         if not school_name or not slug:
             messages.error(request, "School name and slug are required.")
@@ -62,6 +72,24 @@ def school_add(request):
                 "action_text": "Create School & Provision Database",
             })
 
+        # Validate custom admin credentials when provided.
+        if admin_username and not admin_password:
+            messages.error(
+                request, "If you provide a custom admin username, a password is required."
+            )
+            return render(request, "tenants/school_form.html", {
+                "title": "Add New School",
+                "action_text": "Create School & Provision Database",
+            })
+        if admin_username and len(admin_password) < 8:
+            messages.error(
+                request, "The custom admin password must be at least 8 characters long."
+            )
+            return render(request, "tenants/school_form.html", {
+                "title": "Add New School",
+                "action_text": "Create School & Provision Database",
+            })
+
         tenant = Tenant.objects.create(
             school_name=school_name,
             slug=slug,
@@ -71,12 +99,16 @@ def school_add(request):
         )
 
         # Provision the tenant database (create DB, run migrations, seed admin user)
-        admin_username = provision_tenant_db(tenant)
+        admin_username = provision_tenant_db(
+            tenant,
+            admin_username=admin_username or None,
+            admin_password=admin_password or None,
+        )
 
         messages.success(
             request,
             f"School '{tenant.school_name}' created successfully! "
-            f"Database provisioned. Default admin: {admin_username} / changeme123"
+            f"Database provisioned. Admin account username: {admin_username}"
         )
         return redirect("tenants:master_dashboard")
 
@@ -120,6 +152,30 @@ def school_toggle(request, slug):
 
     status_text = "activated" if tenant.is_active else "suspended"
     messages.success(request, f"School '{tenant.school_name}' has been {status_text}.")
+    return redirect("tenants:master_dashboard")
+
+
+@superadmin_required
+@require_POST
+def school_lock(request, slug):
+    """Toggle a school's portal Lock (is_locked).
+
+    When locked the TenantMiddleware intercepts every request for that
+    tenant and displays the portal-blocked message.  Only the Master Admin
+    (whose requests bypass the tenant middleware) can unlock the portal.
+    """
+    tenant = get_object_or_404(Tenant, slug=slug)
+    tenant.is_locked = not tenant.is_locked
+    tenant.save(update_fields=["is_locked", "updated_at"])
+
+    if tenant.is_locked:
+        messages.success(
+            request, f"Portal for '{tenant.school_name}' has been locked."
+        )
+    else:
+        messages.success(
+            request, f"Portal for '{tenant.school_name}' has been unlocked."
+        )
     return redirect("tenants:master_dashboard")
 
 

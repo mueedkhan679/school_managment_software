@@ -31,6 +31,10 @@ class Tenant(models.Model):
         default=True,
         help_text="Kill Switch — when False, all requests for this tenant return a Suspended page.",
     )
+    is_locked = models.BooleanField(
+        default=False,
+        help_text="Lock school portal — when True, users are blocked and see a custom message.",
+    )
     admin_email = models.EmailField(blank=True, default="")
     admin_phone = models.CharField(max_length=20, blank=True, default="")
     max_students = models.PositiveIntegerField(
