@@ -22,7 +22,7 @@
 
     <!-- Student Form Panel -->
     <div class="panel">
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" action="{% tenant_url 'students:create' %}">
             {% csrf_token %}
 
             {% if form.non_field_errors %}

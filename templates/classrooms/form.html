@@ -18,7 +18,7 @@
 
     <!-- Edit Card Panel -->
     <div class="panel">
-        <form method="post">
+        <form method="post" action="{% tenant_url 'classrooms:form' %}">
             {% csrf_token %}
             {% if form.non_field_errors %}
                 <div class="alert alert-error">

@@ -19,7 +19,7 @@
         <div class="dashboard-actions">
             {% if not single %}
                 <!-- Class filter -->
-                <form method="get" style="display:inline;">
+                <form method="get" action="{% tenant_url 'accounts:id_card_student' %}" style="display:inline;">
                     <select name="class_id" class="form-control" onchange="this.form.submit()" style="max-width:180px;">
                         <option value="">All Classes</option>
                         {% for c in classes %}

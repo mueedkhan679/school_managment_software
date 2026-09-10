@@ -35,7 +35,7 @@
             {% endfor %}
         {% endif %}
 
-        <form method="post">
+        <form method="post" action="{% tenant_url 'tenants:school_add' %}">
             {% csrf_token %}
 
             <div class="form-group">

@@ -247,7 +247,7 @@
             <h3 class="text-danger">Confirm Delete Salary Record</h3>
             <button type="button" class="modal-close" onclick="closeDeleteSalaryModal()">&times;</button>
         </div>
-        <form id="delete-sal-form" method="post" action="">
+        <form id="delete-sal-form" method="post" action="{% tenant_url 'teachers:salary_delete' pk=0 %}">
             {% csrf_token %}
             <div class="modal-body">
                 <p id="delete-sal-msg">Are you sure you want to delete this salary payment?</p>
@@ -263,7 +263,7 @@
 <script>
 function confirmDeleteSalary(salId, teacherName, salaryMonth, amount) {
     const form = document.getElementById('delete-sal-form');
-    form.action = `/teachers/salaries/${salId}/delete/`;
+    form.action = `{% tenant_url 'teachers:salary_delete' pk=0 %}`.replace('0', salId);
     document.getElementById('delete-sal-msg').innerHTML = `Are you sure you want to delete salary payment of <strong>Rs ${amount}</strong> for <strong>${teacherName}</strong> (${salaryMonth})?`;
     document.getElementById('delete-sal-modal').style.display = 'flex';
 }

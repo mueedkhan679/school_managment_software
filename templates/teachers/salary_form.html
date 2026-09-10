@@ -18,7 +18,7 @@
 
     <!-- Salary Form Panel -->
     <div class="panel">
-        <form method="post">
+        <form method="post" action="{% tenant_url 'teachers:salary_create' %}">
             {% csrf_token %}
 
             {% if form.non_field_errors %}

@@ -76,7 +76,7 @@
         </div>
 
         <div class="toolbar">
-            <form method="get" class="search-box">
+            <form method="get" action="{% tenant_url 'tenants:master_dashboard' %}" class="search-box">
                 <input type="text" name="q" value="{{ query }}" placeholder="Search schools...">
             </form>
             <a href="{% tenant_url 'tenants:school_add' %}" class="btn-primary">+ Add New School</a>
