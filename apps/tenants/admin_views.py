@@ -2,8 +2,10 @@
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render
+from django.db import connections
+import logging
+
+logger = logging.getLogger("tenants.admin_views")
 from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Role
@@ -128,9 +130,19 @@ def school_reset_password(request, slug):
     # Ensure tenant DB is registered
     register_tenant_db(tenant)
     alias = tenant.db_alias
+    admin_users = User.objects.none()
 
-    # Get all admin users in the tenant DB
-    admin_users = User.objects.using(alias).filter(role=Role.ADMIN)
+    if alias in connections.databases:
+        try:
+            # 2. Extract role properly
+            role_val = Role.ADMIN.value if hasattr(Role.ADMIN, 'value') else str(Role.ADMIN)
+            
+            # 3. Robust query with fallback
+            admin_users = User.objects.using(alias).filter(role=role_val)
+            if not admin_users.exists():
+                admin_users = User.objects.using(alias).filter(username__startswith='admin_')
+        except Exception as e:
+            logger.exception(f"Failed to fetch admin users for tenant {tenant.slug}: {e}")
 
     if request.method == "POST":
         user_id = request.POST.get("user_id")
@@ -149,8 +161,9 @@ def school_reset_password(request, slug):
                 f"Password for '{target_user.username}' at {tenant.school_name} has been reset."
             )
             return redirect("tenants:master_dashboard")
-        except User.DoesNotExist:
-            messages.error(request, "User not found in this school's database.")
+        except Exception as e:
+            logger.exception(f"Error resetting password for user {user_id} in {tenant.slug}: {e}")
+            messages.error(request, "Error resetting password.")
 
     context = {
         "tenant": tenant,
