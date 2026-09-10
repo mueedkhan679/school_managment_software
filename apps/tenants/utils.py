@@ -79,13 +79,72 @@ def register_tenant_db(tenant) -> None:
         "AUTOCOMMIT": True,
         "CONN_MAX_AGE": 0,
         "CONN_HEALTH_CHECKS": False,
-        "OPTIONS": {},
+        "OPTIONS": {
+            # Avoid "database is locked" errors while the DB is being
+            # migrated/heavily written (configured for every tenant).
+            "timeout": 30,
+        },
         "TIME_ZONE": None,
         "USER": "",
         "PASSWORD": "",
         "HOST": "",
         "PORT": "",
     }
+
+
+def migrate_tenant_db(tenant, interactive=False, verbosity=1, fake=False):
+    """Apply all pending Django migrations to a tenant's database.
+
+    Runs ``migrate`` against ``tenant.db_alias`` so every school-scoped table
+    (students, teachers, fees, attendance, classrooms, ...) as well as the
+    shared framework tables (auth, contenttypes, admin) are created or updated
+    inside that tenant's SQLite file.  New tenants call this automatically from
+    :func:`provision_tenant_db`; existing tenants can be caught up with the
+    ``migrate_tenants`` management command or after a master ``migrate`` via the
+    ``post_migrate`` receiver in ``apps.tenants.apps``.
+
+    Raises on hard migration errors (after attempting the ``--fake`` fallback
+    used for pre-existing table collisions); always closes the connection.
+
+    Returns ``True`` on success.
+    """
+    register_tenant_db(tenant)
+    alias = tenant.db_alias
+    try:
+        call_command(
+            "migrate",
+            database=alias,
+            interactive=interactive,
+            verbosity=verbosity,
+            fake=fake,
+        )
+    except Exception as exc:
+        if fake:
+            raise
+        if "already exists" in str(exc).lower():
+            # Collision from an earlier half-created schema — record the
+            # remaining migrations as applied without re-running the DDL.
+            logger.warning(
+                "Table collision during migrate for tenant %s; fake-applying "
+                "remaining migrations.",
+                tenant.slug,
+            )
+            call_command(
+                "migrate",
+                database=alias,
+                interactive=False,
+                fake=True,
+                verbosity=verbosity,
+            )
+        else:
+            logger.exception(
+                "migrate_tenant_db failed for tenant %s (%s)", tenant.slug, alias
+            )
+            raise
+    finally:
+        if alias in connections:
+            connections[alias].close()
+    return True
 
 
 def ensure_tenant_admin(tenant, admin_username=None, admin_password=None):
@@ -186,21 +245,12 @@ def provision_tenant_db(tenant, admin_username=None, admin_password=None):
     if main_db.exists():
         os.chmod(main_db, 0o666)
 
-    # 4. Migrate safely without duplicate table crash
-    settings.DATABASES[alias]['OPTIONS'] = {'timeout': 30}
-    try:
-        call_command('migrate', database=alias, interactive=False, verbosity=0)
-    except Exception as e:
-        if "already exists" in str(e):
-            try:
-                call_command('migrate', database=alias, interactive=False, fake=True, verbosity=0)
-            except Exception:
-                pass
-        else:
-            raise e
-    finally:
-        connections[alias].close()
-        connections['default'].close()
+    # 4. Apply every migration to the fresh database. This runs
+    #    ``call_command("migrate", database=<alias>)`` so ALL tables are fully
+    #    created — students, teachers (incl. teacher salaries), fees,
+    #    attendance, classrooms, accounts, plus the shared framework tables.
+    migrate_tenant_db(tenant, interactive=False, verbosity=0)
+    connections['default'].close()
 
     # 5. Seed the ADMIN user and SchoolSettings.
     # The ADMIN-role user is created explicitly inside the tenant DB so the

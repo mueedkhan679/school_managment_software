@@ -70,7 +70,7 @@ INSTALLED_APPS = [
     # can create the tenant registry in the master DB before school-scoped apps run).
     # Multi-Tenant SaaS engine (must come after auth/contenttypes so its migrations
     # can create the tenant registry in the master DB before school-scoped apps run).
-    'apps.tenants',
+    'apps.tenants.apps.TenantsConfig',
 ]
 
 MIDDLEWARE = [
