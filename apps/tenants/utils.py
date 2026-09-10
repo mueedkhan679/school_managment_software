@@ -120,22 +120,18 @@ def provision_tenant_db(tenant):
     if main_db.exists():
         os.chmod(main_db, 0o666)
 
-    # 4. Migrate cleanly with direct SQLite table existence check
+    # 4. Migrate safely without duplicate table crash
     settings.DATABASES[alias]['OPTIONS'] = {'timeout': 30}
     try:
-        import sqlite3
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='students_studentacademichistory';")
-        table_exists = cursor.fetchone()
-        conn.close()
-
-        if not table_exists:
-            call_command('migrate', database=alias, interactive=False, verbosity=0)
+        call_command('migrate', database=alias, interactive=False, verbosity=0)
+    except Exception as e:
+        if "already exists" in str(e):
+            try:
+                call_command('migrate', database=alias, interactive=False, fake=True, verbosity=0)
+            except Exception:
+                pass
         else:
-            # If the table already exists, fake-apply migrations to sync state safely
-            call_command('migrate', database=alias, interactive=False, fake=True, verbosity=0)
-            
+            raise e
     finally:
         connections[alias].close()
         connections['default'].close()
