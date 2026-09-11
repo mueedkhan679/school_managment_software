@@ -1,0 +1,42 @@
+name: student_portal_app
+description: "Student Portal Mobile Application for School Management System"
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  flutter_secure_storage: ^9.0.0
+  http: ^1.2.1
+  qr_flutter: ^4.1.0
+  intl: ^0.19.0
+  flutter_animate: ^4.5.0
+  google_fonts: ^6.1.0
+  table_calendar: ^3.0.9
+  mobile_scanner: ^6.0.0
+  flutter_spinkit: ^5.2.2
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1
+  path_provider: ^2.1.6
+  firebase_core: ^4.14.0
+  firebase_messaging: ^16.6.0
+  flutter_local_notifications: ^19.0.0
+  open_filex: ^4.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+dependency_overrides:
+  # sqflite_android 2.4.2+/2.4.3 reference Android API-36 ("Baklava") symbols
+  # which failed earlier, but since we forced compileSdk=36 in build.gradle.kts,
+  # it's now safe to use 2.4.3.
+  sqflite_android: 2.4.3
+
+flutter:
+  uses-material-design: true

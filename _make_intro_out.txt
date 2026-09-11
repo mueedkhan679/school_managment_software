@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "c:\Users\ytmoi\Desktop\school_project\_make_intro.py", line 179, in <module>
+    writer = imageio.get_writer(
+        str(OUT), fps=FPS, codec="libx264", quality=8,
+        pixelformat="yuv420p",
+        output_params=["-movflags", "+faststart", "-profile:v", "high"],
+    )
+  File "C:\Users\ytmoi\AppData\Local\Programs\Python\Python314\Lib\site-packages\imageio\v2.py", line 324, in get_writer
+    image_file = imopen(uri, "w" + mode, **imopen_args)
+  File "C:\Users\ytmoi\AppData\Local\Programs\Python\Python314\Lib\site-packages\imageio\core\imopen.py", line 113, in imopen
+    request = Request(uri, io_mode, format_hint=format_hint, extension=extension)
+  File "C:\Users\ytmoi\AppData\Local\Programs\Python\Python314\Lib\site-packages\imageio\core\request.py", line 251, in __init__
+    self._parse_uri(uri)
+    ~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\ytmoi\AppData\Local\Programs\Python\Python314\Lib\site-packages\imageio\core\request.py", line 418, in _parse_uri
+    raise FileNotFoundError(
+        errno.ENOENT, "The directory does not exist", dn
+    )
+FileNotFoundError: [Errno 2] The directory does not exist: 'C:\\Users\\ytmoi\\Desktop\\school_project\\student_portal_app\\assets\\videos'

@@ -44,6 +44,30 @@ class Tenant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Migration/lifecycle tracking — set by the auto-provision signal.
+    migration_status = models.CharField(
+        max_length=20,
+        default="PENDING",
+        choices=[
+            ("PENDING", "Pending"),
+            ("PROVISIONING", "Provisioning"),
+            ("OK", "OK"),
+            ("FAILED", "Failed"),
+        ],
+        editable=False,
+        help_text=(
+            "Auto-migration status of the tenant database. "
+            "PROVISIONING = migration in progress; OK = schema up to date; "
+            "FAILED = the last auto-migration raised an unhandled error."
+        ),
+    )
+    error_log = models.TextField(
+        blank=True,
+        default="",
+        editable=False,
+        help_text="Last auto-migration failure traceback (plain text).",
+    )
+
     class Meta:
         ordering = ["school_name"]
         verbose_name = "Tenant School"

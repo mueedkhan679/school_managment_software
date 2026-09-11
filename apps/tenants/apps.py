@@ -14,7 +14,7 @@ import os
 
 from django.apps import AppConfig
 from django.db import connection
-from django.db.models.signals import post_migrate
+from django.db.models.signals import post_migrate, pre_save, post_save
 
 logger = logging.getLogger("tenants.apps")
 
@@ -106,3 +106,17 @@ class TenantsConfig(AppConfig):
         if not getattr(self, "_tenant_post_migrate_connected", False):
             post_migrate.connect(_auto_migrate_existing_tenants, sender=self)
             self._tenant_post_migrate_connected = True
+
+        if not getattr(self, "_tenant_save_signals_connected", False):
+            # Automatically provision + migrate brand-new tenant databases as soon
+            # as the School/Tenant record is created (the permanent fix for missing
+            # tenant tables).  See apps.tenants.signals for the implementation.
+            from apps.tenants.models import Tenant
+            from apps.tenants.signals import (
+                _on_tenant_post_save,
+                _on_tenant_pre_save,
+            )
+
+            pre_save.connect(_on_tenant_pre_save, sender=Tenant)
+            post_save.connect(_on_tenant_post_save, sender=Tenant)
+            self._tenant_save_signals_connected = True
