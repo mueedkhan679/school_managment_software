@@ -1,4 +1,4 @@
 @echo off
-cd /d c:\Users\ytmoi\Desktop\school_project\student_portal_app
+cd /d "%~dp0"
 C:\flutter\flutter\bin\flutter.bat pub get > _pubget_log.txt 2>&1
-echo EXITCODE=%ERRORLEVEL% >> _pubget_log.txt
+echo PUBGET_EXIT=%ERRORLEVEL% >> _pubget_log.txt

@@ -26,6 +26,8 @@ dependencies:
   firebase_messaging: ^16.6.0
   flutter_local_notifications: ^19.0.0
   open_filex: ^4.5.0
+  # Cinematic intro splash: plays assets/videos/intro.mp4 on app startup.
+  video_player: ^2.9.0
 
 dev_dependencies:
   flutter_test:
@@ -40,3 +42,7 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/videos/
+    - assets/images/
