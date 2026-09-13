@@ -36,12 +36,6 @@ class User(AbstractUser):
         help_text="Designates access to the /master-admin/ super-admin portal.",
     )
 
-    # Master-admin portal access flag.
-    is_superadmin = models.BooleanField(
-        default=False,
-        help_text="Designates access to the /master-admin/ super-admin portal.",
-    )
-
     class Meta:
         verbose_name = "User"
         verbose_name_plural = "Users"

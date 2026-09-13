@@ -16,6 +16,11 @@ from apps.core.models import SchoolSettings  # noqa: E402
 
 from django.core.cache import cache
 
+import logging
+
+
+logger = logging.getLogger("accounts.views")
+
 ERROR_INVALID_CREDENTIALS = "Invalid username or password."
 ERROR_DISABLED_ACCOUNT = "Your account is disabled. Please contact the administrator."
 ERROR_NOT_ADMIN = "Access denied: this account is not an administrator."
@@ -157,6 +162,15 @@ def admin_login(request):
                 try:
                     existing = _get_user_in_tenant_context(request, username)
                 except Exception:
+                    # Do not silently turn a tenant DB/routing failure into an
+                    # "invalid credentials" response: it makes a broken
+                    # tenant login indistinguishable from a bad password.
+                    logger.exception(
+                        "login_account_lookup_failed username=%s tenant=%s path=%s",
+                        username,
+                        getattr(request, "tenant_slug", None),
+                        request.path,
+                    )
                     existing = None
                 if existing is not None and not existing.is_active:
                     form.add_error(None, ERROR_DISABLED_ACCOUNT)

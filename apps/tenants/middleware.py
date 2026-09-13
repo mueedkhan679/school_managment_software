@@ -49,6 +49,22 @@ _BYPASS_PREFIXES = [
     "/favicon.ico",
 ]
 
+
+def is_login_page(path: str) -> bool:
+    """Return True if the path corresponds to the tenant-aware login page.
+
+    Matches ``/accounts/login/`` as well as any tenant-prefixed variant such
+    as ``/t/<slug>/accounts/login/`` (URL-prefix mode).  The middleware uses
+    this to guarantee that the login page is always reachable by anonymous
+    users — a 403 must never be triggered by tenant plumbing on a login URL.
+    """
+    if not path:
+        return False
+    normalised = path.rstrip("/")
+    return normalised == "/accounts/login" or normalised.endswith(
+        "/accounts/login"
+    )
+
 # Regex to extract tenant slug from URL: /t/<slug>/...
 _TENANT_URL_PATTERN = re.compile(r"^/t/(?P<slug>[a-zA-Z0-9_-]+)/")
 
@@ -133,6 +149,27 @@ class TenantMiddleware:
             try:
                 tenant = Tenant.objects.get(slug=tenant_slug)
             except Tenant.DoesNotExist:
+                # A login page must NEVER be blocked by tenant plumbing:
+                # if the slug is unknown, fall through to the master DB and
+                # let the standard login view render (anonymous users can
+                # still authenticate against the default database).
+                if is_login_page(path):
+                    logger.warning(
+                        "login_page_unknown_tenant slug=%s method=%s "
+                        "path=%s — rendering login without tenant context",
+                        tenant_slug,
+                        identification_method,
+                        path,
+                    )
+                    set_current_db_alias(None)
+                    # Strip the /t/<slug>/ prefix so the URLconf can resolve
+                    # the standard login view (otherwise the un-stripped
+                    # path would 404).
+                    if identification_method == "path":
+                        request.path_info = _TENANT_URL_PATTERN.sub("/", path)
+                        if hasattr(request, "META"):
+                            request.META["PATH_INFO"] = request.path_info
+                    return self.get_response(request)
                 logger.warning(
                     "tenant_lookup_failed slug=%s method=%s path=%s",
                     tenant_slug,

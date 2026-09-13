@@ -517,26 +517,29 @@ def ensure_tenant_admin(tenant, admin_username=None, admin_password=None):
 def _validate_admin_provisioning_contract():
     """Lightweight runtime assertion that the admin provisioning contract is intact.
 
-    This is intentionally placed after ``ensure_tenant_admin`` so that the
-    module can always be imported (even in environments without a DB) and so
-    that the assertion runs only when the function is actually defined.
+    Inspects the *source code* of ``ensure_tenant_admin`` and its flag-setting
+    helper ``set_default_admin_user_credentials`` so a regression (e.g. someone
+    dropping the ``is_superuser=True`` assignment) fails loudly at import time
+    instead of surfacing as a 403 Access Denied at runtime.
     """
-    expected_in_source = [
-        "role=Role.ADMIN",
-        "is_superuser=True",
-        "is_staff=True",
-        "is_active=True",
-        "is_superadmin=False",
+    import inspect
+
+    expected_markers = [
+        # set_default_admin_user_credentials — the authorization flags
+        "is_superuser = True",
+        "is_staff = True",
+        "is_active = True",
+        "is_superadmin = False",
+        "user.role = role_model.ADMIN",
+        # ensure_tenant_admin — persistence inside the tenant database
+        "set_default_admin_user_credentials(admin, Role)",
         "admin.save(using=alias)",
         "User.objects.using(alias).get(pk=admin.pk)",
     ]
-    missing = [
-        kw for kw in expected_in_source if kw not in ensure_tenant_admin.__code__.co_consts
-    ] or [
-        kw
-        for kw in expected_in_source
-        if kw not in ensure_tenant_admin.__doc__
-    ]
+    source = inspect.getsource(ensure_tenant_admin) + "\n" + inspect.getsource(
+        set_default_admin_user_credentials
+    )
+    missing = [kw for kw in expected_markers if kw not in source]
     if missing:
         raise RuntimeError(
             "Tenant admin provisioning contract is broken. "

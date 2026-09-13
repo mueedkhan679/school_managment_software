@@ -105,4 +105,18 @@ class TenantRouter:
             return True
 
         # School-scoped apps only migrate onto tenant databases.
-        return db != "default"
+        if db == "default":
+            # Exception: when Django's test runner builds its throwaway test
+            # database on the ``default`` alias (``manage.py test``), every
+            # app must be migrated there or the whole suite fails with
+            # "no such table".  Test databases are named ``test_<NAME>`` or,
+            # for SQLite in-memory, ``file:memorydb_<alias>...``.
+            from django.db import connections
+
+            name = ""
+            if db in connections.databases:
+                name = str(connections.databases[db].get("NAME", ""))
+            if name.startswith("test") or "memorydb_" in name:
+                return True
+            return False
+        return True
