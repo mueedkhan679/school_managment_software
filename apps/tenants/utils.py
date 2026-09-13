@@ -553,14 +553,21 @@ def _validate_admin_provisioning_contract():
     )
 
 
-# Validate the admin provisioning contract at import time (best-effort, no-op
-# if the function has not yet been defined or if this import happens before
-# Django is configured).  Re-raising NameError/RuntimeError here keeps the
-# fix visible at startup instead of surfacing as a 403 Access Denied later.
+# This source-level assertion is useful during development, but it must never
+# make a deployment unavailable.  ``utils`` is imported while Django creates
+# the WSGI application, so raising here turns an implementation diagnostic
+# into a site-wide startup outage (notably on PythonAnywhere).
+#
+# Keep the check as a logged diagnostic; provisioning itself still validates
+# and writes the required admin flags when it runs.
 try:
     _validate_admin_provisioning_contract()
-except (NameError, RuntimeError):
-    raise
+except Exception:  # noqa: BLE001 - import-time validation must be non-fatal
+    logger.exception(
+        "Tenant admin provisioning contract validation failed during import; "
+        "continuing startup. Review ensure_tenant_admin before provisioning "
+        "new tenants."
+    )
 
 
 
