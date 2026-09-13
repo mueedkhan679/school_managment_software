@@ -173,7 +173,7 @@ MASTER_ADMIN_URL_PREFIX = os.environ.get("MASTER_ADMIN_URL_PREFIX", "/master-adm
 # this should be overridden by MASTER_DEFAULT_ADMIN_PASSWORD or rotated
 # immediately after provisioning.
 MASTER_DEFAULT_ADMIN_PASSWORD = os.environ.get(
-    "MASTER_DEFAULT_ADMIN_PASSWORD", "changeme123"
+    "MASTER_DEFAULT_ADMIN_PASSWORD", "adminpassword123"
 )
 
 # When True the TenantMiddleware verifies every tenant DB schema on first load

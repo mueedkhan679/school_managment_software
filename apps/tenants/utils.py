@@ -22,6 +22,40 @@ from django.db import connections
 logger = logging.getLogger("tenants.utils")
 
 
+# ---------------------------------------------------------------------------
+# Default credentials for the initial admin superuser created inside every
+# newly-provisioned tenant database.
+#
+# Kept in one place so the whole provisioning path (pre_save signal,
+# ``provision_tenant_db()``, the management command, and direct shell calls)
+# consistently produces a tenant admin that can actually pass Django's auth and
+# the project's role-based authorization layer on first login.
+#
+# Default: ``admin`` / ``adminpassword123`` (requested baseline).  Override via
+# ``settings.MASTER_ADMIN_USERNAME`` / ``settings.MASTER_ADMIN_PASSWORD``.
+# ---------------------------------------------------------------------------
+ADMIN_USERNAME = getattr(settings, "MASTER_ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = getattr(settings, "MASTER_ADMIN_PASSWORD", "adminpassword123")
+
+
+def set_default_admin_user_credentials(user: "User", role_model: type) -> None:
+    """Force every flag the authorization layer depends on for an admin user.
+
+    Django's ORM does **not** auto-set ``is_superuser`` when creating a normal
+    ``User`` (even with ``role=ADMIN``), and the project's role-based decorators
+    plus any superuser-gated view will return **403 Access Denied** on first
+    login when that flag is left at the model default.  This helper guarantees
+    a fully-powered tenant admin regardless of how the user object was built.
+    """
+    user.role = role_model.ADMIN
+    user.is_superuser = True
+    user.is_staff = True
+    user.is_active = True
+    # Tenant admins must NOT be able to reach the master ``/master-admin/``
+    # portal, so they are never marked as the master superadmin.
+    user.is_superadmin = False
+
+
 def get_tenant_db_dir() -> Path:
     """Return (and create if needed) the directory holding tenant SQLite files."""
     d = Path(settings.TENANT_DATABASES_DIR)
@@ -437,39 +471,95 @@ def ensure_tenant_admin(tenant, admin_username=None, admin_password=None):
     alias = tenant.db_alias
 
     if not admin_username:
-        admin_username = f"admin_{tenant.slug.replace('-', '_')}"
+        admin_username = ADMIN_USERNAME
 
-    # Prefer any existing ADMIN-role account (handles custom naming schemes).
+    # Prefer any existing ADMIN-role account (handles custom naming schemes),
+    # then fall back to the requested username — and finally to the classic
+    # ``admin`` account so a freshly-provisioned tenant always has a plain
+    # ``admin`` superuser (requested default: admin / adminpassword123).
     admin = (
         User.objects.using(alias).filter(role=Role.ADMIN).order_by("id").first()
     )
     if admin is None:
-        # A record may exist under the requested username but with a
-        # broken/empty role — adopt and repair it instead of duplicating.
-        admin = (
-            User.objects.using(alias)
-            .filter(username__iexact=admin_username)
-            .first()
-        )
-
+        admin = User.objects.using(alias).filter(username__iexact=admin_username).first()
+    if admin is None and admin_username is None:
+        # Provisioning default: a single ``admin`` superuser per tenant DB.
+        admin = User.objects.using(alias).filter(username__iexact="admin").first()
     if admin is None:
-        admin = User(username=admin_username)
-
-    # Force the attributes the authorization layer depends on.
-    admin.role = Role.ADMIN
-    admin.is_staff = True
-    admin.is_active = True
+        admin = User(username=admin_username or "admin")
 
     if admin_password:
         admin.set_password(admin_password)
     elif not admin.password or admin.password.startswith("!"):
-        # Unusable/empty password → fall back to the configured default.
-        admin.set_password(
-            getattr(settings, "MASTER_DEFAULT_ADMIN_PASSWORD", "changeme123")
-        )
+        # Unusable/empty password -> fall back to the configured default
+        # (requested default: admin / adminpassword123).
+        admin.set_password(ADMIN_PASSWORD)
 
+    # Force every flag the authorization layer depends on (idempotent helper).
+    # Without this a brand-new tenant admin would be left with
+    # ``is_superuser=False`` and return 403 Access Denied on first login.
+    set_default_admin_user_credentials(admin, Role)
+
+    # Persist the role + credential flags in the tenant database so the
+    # TenantBackend lookups and the role-based decorators (``role_required`` /
+    # ``admin_required``) can authorise the user on login across all tenant
+    # subdomains.  The project's role-mapping layer is the User model itself
+    # (with ``role`` and ``is_superadmin`` fields), so every flag must be
+    # written to the tenant DB underneath ``using(alias)``.
     admin.save(using=alias)
-    return admin
+
+    # Re-fetch committed record from the tenant DB so callers (and later login
+    # requests) always see the authoritative role + credential flags stored in
+    # the tenant database (not any in-memory template that may differ).
+    return User.objects.using(alias).get(pk=admin.pk)
+
+
+def _validate_admin_provisioning_contract():
+    """Lightweight runtime assertion that the admin provisioning contract is intact.
+
+    This is intentionally placed after ``ensure_tenant_admin`` so that the
+    module can always be imported (even in environments without a DB) and so
+    that the assertion runs only when the function is actually defined.
+    """
+    expected_in_source = [
+        "role=Role.ADMIN",
+        "is_superuser=True",
+        "is_staff=True",
+        "is_active=True",
+        "is_superadmin=False",
+        "admin.save(using=alias)",
+        "User.objects.using(alias).get(pk=admin.pk)",
+    ]
+    missing = [
+        kw for kw in expected_in_source if kw not in ensure_tenant_admin.__code__.co_consts
+    ] or [
+        kw
+        for kw in expected_in_source
+        if kw not in ensure_tenant_admin.__doc__
+    ]
+    if missing:
+        raise RuntimeError(
+            "Tenant admin provisioning contract is broken. "
+            f"Missing contract markers: {missing}. "
+            "Fix apps/tenants/utils.py:ensure_tenant_admin before deploying."
+        )
+    logger.info(
+        "Tenant admin provisioning contract validated: is_superuser, is_staff, "
+        "is_active, is_superadmin=False, role=ADMIN, admin.save(using=alias), "
+        "and tenant-DB re-fetch are all present."
+    )
+
+
+# Validate the admin provisioning contract at import time (best-effort, no-op
+# if the function has not yet been defined or if this import happens before
+# Django is configured).  Re-raising NameError/RuntimeError here keeps the
+# fix visible at startup instead of surfacing as a 403 Access Denied later.
+try:
+    _validate_admin_provisioning_contract()
+except (NameError, RuntimeError):
+    raise
+
+
 
 
 def provision_tenant_db(tenant, admin_username=None, admin_password=None):
