@@ -4,173 +4,976 @@
 {% block title %}{{ title }} — {{ school_name }}{% endblock %}
 
 {% block content %}
-<div class="dashboard-container" style="max-width: 860px; margin: 0 auto;">
+<style>
+    /* =========================================================
+       TEACHER FORM — MODERN UI
+       Design only — Django logic preserved
+       ========================================================= */
+
+    :root {
+        --tf-primary: #4f46e5;
+        --tf-primary-dark: #4338ca;
+        --tf-primary-light: #eef2ff;
+        --tf-purple: #7c3aed;
+        --tf-blue: #2563eb;
+        --tf-emerald: #059669;
+        --tf-teal: #0f766e;
+        --tf-danger: #dc2626;
+        --tf-danger-light: #fef2f2;
+        --tf-success: #059669;
+        --tf-text: #111827;
+        --tf-muted: #6b7280;
+        --tf-border: #e5e7eb;
+        --tf-background: #f8fafc;
+        --tf-white: #ffffff;
+        --tf-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+        --tf-shadow-hover: 0 18px 45px rgba(15, 23, 42, 0.11);
+    }
+
+    .teacher-form-page {
+        position: relative;
+        max-width: 900px;
+        margin: 0 auto;
+        padding-bottom: 40px;
+    }
+
+    .teacher-form-page::before,
+    .teacher-form-page::after {
+        content: "";
+        position: fixed;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: .12;
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    .teacher-form-page::before {
+        top: 90px;
+        left: 8%;
+        background: #6366f1;
+    }
+
+    .teacher-form-page::after {
+        bottom: 8%;
+        right: 8%;
+        background: #06b6d4;
+    }
+
+    /* Header */
+    .teacher-form-header {
+        margin-bottom: 22px;
+        animation: tfFadeUp .45s ease both;
+    }
+
+    .teacher-form-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 8px 12px;
+        border-radius: 10px;
+        transition: all .2s ease;
+    }
+
+    .teacher-form-back:hover {
+        transform: translateX(-3px);
+    }
+
+    .teacher-form-title {
+        position: relative;
+        display: inline-block;
+        margin: 12px 0 5px;
+        font-size: clamp(26px, 4vw, 34px);
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -0.7px;
+        color: var(--tf-text);
+    }
+
+    .teacher-form-title::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: -8px;
+        width: 58px;
+        height: 4px;
+        border-radius: 10px;
+        background: linear-gradient(
+            90deg,
+            var(--tf-primary),
+            #06b6d4
+        );
+        animation: tfLine .7s ease .2s both;
+    }
+
+    .teacher-form-subtitle {
+        margin: 15px 0 0;
+        color: var(--tf-muted);
+        font-size: 14px;
+        line-height: 1.65;
+        max-width: 680px;
+    }
+
+    /* Main Panel */
+    .teacher-form-panel {
+        position: relative;
+        overflow: hidden;
+        background: rgba(255,255,255,.94);
+        border: 1px solid rgba(226,232,240,.9);
+        border-radius: 20px;
+        box-shadow: var(--tf-shadow);
+        padding: 30px;
+        animation: tfFadeUp .55s ease .08s both;
+        backdrop-filter: blur(10px);
+    }
+
+    .teacher-form-panel::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(
+            90deg,
+            var(--tf-primary),
+            var(--tf-purple),
+            #06b6d4
+        );
+    }
+
+    /* Error Summary */
+    .teacher-form-error-summary {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 16px;
+        margin-bottom: 26px;
+        border: 1px solid #fecaca;
+        border-radius: 13px;
+        background: var(--tf-danger-light);
+        color: #991b1b;
+        font-size: 13px;
+        line-height: 1.55;
+        animation: tfShake .35s ease both;
+    }
+
+    .teacher-form-error-icon {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        background: #fee2e2;
+        font-size: 14px;
+    }
+
+    .teacher-form-error-summary strong {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 14px;
+    }
+
+    .teacher-form-error-summary ul {
+        margin: 5px 0 0 18px;
+        padding: 0;
+    }
+
+    /* Sections */
+    .teacher-form-section {
+        margin-top: 4px;
+    }
+
+    .teacher-form-section + .teacher-form-section {
+        margin-top: 4px;
+    }
+
+    .teacher-form-section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+        padding-bottom: 13px;
+        border-bottom: 1px solid var(--tf-border);
+    }
+
+    .teacher-form-section-icon {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: var(--tf-primary-light);
+        font-size: 19px;
+        box-shadow: inset 0 0 0 1px rgba(79,70,229,.08);
+        transition: transform .25s ease;
+    }
+
+    .teacher-form-section:hover .teacher-form-section-icon {
+        transform: translateY(-2px) rotate(-2deg);
+    }
+
+    .teacher-form-section-title h4 {
+        margin: 0;
+        color: var(--tf-text);
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -.2px;
+    }
+
+    .teacher-form-section-title p {
+        margin: 3px 0 0;
+        color: var(--tf-muted);
+        font-size: 12px;
+    }
+
+    /* Grid */
+    .teacher-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+    }
+
+    .teacher-form-full {
+        grid-column: 1 / -1;
+    }
+
+    /* Form Groups */
+    .teacher-form-group {
+        margin-bottom: 20px;
+    }
+
+    .teacher-form-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .teacher-form-group label {
+        display: block;
+        margin-bottom: 7px;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 750;
+        letter-spacing: .05px;
+    }
+
+    .teacher-form-group input,
+    .teacher-form-group select,
+    .teacher-form-group textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #d7dce4;
+        border-radius: 11px;
+        background: #fff;
+        color: var(--tf-text);
+        padding: 11px 13px;
+        font-size: 14px;
+        line-height: 1.5;
+        outline: none;
+        transition:
+            border-color .2s ease,
+            box-shadow .2s ease,
+            transform .2s ease,
+            background .2s ease;
+    }
+
+    .teacher-form-group input:hover,
+    .teacher-form-group select:hover,
+    .teacher-form-group textarea:hover {
+        border-color: #b8c0cc;
+    }
+
+    .teacher-form-group input:focus,
+    .teacher-form-group select:focus,
+    .teacher-form-group textarea:focus {
+        border-color: var(--tf-primary);
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(79,70,229,.10);
+    }
+
+    .teacher-form-group textarea {
+        min-height: 105px;
+        resize: vertical;
+    }
+
+    .teacher-form-group select[multiple] {
+        min-height: 150px;
+        padding: 8px;
+    }
+
+    .teacher-form-group select[multiple] option {
+        padding: 8px 10px;
+        border-radius: 7px;
+        margin: 2px 0;
+    }
+
+    .teacher-form-help {
+        display: block;
+        margin-top: 7px;
+        color: #7b8492;
+        font-size: 11.5px;
+        line-height: 1.55;
+    }
+
+    /* File Inputs */
+    .teacher-form-group input[type="file"] {
+        padding: 8px;
+        cursor: pointer;
+        background: #f9fafb;
+    }
+
+    .teacher-form-group input[type="file"]::file-selector-button {
+        border: 0;
+        padding: 8px 12px;
+        margin-right: 10px;
+        border-radius: 8px;
+        background: var(--tf-primary-light);
+        color: var(--tf-primary-dark);
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all .2s ease;
+    }
+
+    .teacher-form-group input[type="file"]::file-selector-button:hover {
+        background: #e0e7ff;
+    }
+
+    /* Inline Field Error */
+    .teacher-field-error {
+        margin-top: 7px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: #fff1f2;
+        border: 1px solid #fecdd3;
+        color: #be123c;
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    /* Existing Images */
+    .teacher-existing-photo {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px;
+        margin-bottom: 12px;
+        border: 1px solid var(--tf-border);
+        border-radius: 13px;
+        background: #f8fafc;
+    }
+
+    .teacher-existing-photo img {
+        width: 64px;
+        height: 64px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 2px solid #fff;
+        box-shadow: 0 4px 12px rgba(15,23,42,.12);
+    }
+
+    .teacher-existing-cnic {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+        margin-bottom: 11px;
+        border: 1px solid var(--tf-border);
+        border-radius: 12px;
+        background: #f8fafc;
+    }
+
+    .teacher-existing-cnic img {
+        width: 86px;
+        height: 54px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid #fff;
+        box-shadow: 0 3px 10px rgba(15,23,42,.10);
+    }
+
+    .teacher-existing-label {
+        color: var(--tf-muted);
+        font-size: 11px;
+        font-weight: 650;
+        line-height: 1.45;
+    }
+
+    .teacher-existing-main-text {
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    /* Divider */
+    .teacher-form-divider {
+        height: 1px;
+        border: 0;
+        margin: 28px 0;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            #dfe3e8,
+            transparent
+        );
+    }
+
+    /* Information Helper */
+    .teacher-form-info {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 10px;
+        padding: 11px 13px;
+        border-radius: 11px;
+        border: 1px solid #bfdbfe;
+        background: #eff6ff;
+        color: #1e40af;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .teacher-form-info-icon {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    /* Actions */
+    .teacher-form-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid var(--tf-border);
+    }
+
+    .teacher-form-actions .btn {
+        min-height: 42px;
+        border-radius: 11px;
+        font-weight: 750;
+        padding: 10px 18px;
+        transition:
+            transform .2s ease,
+            box-shadow .2s ease,
+            background .2s ease;
+    }
+
+    .teacher-form-actions .btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .teacher-form-submit {
+        position: relative;
+        overflow: hidden;
+        border: 0 !important;
+        background: linear-gradient(
+            135deg,
+            var(--tf-primary),
+            var(--tf-purple)
+        ) !important;
+        color: #fff !important;
+        box-shadow: 0 8px 20px rgba(79,70,229,.22);
+    }
+
+    .teacher-form-submit::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -120%;
+        width: 70%;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255,255,255,.25),
+            transparent
+        );
+        transform: skewX(-20deg);
+        transition: left .55s ease;
+    }
+
+    .teacher-form-submit:hover {
+        box-shadow: 0 12px 26px rgba(79,70,229,.30);
+    }
+
+    .teacher-form-submit:hover::after {
+        left: 140%;
+    }
+
+    /* Responsive */
+    @media (max-width: 760px) {
+        .teacher-form-page {
+            max-width: 100%;
+        }
+
+        .teacher-form-panel {
+            padding: 22px 18px;
+            border-radius: 16px;
+        }
+
+        .teacher-form-grid {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        .teacher-form-full {
+            grid-column: auto;
+        }
+
+        .teacher-form-section-title {
+            margin-bottom: 18px;
+        }
+
+        .teacher-form-divider {
+            margin: 24px 0;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .teacher-form-header {
+            margin-bottom: 16px;
+        }
+
+        .teacher-form-title {
+            font-size: 25px;
+        }
+
+        .teacher-form-subtitle {
+            font-size: 13px;
+        }
+
+        .teacher-form-panel {
+            padding: 20px 14px;
+            border-radius: 14px;
+        }
+
+        .teacher-form-section-icon {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            font-size: 17px;
+        }
+
+        .teacher-form-section-title h4 {
+            font-size: 14px;
+        }
+
+        .teacher-form-actions {
+            flex-direction: column-reverse;
+            align-items: stretch;
+        }
+
+        .teacher-form-actions .btn {
+            width: 100%;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .teacher-existing-photo {
+            align-items: flex-start;
+        }
+
+        .teacher-existing-photo img {
+            width: 56px;
+            height: 56px;
+        }
+    }
+
+    @keyframes tfFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes tfLine {
+        from {
+            width: 0;
+        }
+        to {
+            width: 58px;
+        }
+    }
+
+    @keyframes tfShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-3px); }
+        75% { transform: translateX(3px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .teacher-form-header,
+        .teacher-form-panel,
+        .teacher-form-error-summary,
+        .teacher-form-title::after {
+            animation: none !important;
+        }
+
+        .teacher-form-group input,
+        .teacher-form-group select,
+        .teacher-form-group textarea,
+        .teacher-form-actions .btn,
+        .teacher-form-section-icon {
+            transition: none !important;
+        }
+    }
+</style>
+
+<div class="dashboard-container teacher-form-page">
+
     <!-- Header -->
-    <div class="dashboard-header">
-        <div>
-            {% if teacher %}
-                <a href="{% tenant_url 'teachers:detail' teacher_id=teacher.teacher_id %}" class="btn btn-ghost btn-xs">&larr; Back to Profile</a>
-            {% else %}
-                <a href="{% tenant_url 'teachers:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Faculty List</a>
-            {% endif %}
-            <h1 class="dashboard-title" style="margin-top: 8px;">{{ title }}</h1>
-            <p class="dashboard-subtitle">
-                Fill in the teacher's profile, salary settings, and class assignments.
-            </p>
-        </div>
+    <div class="teacher-form-header">
+        {% if teacher %}
+            <a href="{% tenant_url 'teachers:detail' teacher_id=teacher.teacher_id %}"
+               class="btn btn-ghost btn-xs teacher-form-back">
+                &larr; Back to Profile
+            </a>
+        {% else %}
+            <a href="{% tenant_url 'teachers:list' %}"
+               class="btn btn-ghost btn-xs teacher-form-back">
+                &larr; Back to Faculty List
+            </a>
+        {% endif %}
+
+        <h1 class="teacher-form-title">{{ title }}</h1>
+
+        <p class="teacher-form-subtitle">
+            Fill in the teacher's profile, salary settings, and class assignments.
+        </p>
     </div>
 
     <!-- Teacher Form Panel -->
-    <div class="panel">
-        <form method="post" enctype="multipart/form-data" action="{% tenant_url 'teachers:create' %}">
+    <div class="teacher-form-panel">
+
+        <form method="post"
+              enctype="multipart/form-data"
+              action="{% tenant_url 'teachers:create' %}">
+
             {% csrf_token %}
 
             {% if form.errors %}
-                <div class="alert alert-error" role="alert">
-                    <strong>The teacher was not saved.</strong>
-                    Please correct the highlighted errors below and submit again.
-                    {% if form.non_field_errors %}
-                        <div>{{ form.non_field_errors }}</div>
-                    {% endif %}
+                <div class="teacher-form-error-summary" role="alert">
+                    <div class="teacher-form-error-icon">⚠️</div>
+
+                    <div>
+                        <strong>The teacher was not saved.</strong>
+
+                        Please correct the highlighted errors below and submit again.
+
+                        {% if form.non_field_errors %}
+                            <div style="margin-top: 5px;">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             {% endif %}
 
-            <!-- Section 1: Personal & Contact Information -->
-            <div class="form-section-title">
-                <h4>👤 Faculty Bio-Data & Contact</h4>
-            </div>
+            <!-- =====================================================
+                 SECTION 1: PERSONAL & CONTACT
+                 ===================================================== -->
+            <div class="teacher-form-section">
 
-            <div class="form-row-2col">
-                <div class="form-group">
-                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
-                    {{ form.name }}
-                    {% if form.name.errors %}
-                        <div class="alert alert-error form-error">{{ form.name.errors.0 }}</div>
-                    {% endif %}
-                </div>
+                <div class="teacher-form-section-title">
+                    <div class="teacher-form-section-icon">👤</div>
 
-                <div class="form-group">
-                    <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
-                    {{ form.phone }}
-                    {% if form.phone.errors %}
-                        <div class="alert alert-error form-error">{{ form.phone.errors.0 }}</div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="form-row-2col">
-                <div class="form-group">
-                    <label for="{{ form.cnic.id_for_label }}">{{ form.cnic.label }}</label>
-                    {{ form.cnic }}
-                    {% if form.cnic.errors %}
-                        <div class="alert alert-error form-error">{{ form.cnic.errors.0 }}</div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label for="{{ form.monthly_salary.id_for_label }}">{{ form.monthly_salary.label }}</label>
-                    {{ form.monthly_salary }}
-                    {% if form.monthly_salary.errors %}
-                        <div class="alert alert-error form-error">{{ form.monthly_salary.errors.0 }}</div>
-                    {% endif %}
-                    <small class="form-help">{{ form.monthly_salary.help_text }}</small>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>
-                {{ form.address }}
-                {% if form.address.errors %}
-                    <div class="alert alert-error form-error">{{ form.address.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
-
-            <!-- Section 2: Assigned Classes -->
-            <div class="form-section-title">
-                <h4>🏫 Assigned School Classes</h4>
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.assigned_class.id_for_label }}">{{ form.assigned_class.label }}</label>
-                {{ form.assigned_class }}
-                {% if form.assigned_class.errors %}
-                    <div class="alert alert-error form-error">{{ form.assigned_class.errors }}</div>
-                {% endif %}
-                <small class="form-help">{{ form.assigned_class.help_text }}</small>
-            </div>
-
-            <div class="form-group">
-                <label for="{{ form.assigned_classes.id_for_label }}">{{ form.assigned_classes.label }}</label>
-                {{ form.assigned_classes }}
-                {% if form.assigned_classes.errors %}
-                    <div class="alert alert-error form-error">{{ form.assigned_classes.errors.0 }}</div>
-                {% endif %}
-                <small class="form-help">Select the classes taught by this teacher (hold Ctrl on Windows to select multiple).</small>
-            </div>
-
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
-
-            <!-- Section 3: Identity Photos & CNIC Documents -->
-            <div class="form-section-title">
-                <h4>📷 Photographs & Identity Documents</h4>
-            </div>
-
-            <div class="form-group">
-                {% if teacher and teacher.picture %}
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 10px;">
-                        <img src="{{ teacher.picture.url }}" alt="{{ teacher.name }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border);">
-                        <span class="text-sm text-muted">Current photo on file. Upload a new image to replace.</span>
+                    <div>
+                        <h4>Faculty Bio-Data & Contact</h4>
+                        <p>Basic personal and salary information</p>
                     </div>
-                {% endif %}
-                <label for="{{ form.picture.id_for_label }}">{{ form.picture.label }}</label>
-                {{ form.picture }}
-                {% if form.picture.errors %}
-                    <div class="alert alert-error form-error">{{ form.picture.errors.0 }}</div>
-                {% endif %}
-                <small class="form-help">{{ form.picture.help_text }}</small>
-            </div>
-
-            <div class="form-row-2col">
-                <div class="form-group">
-                    {% if teacher and teacher.cnic_front_pic %}
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-                            <img src="{{ teacher.cnic_front_pic.url }}" alt="CNIC Front" style="width: 80px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
-                            <span class="text-xs text-muted">CNIC Front Picture</span>
-                        </div>
-                    {% endif %}
-                    <label for="{{ form.cnic_front_pic.id_for_label }}">{{ form.cnic_front_pic.label }}</label>
-                    {{ form.cnic_front_pic }}
-                    {% if form.cnic_front_pic.errors %}
-                        <div class="alert alert-error form-error">{{ form.cnic_front_pic.errors.0 }}</div>
-                    {% endif %}
                 </div>
 
-                <div class="form-group">
-                    {% if teacher and teacher.cnic_back_pic %}
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-                            <img src="{{ teacher.cnic_back_pic.url }}" alt="CNIC Back" style="width: 80px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
-                            <span class="text-xs text-muted">CNIC Back Picture</span>
-                        </div>
-                    {% endif %}
-                    <label for="{{ form.cnic_back_pic.id_for_label }}">{{ form.cnic_back_pic.label }}</label>
-                    {{ form.cnic_back_pic }}
-                    {% if form.cnic_back_pic.errors %}
-                        <div class="alert alert-error form-error">{{ form.cnic_back_pic.errors.0 }}</div>
-                    {% endif %}
+                <div class="teacher-form-grid">
+
+                    <div class="teacher-form-group">
+                        <label for="{{ form.name.id_for_label }}">
+                            {{ form.name.label }}
+                        </label>
+
+                        {{ form.name }}
+
+                        {% if form.name.errors %}
+                            <div class="teacher-field-error">
+                                {{ form.name.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="teacher-form-group">
+                        <label for="{{ form.phone.id_for_label }}">
+                            {{ form.phone.label }}
+                        </label>
+
+                        {{ form.phone }}
+
+                        {% if form.phone.errors %}
+                            <div class="teacher-field-error">
+                                {{ form.phone.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="teacher-form-group">
+                        <label for="{{ form.cnic.id_for_label }}">
+                            {{ form.cnic.label }}
+                        </label>
+
+                        {{ form.cnic }}
+
+                        {% if form.cnic.errors %}
+                            <div class="teacher-field-error">
+                                {{ form.cnic.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="teacher-form-group">
+                        <label for="{{ form.monthly_salary.id_for_label }}">
+                            {{ form.monthly_salary.label }}
+                        </label>
+
+                        {{ form.monthly_salary }}
+
+                        {% if form.monthly_salary.errors %}
+                            <div class="teacher-field-error">
+                                {{ form.monthly_salary.errors.0 }}
+                            </div>
+                        {% endif %}
+
+                        <small class="teacher-form-help">
+                            {{ form.monthly_salary.help_text }}
+                        </small>
+                    </div>
+
+                    <div class="teacher-form-group teacher-form-full">
+                        <label for="{{ form.address.id_for_label }}">
+                            {{ form.address.label }}
+                        </label>
+
+                        {{ form.address }}
+
+                        {% if form.address.errors %}
+                            <div class="teacher-field-error">
+                                {{ form.address.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
                 </div>
             </div>
 
-            <!-- Form Actions -->
-            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px;">
+            <hr class="teacher-form-divider">
+
+            <!-- =====================================================
+                 SECTION 2: ASSIGNED CLASSES
+                 ===================================================== -->
+            <div class="teacher-form-section">
+
+                <div class="teacher-form-section-title">
+                    <div class="teacher-form-section-icon">🏫</div>
+
+                    <div>
+                        <h4>Assigned School Classes</h4>
+                        <p>Manage the teacher's class assignments</p>
+                    </div>
+                </div>
+
+                <div class="teacher-form-group">
+                    <label for="{{ form.assigned_class.id_for_label }}">
+                        {{ form.assigned_class.label }}
+                    </label>
+
+                    {{ form.assigned_class }}
+
+                    {% if form.assigned_class.errors %}
+                        <div class="teacher-field-error">
+                            {{ form.assigned_class.errors }}
+                        </div>
+                    {% endif %}
+
+                    <small class="teacher-form-help">
+                        {{ form.assigned_class.help_text }}
+                    </small>
+                </div>
+
+                <div class="teacher-form-group">
+                    <label for="{{ form.assigned_classes.id_for_label }}">
+                        {{ form.assigned_classes.label }}
+                    </label>
+
+                    {{ form.assigned_classes }}
+
+                    {% if form.assigned_classes.errors %}
+                        <div class="teacher-field-error">
+                            {{ form.assigned_classes.errors.0 }}
+                        </div>
+                    {% endif %}
+
+                    <small class="teacher-form-help">
+                        Select the classes taught by this teacher
+                        (hold Ctrl on Windows to select multiple).
+                    </small>
+
+                    <div class="teacher-form-info">
+                        <span class="teacher-form-info-icon">ℹ️</span>
+                        <span>
+                            You can select multiple classes for the same teacher.
+                            On Windows, hold <strong>Ctrl</strong> while selecting.
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+
+            <hr class="teacher-form-divider">
+
+            <!-- =====================================================
+                 SECTION 3: PHOTOS & DOCUMENTS
+                 ===================================================== -->
+            <div class="teacher-form-section">
+
+                <div class="teacher-form-section-title">
+                    <div class="teacher-form-section-icon">📷</div>
+
+                    <div>
+                        <h4>Photographs & Identity Documents</h4>
+                        <p>Teacher photo and CNIC documentation</p>
+                    </div>
+                </div>
+
+                <!-- Teacher Picture -->
+                <div class="teacher-form-group">
+
+                    {% if teacher and teacher.picture %}
+                        <div class="teacher-existing-photo">
+                            <img src="{{ teacher.picture.url }}"
+                                 alt="{{ teacher.name }}">
+
+                            <div>
+                                <div class="teacher-existing-label">
+                                    CURRENT PROFILE PHOTO
+                                </div>
+                                <div class="teacher-existing-main-text">
+                                    Current photo on file. Upload a new image to replace.
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <label for="{{ form.picture.id_for_label }}">
+                        {{ form.picture.label }}
+                    </label>
+
+                    {{ form.picture }}
+
+                    {% if form.picture.errors %}
+                        <div class="teacher-field-error">
+                            {{ form.picture.errors.0 }}
+                        </div>
+                    {% endif %}
+
+                    <small class="teacher-form-help">
+                        {{ form.picture.help_text }}
+                    </small>
+                </div>
+
+                <!-- CNIC Images -->
+                <div class="teacher-form-grid">
+
+                    <div class="teacher-form-group">
+
+                        {% if teacher and teacher.cnic_front_pic %}
+                            <div class="teacher-existing-cnic">
+                                <img src="{{ teacher.cnic_front_pic.url }}"
+                                     alt="CNIC Front">
+
+                                <span class="teacher-existing-label">
+                                    CNIC Front Picture
+                                </span>
+                            </div>
+                        {% endif %}
+
+                        <label for="{{ form.cnic_front_pic.id_for_label }}">
+                            {{ form.cnic_front_pic.label }}
+                        </label>
+
+                        {{ form.cnic_front_pic }}
+
+                        {% if form.cnic_front_pic.errors %}
+                            <div class="teacher-field-error">
+                                {{ form.cnic_front_pic.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="teacher-form-group">
+
+                        {% if teacher and teacher.cnic_back_pic %}
+                            <div class="teacher-existing-cnic">
+                                <img src="{{ teacher.cnic_back_pic.url }}"
+                                     alt="CNIC Back">
+
+                                <span class="teacher-existing-label">
+                                    CNIC Back Picture
+                                </span>
+                            </div>
+                        {% endif %}
+
+                        <label for="{{ form.cnic_back_pic.id_for_label }}">
+                            {{ form.cnic_back_pic.label }}
+                        </label>
+
+                        {{ form.cnic_back_pic }}
+
+                        {% if form.cnic_back_pic.errors %}
+                            <div class="teacher-field-error">
+                                {{ form.cnic_back_pic.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- =====================================================
+                 FORM ACTIONS
+                 ===================================================== -->
+            <div class="teacher-form-actions">
+
                 {% if teacher %}
-                    <a href="{% tenant_url 'teachers:detail' teacher_id=teacher.teacher_id %}" class="btn btn-ghost">Cancel</a>
+                    <a href="{% tenant_url 'teachers:detail' teacher_id=teacher.teacher_id %}"
+                       class="btn btn-ghost">
+                        Cancel
+                    </a>
                 {% else %}
-                    <a href="{% tenant_url 'teachers:list' %}" class="btn btn-ghost">Cancel</a>
+                    <a href="{% tenant_url 'teachers:list' %}"
+                       class="btn btn-ghost">
+                        Cancel
+                    </a>
                 {% endif %}
-                <button type="submit" class="btn btn-primary">{{ action_text }}</button>
+
+                <button type="submit"
+                        class="btn btn-primary teacher-form-submit">
+                    {{ action_text }}
+                </button>
+
             </div>
+
         </form>
     </div>
 </div>
