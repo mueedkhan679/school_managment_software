@@ -16,7 +16,7 @@ from .models import Tenant
 from .utils import (
     delete_tenant_db,
     ensure_tenant_admin,
-    provision_tenant_db,
+    ensure_tenant_migrations,
     register_tenant_db,
 )
 
@@ -51,7 +51,7 @@ def school_add(request):
     The Master Admin may optionally supply custom admin credentials
     (username + password) for the initial superuser account that gets
     seeded inside the new tenant's database.  When omitted, sensible
-    defaults are used by :func:`provision_tenant_db`.
+    defaults are used by the automatic tenant provisioning signal.
     """
     if request.method == "POST":
         school_name = request.POST.get("school_name", "").strip()
@@ -102,12 +102,17 @@ def school_add(request):
             max_students=int(max_students) if max_students.isdigit() else 500,
         )
 
-        # Provision the tenant database (create DB, run migrations, seed admin user)
-        admin_username = provision_tenant_db(
+        # ``Tenant.objects.create`` has already provisioned the new database
+        # through its creation signal.  Verify that idempotent ready-state and
+        # apply any custom credentials without deleting/recreating the just
+        # migrated SQLite file (which could otherwise leave a valid Tenant row
+        # pointing at a half-initialized database after an I/O failure).
+        ensure_tenant_migrations(tenant, force=True)
+        admin_username = ensure_tenant_admin(
             tenant,
             admin_username=admin_username or None,
             admin_password=admin_password or None,
-        )
+        ).username
 
         messages.success(
             request,

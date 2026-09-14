@@ -56,7 +56,11 @@ def _run_tenant_migration(tenant: Tenant) -> None:
     Raises on unrecoverable failure so the caller can mark the tenant FAILED.
     """
     from apps.tenants.db_router import set_current_db_alias
-    from apps.tenants.utils import get_tenant_db_path, migrate_tenant_db
+    from apps.tenants.utils import (
+        ensure_tenant_migrations,
+        get_tenant_db_path,
+        migrate_tenant_db,
+    )
 
     db_path = get_tenant_db_path(tenant.db_name)
 
@@ -67,11 +71,20 @@ def _run_tenant_migration(tenant: Tenant) -> None:
 
     # 2) Route migration commands to the tenant database, not the master.
     set_current_db_alias(tenant.db_alias)
+    try:
+        # 3) Apply every pending migration to the tenant DB.
+        #    migrate_tenant_db() is a thin wrapper around call_command('migrate', ...)
+        #    scoped to this tenant's alias, so no management command output is required.
+        migrate_tenant_db(tenant, interactive=False, verbosity=0)
 
-    # 3) Apply every pending migration to the tenant DB.
-    #    migrate_tenant_db() is a thin wrapper around call_command('migrate', ...)
-    #    scoped to this tenant's alias, so no management command output is required.
-    migrate_tenant_db(tenant, interactive=False, verbosity=0)
+        # 4) Verify the complete schema and seed the default ADMIN user plus
+        #    SchoolSettings.  A tenant is only marked OK after it can serve a
+        #    first login, not merely after its SQLite file exists.
+        ensure_tenant_migrations(tenant, force=True)
+    finally:
+        # Signals run outside request middleware, so they must not leak this
+        # tenant alias into the thread that created the school.
+        set_current_db_alias(None)
 
 
 @receiver(pre_save, sender=Tenant)

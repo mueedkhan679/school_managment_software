@@ -103,12 +103,9 @@ def register_tenant_db(tenant) -> None:
     it will be a no-op.
     """
     alias = tenant.db_alias
-    if alias in connections.databases:
-        return
-
     db_path = get_tenant_db_path(tenant.db_name)
 
-    connections.databases[alias] = {
+    config = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": str(db_path),
         "ATOMIC_REQUESTS": False,
@@ -126,6 +123,18 @@ def register_tenant_db(tenant) -> None:
         "HOST": "",
         "PORT": "",
     }
+
+    existing = connections.databases.get(alias)
+    if existing and existing.get("NAME") == config["NAME"]:
+        return
+
+    # Replace a stale registration immediately; workers must not require a
+    # reload before they can use a newly created or restored tenant database.
+    if alias in connections:
+        connections[alias].close()
+    connections.databases[alias] = config
+    with _VERIFIED_TENANT_LOCK:
+        _VERIFIED_TENANT_ALIASES.discard(alias)
 
 
 # ---------------------------------------------------------------------------
@@ -310,12 +319,13 @@ def ensure_tenant_migrations(tenant, force: bool = False) -> bool:
     from django.db.utils import OperationalError
 
     alias = tenant.db_alias
+    # Register before consulting the verification cache: registration may have
+    # replaced an old database file under the same alias and clears that cache.
+    register_tenant_db(tenant)
     if not force:
         with _VERIFIED_TENANT_LOCK:
             if alias in _VERIFIED_TENANT_ALIASES:
                 return True
-
-    register_tenant_db(tenant)
 
     # A Tenant row without a database file (or with a brand-new empty file) is
     # fully healed here: the file is created and migrations are applied.
@@ -331,6 +341,7 @@ def ensure_tenant_migrations(tenant, force: bool = False) -> bool:
 
     missing = expected - existing
     if not missing:
+        _ensure_tenant_seed_data(tenant)
         with _VERIFIED_TENANT_LOCK:
             _VERIFIED_TENANT_ALIASES.add(alias)
         return True
@@ -385,6 +396,7 @@ def ensure_tenant_migrations(tenant, force: bool = False) -> bool:
             % (alias, ", ".join(sorted(missing)[:5]))
         )
 
+    _ensure_tenant_seed_data(tenant)
     with _VERIFIED_TENANT_LOCK:
         _VERIFIED_TENANT_ALIASES.add(alias)
     return True
@@ -512,6 +524,26 @@ def ensure_tenant_admin(tenant, admin_username=None, admin_password=None):
     # requests) always see the authoritative role + credential flags stored in
     # the tenant database (not any in-memory template that may differ).
     return User.objects.using(alias).get(pk=admin.pk)
+
+
+def _ensure_tenant_seed_data(tenant) -> None:
+    """Ensure a migrated tenant can be used immediately after creation.
+
+    Migrations create tables but not the tenant admin or singleton settings
+    row.  This idempotent step is shared by creation-time provisioning and
+    request-time verification.
+    """
+    from apps.core.models import SchoolSettings
+
+    alias = tenant.db_alias
+    ensure_tenant_admin(tenant)
+    SchoolSettings.objects.using(alias).get_or_create(
+        pk=1,
+        defaults={
+            "school_name": tenant.school_name,
+            "school_phone": tenant.admin_phone,
+        },
+    )
 
 
 def _validate_admin_provisioning_contract():
