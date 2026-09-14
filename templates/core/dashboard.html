@@ -1,2111 +1,845 @@
-/* =========================================================
-   MODERN DASHBOARD UI
-   Styling + Colors + Animations Only
-   No HTML / Django / JavaScript logic changed
-   ========================================================= */
-
-:root {
-    --dash-primary: #4f46e5;
-    --dash-primary-dark: #3730a3;
-    --dash-blue: #2563eb;
-    --dash-cyan: #0891b2;
-    --dash-violet: #7c3aed;
-    --dash-purple: #9333ea;
-
-    --dash-success: #16a34a;
-    --dash-danger: #dc2626;
-    --dash-warning: #d97706;
-
-    --dash-bg: #f5f7fb;
-    --dash-card: rgba(255, 255, 255, 0.94);
-    --dash-border: rgba(148, 163, 184, 0.20);
-
-    --dash-text: #172033;
-    --dash-muted: #64748b;
-
-    --dash-radius: 18px;
-    --dash-radius-sm: 12px;
-
-    --dash-shadow:
-        0 10px 30px rgba(15, 23, 42, 0.06),
-        0 2px 8px rgba(15, 23, 42, 0.035);
-
-    --dash-shadow-hover:
-        0 20px 45px rgba(15, 23, 42, 0.10),
-        0 6px 18px rgba(79, 70, 229, 0.07);
-}
-
-
-/* =========================================================
-   PAGE
-   ========================================================= */
-
-.dashboard-container {
-    position: relative;
-    padding: 4px 2px 40px;
-    color: var(--dash-text);
-    animation: dashboardFadeIn 0.55s ease both;
-}
-
-.dashboard-container::before {
-    content: "";
-    position: fixed;
-    top: -180px;
-    right: -180px;
-    width: 450px;
-    height: 450px;
-    border-radius: 50%;
-    background: radial-gradient(
-        circle,
-        rgba(99, 102, 241, 0.08),
-        transparent 68%
-    );
-    pointer-events: none;
-    z-index: -1;
-}
-
-.dashboard-container::after {
-    content: "";
-    position: fixed;
-    bottom: -200px;
-    left: -180px;
-    width: 450px;
-    height: 450px;
-    border-radius: 50%;
-    background: radial-gradient(
-        circle,
-        rgba(14, 165, 233, 0.06),
-        transparent 68%
-    );
-    pointer-events: none;
-    z-index: -1;
-}
-
-
-/* =========================================================
-   HEADER
-   ========================================================= */
-
-.dash-header-bar {
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-
-    padding: 24px 26px;
-    margin-bottom: 18px;
-
-    border: 1px solid rgba(79, 70, 229, 0.11);
-    border-radius: 22px;
-
-    background:
-        linear-gradient(
-            135deg,
-            rgba(255,255,255,0.98),
-            rgba(248,250,252,0.95)
-        );
-
-    box-shadow:
-        0 12px 35px rgba(15, 23, 42, 0.055);
-
-    animation: slideDown 0.55s ease both;
-}
-
-.dash-header-bar::before {
-    content: "";
-    position: absolute;
-    width: 230px;
-    height: 230px;
-    border-radius: 50%;
-    top: -150px;
-    right: 12%;
-
-    background: rgba(99, 102, 241, 0.07);
-    pointer-events: none;
-}
-
-.dash-header-left,
-.dash-header-right {
-    position: relative;
-    z-index: 1;
-}
-
-.dashboard-title {
-    margin: 0;
-    font-size: clamp(24px, 3vw, 32px);
-    font-weight: 800;
-    letter-spacing: -0.8px;
-
-    background: linear-gradient(
-        90deg,
-        #111827,
-        #3730a3,
-        #2563eb
-    );
-
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
-.dashboard-subtitle {
-    margin: 7px 0 0;
-    font-size: 13px;
-    color: var(--dash-muted);
-}
-
-.dashboard-subtitle strong {
-    color: #4f46e5;
-}
-
-.dash-header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-
-/* =========================================================
-   DATE BADGE
-   ========================================================= */
-
-.dash-date-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-
-    min-height: 40px;
-    padding: 0 13px;
-
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-
-    background: rgba(248, 250, 252, 0.85);
-    color: #475569;
-
-    font-size: 12px;
-    font-weight: 700;
-
-    transition:
-        transform .25s ease,
-        border-color .25s ease,
-        box-shadow .25s ease;
-}
-
-.dash-date-badge:hover {
-    transform: translateY(-2px);
-    border-color: rgba(79, 70, 229, 0.25);
-    box-shadow: 0 8px 18px rgba(79, 70, 229, 0.08);
-}
-
-.dash-date-ico {
-    font-size: 16px;
-}
-
-
-/* =========================================================
-   ACADEMIC YEAR FORM
-   ========================================================= */
-
-.dash-acad-form {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.dash-acad-label {
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.dash-acad-select {
-    min-height: 39px;
-    padding: 0 34px 0 12px;
-
-    border: 1px solid #dbe2ea;
-    border-radius: 10px;
-
-    outline: none;
-    background-color: #fff;
-    color: #334155;
-
-    font-size: 12px;
-    font-weight: 650;
-
-    transition: all .22s ease;
-}
-
-.dash-acad-select:hover {
-    border-color: #a5b4fc;
-}
-
-.dash-acad-select:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.10);
-}
-
-
-/* =========================================================
-   AVATAR + NOTIFICATION BUTTON
-   ========================================================= */
-
-.dash-icon-btn {
-    width: 38px;
-    height: 38px;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: 0 !important;
-
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 11px !important;
-
-    background: #fff !important;
-    color: #475569 !important;
-
-    cursor: pointer;
-
-    box-shadow: 0 3px 9px rgba(15, 23, 42, 0.035);
-
-    transition:
-        transform .22s ease,
-        box-shadow .22s ease,
-        color .22s ease,
-        border-color .22s ease;
-}
-
-.dash-icon-btn:hover {
-    transform: translateY(-2px) scale(1.03);
-    color: #4f46e5 !important;
-    border-color: rgba(79,70,229,.25) !important;
-    box-shadow: 0 8px 17px rgba(79, 70, 229, 0.10);
-}
-
-.dash-bell {
-    font-size: 17px;
-    transition: transform .25s ease;
-}
-
-.dash-icon-btn:hover .dash-bell {
-    animation: bellSwing .55s ease;
-}
-
-.dash-bell-dot {
-    position: absolute;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #ef4444;
-    border: 2px solid white;
-    transform: translate(8px, -8px);
-
-    animation: notificationPulse 2s infinite;
-}
-
-.dash-avatar {
-    width: 40px;
-    height: 40px;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 13px;
-
-    color: #fff;
-    font-size: 14px;
-    font-weight: 800;
-
-    background:
-        linear-gradient(
-            135deg,
-            #4f46e5,
-            #2563eb
-        );
-
-    box-shadow:
-        0 8px 18px rgba(79, 70, 229, 0.22);
-
-    transition: transform .25s ease;
-}
-
-.dash-avatar:hover {
-    transform: scale(1.07) rotate(3deg);
-}
-
-
-/* =========================================================
-   FILTER INDICATOR
-   ========================================================= */
-
-.dash-filter-indicator {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 9px;
-
-    padding: 10px 14px;
-    margin-bottom: 18px;
-
-    background: rgba(255, 255, 255, 0.72);
-    border: 1px solid var(--dash-border);
-    border-radius: 12px;
-
-    backdrop-filter: blur(10px);
-
-    animation: fadeUp .5s ease both;
-}
-
-.dash-filter-label {
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-
-/* =========================================================
-   MAIN METRIC GRID
-   ========================================================= */
-
-.dash-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
-}
-
-
-/* =========================================================
-   METRIC CARDS
-   ========================================================= */
-
-.dash-metric-card {
-    position: relative;
-    overflow: hidden;
-
-    display: flex;
-    align-items: center;
-    gap: 15px;
-
-    min-height: 125px;
-    padding: 19px;
-
-    border: 1px solid var(--dash-border);
-    border-radius: var(--dash-radius);
-
-    background:
-        linear-gradient(
-            145deg,
-            rgba(255,255,255,.98),
-            rgba(248,250,252,.92)
-        );
-
-    box-shadow: var(--dash-shadow);
-
-    transition:
-        transform .28s cubic-bezier(.22,.68,0,1.2),
-        box-shadow .28s ease,
-        border-color .28s ease;
-
-    animation: cardReveal .55s ease both;
-}
-
-.dash-metric-card:nth-child(2) {
-    animation-delay: .05s;
-}
-
-.dash-metric-card:nth-child(3) {
-    animation-delay: .10s;
-}
-
-.dash-metric-card:nth-child(4) {
-    animation-delay: .15s;
-}
-
-.dash-metric-card::before {
-    content: "";
-    position: absolute;
-
-    width: 100px;
-    height: 100px;
-
-    right: -50px;
-    top: -50px;
-
-    border-radius: 50%;
-
-    background: rgba(99, 102, 241, .055);
-
-    transition: transform .4s ease;
-}
-
-.dash-metric-card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(99, 102, 241, .18);
-    box-shadow: var(--dash-shadow-hover);
-}
-
-.dash-metric-card:hover::before {
-    transform: scale(1.55);
-}
-
-
-/* =========================================================
-   METRIC ICONS
-   ========================================================= */
-
-.dash-metric-icon {
-    position: relative;
-    z-index: 1;
-
-    flex: 0 0 48px;
-
-    width: 48px;
-    height: 48px;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    border-radius: 14px;
-
-    font-size: 22px;
-
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
-
-    transition: transform .3s ease;
-}
-
-.dash-metric-card:hover .dash-metric-icon {
-    transform: scale(1.08) rotate(-3deg);
-}
-
-.dash-metric-icon-blue {
-    background: #eaf2ff;
-}
-
-.dash-metric-icon-violet {
-    background: #f3e8ff;
-}
-
-.dash-metric-icon-glass {
-    background: rgba(255,255,255,.18);
-    backdrop-filter: blur(12px);
-}
-
-
-/* =========================================================
-   SOLID BALANCE CARD
-   ========================================================= */
-
-.dash-metric-solid {
-    color: #fff;
-
-    border-color: transparent;
-
-    background:
-        linear-gradient(
-            135deg,
-            #4338ca 0%,
-            #4f46e5 45%,
-            #2563eb 100%
-        );
-
-    box-shadow:
-        0 16px 32px rgba(79, 70, 229, .20);
-}
-
-.dash-metric-solid::before {
-    width: 160px;
-    height: 160px;
-    right: -80px;
-    top: -80px;
-    background: rgba(255,255,255,.08);
-}
-
-.dash-metric-solid::after {
-    content: "";
-    position: absolute;
-
-    width: 110px;
-    height: 110px;
-
-    left: -55px;
-    bottom: -55px;
-
-    border-radius: 50%;
-
-    background: rgba(255,255,255,.055);
-}
-
-.dash-metric-solid .dash-metric-label,
-.dash-metric-solid .dash-metric-hint {
-    color: rgba(255,255,255,.78);
-}
-
-.dash-metric-solid .dash-metric-value {
-    color: #fff;
-}
-
-
-/* =========================================================
-   METRIC TEXT
-   ========================================================= */
-
-.dash-metric-body {
-    position: relative;
-    z-index: 1;
-
-    min-width: 0;
-
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.dash-metric-label {
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 750;
-    letter-spacing: .1px;
-}
-
-.dash-metric-value {
-    color: #172033;
-    font-size: 22px;
-    font-weight: 850;
-    letter-spacing: -.5px;
-}
-
-.dash-metric-hint {
-    color: #94a3b8;
-    font-size: 10px;
-    font-weight: 500;
-}
-
-
-/* =========================================================
-   QR CARD
-   ========================================================= */
-
-#teacherQrCard {
-    background:
-        linear-gradient(
-            150deg,
-            #ffffff,
-            #f8fbff
-        );
-}
-
-#teacherQrCard img {
-    max-width: 120px;
-    height: auto !important;
-
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 15px !important;
-
-    box-shadow:
-        0 7px 18px rgba(15, 23, 42, .07);
-
-    transition:
-        transform .3s ease,
-        box-shadow .3s ease;
-}
-
-#teacherQrCard img:hover {
-    transform: scale(1.035);
-    box-shadow:
-        0 12px 25px rgba(15, 23, 42, .10);
-}
-
-#qrLiveDot {
-    animation: liveDot 1.5s infinite;
-}
-
-
-/* =========================================================
-   GENERAL DASH CARDS
-   ========================================================= */
-
-.dash-card,
-.panel {
-    position: relative;
-
-    border: 1px solid var(--dash-border) !important;
-    border-radius: var(--dash-radius) !important;
-
-    background:
-        linear-gradient(
-            145deg,
-            rgba(255,255,255,.98),
-            rgba(250,251,253,.96)
-        ) !important;
-
-    box-shadow: var(--dash-shadow) !important;
-
-    padding: 20px;
-
-    margin-bottom: 20px;
-
-    transition:
-        transform .28s ease,
-        box-shadow .28s ease,
-        border-color .28s ease;
-
-    animation: fadeUp .55s ease both;
-}
-
-.dash-card:hover,
-.panel:hover {
-    border-color: rgba(99,102,241,.16) !important;
-    box-shadow: var(--dash-shadow-hover) !important;
-}
-
-
-/* =========================================================
-   CARD HEADINGS
-   ========================================================= */
-
-.dash-card-head,
-.panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-
-    padding-bottom: 14px;
-    margin-bottom: 16px;
-
-    border-bottom: 1px solid rgba(226,232,240,.72);
-}
-
-.dash-card-head h3,
-.panel-header h3 {
-    margin: 0;
-
-    color: #1e293b;
-
-    font-size: 15px;
-    font-weight: 800;
-    letter-spacing: -.2px;
-}
-
-.dash-card-badge {
-    display: inline-flex;
-    align-items: center;
-
-    padding: 5px 9px;
-
-    border-radius: 9px;
-
-    background: #eef2ff;
-    color: #4f46e5;
-
-    font-size: 10px;
-    font-weight: 800;
-}
-
-
-/* =========================================================
-   SMALL SUMMARY TILES
-   ========================================================= */
-
-.dash-metrics-grid-sm {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.dash-tile {
-    position: relative;
-    overflow: hidden;
-
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    min-height: 82px;
-    padding: 15px;
-
-    border: 1px solid var(--dash-border);
-    border-radius: 15px;
-
-    background: rgba(255,255,255,.92);
-
-    box-shadow:
-        0 6px 18px rgba(15,23,42,.04);
-
-    cursor: default;
-
-    transition:
-        transform .25s ease,
-        box-shadow .25s ease,
-        border-color .25s ease;
-}
-
-.dash-tile[onclick] {
-    cursor: pointer;
-}
-
-.dash-tile:hover {
-    transform: translateY(-3px);
-    border-color: rgba(99,102,241,.18);
-    box-shadow:
-        0 12px 25px rgba(15,23,42,.075);
-}
-
-.dash-tile-ico {
-    width: 42px;
-    height: 42px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 12px;
-    font-size: 19px;
-
-    transition: transform .3s ease;
-}
-
-.dash-tile:hover .dash-tile-ico {
-    transform: rotate(-5deg) scale(1.08);
-}
-
-.dash-tile-blue {
-    background: #eaf2ff !important;
-    color: #2563eb !important;
-}
-
-.dash-tile-violet {
-    background: #f3e8ff !important;
-    color: #7c3aed !important;
-}
-
-.dash-tile-cyan {
-    background: #ecfeff !important;
-    color: #0891b2 !important;
-}
-
-.dash-tile-indigo {
-    background: #eef2ff !important;
-    color: #4f46e5 !important;
-}
-
-.dash-tile-amber {
-    background: #fff7ed !important;
-    color: #d97706 !important;
-}
-
-.dash-tile-green {
-    background: #ecfdf5 !important;
-    color: #059669 !important;
-}
-
-.dash-tile-label {
-    display: block;
-
-    color: #64748b;
-
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.dash-tile-value {
-    display: block;
-
-    margin-top: 2px;
-
-    color: #1e293b;
-
-    font-size: 20px;
-    font-weight: 850;
-}
-
-
-/* =========================================================
-   STAT CARDS
-   ========================================================= */
-
-.stat-card {
-    border: 1px solid #edf0f5 !important;
-    border-radius: 14px !important;
-
-    background: #fff !important;
-
-    padding: 14px !important;
-
-    box-shadow:
-        0 5px 14px rgba(15,23,42,.035) !important;
-
-    transition:
-        transform .25s ease,
-        box-shadow .25s ease,
-        border-color .25s ease !important;
-}
-
-.stat-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(99,102,241,.16) !important;
-    box-shadow:
-        0 10px 23px rgba(15,23,42,.065) !important;
-}
-
-.stat-icon {
-    border-radius: 12px !important;
-}
-
-.bg-indigo-light {
-    background: #eef2ff !important;
-}
-
-.bg-emerald-light {
-    background: #ecfdf5 !important;
-}
-
-.bg-rose-light {
-    background: #fff1f2 !important;
-}
-
-.stat-label,
-.stat-hint {
-    color: #64748b;
-}
-
-.stat-value {
-    color: #1e293b;
-}
-
-
-/* =========================================================
-   TEACHER PRESENT / ABSENT LISTS
-   ========================================================= */
-
-#teacher-attendance-section > div[style*="border: 1px"] {
-    border-color: #e9edf4 !important;
-    border-radius: 14px !important;
-
-    background: #fff;
-
-    box-shadow:
-        0 4px 15px rgba(15,23,42,.03);
-
-    transition:
-        box-shadow .25s ease,
-        transform .25s ease;
-}
-
-#teacher-attendance-section > div[style*="border: 1px"]:hover {
-    transform: translateY(-2px);
-    box-shadow:
-        0 9px 22px rgba(15,23,42,.055);
-}
-
-#teacher-attendance-section li {
-    transition:
-        background .22s ease,
-        padding-left .22s ease;
-}
-
-#teacher-attendance-section li:hover {
-    background: #f8fafc;
-    padding-left: 20px !important;
-}
-
-#teacher-attendance-section img {
-    border: 2px solid #fff;
-    box-shadow:
-        0 0 0 1px #e2e8f0,
-        0 4px 10px rgba(15,23,42,.08);
-}
-
-
-/* =========================================================
-   TABLES
-   ========================================================= */
-
-.table-responsive {
-    border-radius: 13px;
-}
-
-.data-table {
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.data-table thead th {
-    background: #f8fafc;
-
-    color: #64748b;
-
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .2px;
-    text-transform: uppercase;
-
-    border-bottom: 1px solid #e8edf3;
-}
-
-.data-table tbody td {
-    border-bottom: 1px solid #f0f3f7;
-
-    color: #475569;
-
-    transition: background .2s ease;
-}
-
-.data-table tbody tr {
-    transition:
-        transform .2s ease,
-        background .2s ease;
-}
-
-.data-table tbody tr:hover td {
-    background: #f8faff;
-}
-
-
-/* =========================================================
-   BUTTONS
-   ========================================================= */
-
-.btn {
-    border-radius: 10px !important;
-    font-weight: 700;
-
-    transition:
-        transform .2s ease,
-        box-shadow .2s ease,
-        background .2s ease,
-        border-color .2s ease !important;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-}
-
-.btn-primary {
-    border-color: transparent !important;
-
-    background:
-        linear-gradient(
-            135deg,
-            #4f46e5,
-            #2563eb
-        ) !important;
-
-    box-shadow:
-        0 6px 14px rgba(79,70,229,.16);
-}
-
-.btn-primary:hover {
-    box-shadow:
-        0 9px 20px rgba(79,70,229,.22);
-}
-
-.btn-outline {
-    background: #fff !important;
-    border-color: #dbe2ea !important;
-    color: #475569 !important;
-}
-
-.btn-outline:hover {
-    color: #4f46e5 !important;
-    border-color: #a5b4fc !important;
-    background: #f8faff !important;
-}
-
-.btn-ghost:hover {
-    background: #f1f5f9 !important;
-}
-
-
-/* =========================================================
-   BADGES
-   ========================================================= */
-
-.badge {
-    border-radius: 8px !important;
-    font-weight: 750;
-}
-
-.badge-primary {
-    background: #eef2ff !important;
-    color: #4f46e5 !important;
-}
-
-.badge-success {
-    background: #ecfdf5 !important;
-    color: #15803d !important;
-}
-
-.badge-danger {
-    background: #fff1f2 !important;
-    color: #be123c !important;
-}
-
-.badge-info {
-    background: #ecfeff !important;
-    color: #0e7490 !important;
-}
-
-.badge-outline {
-    background: #fff !important;
-    color: #64748b !important;
-    border: 1px solid #e2e8f0 !important;
-}
-
-
-/* =========================================================
-   CHART ROW
-   ========================================================= */
-
-.dash-charts-row {
-    display: grid;
-    grid-template-columns: minmax(0, .9fr) minmax(0, 1.4fr);
-    gap: 18px;
-    margin-bottom: 20px;
-}
-
-
-/* =========================================================
-   DONUT CHART
-   ========================================================= */
-
-.dash-donut-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.dash-donut {
-    position: relative;
-
-    width: 170px;
-    height: 170px;
-
-    border-radius: 50%;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background:
-        conic-gradient(
-            #4f46e5 var(--rate),
-            #eef2f7 0
-        );
-
-    box-shadow:
-        0 9px 28px rgba(79,70,229,.10);
-
-    animation: donutAppear .8s ease both;
-}
-
-.dash-donut::after {
-    content: "";
-    position: absolute;
-    inset: 15px;
-
-    border-radius: 50%;
-
-    background: #fff;
-
-    box-shadow:
-        inset 0 0 0 1px #eef2f7;
-}
-
-.dash-donut-inner {
-    position: relative;
-    z-index: 2;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.dash-donut-value {
-    color: #1e293b;
-
-    font-size: 28px;
-    font-weight: 900;
-}
-
-.dash-donut-label {
-    margin-top: 2px;
-
-    color: #94a3b8;
-
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.dash-donut-legend {
-    width: 100%;
-    max-width: 270px;
-
-    margin-top: 18px;
-
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.dash-donut-legend-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    padding: 8px 10px;
-
-    border-radius: 9px;
-
-    color: #64748b;
-    font-size: 11px;
-
-    transition: background .2s ease;
-}
-
-.dash-donut-legend-row:hover {
-    background: #f8fafc;
-}
-
-.dash-donut-legend-row strong {
-    margin-left: auto;
-    color: #334155;
-}
-
-.lg-dot {
-    width: 7px;
-    height: 7px;
-
-    border-radius: 50%;
-
-    display: inline-block;
-}
-
-.present .lg-dot {
-    background: #22c55e;
-}
-
-.absent .lg-dot {
-    background: #f43f5e;
-}
-
-.marked .lg-dot {
-    background: #6366f1;
-}
-
-
-/* =========================================================
-   FINANCIAL CHART
-   ========================================================= */
-
-.dash-linechart-box {
-    position: relative;
-}
-
-.dash-linechart-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-
-    margin-bottom: 16px;
-}
-
-.dash-line-stat {
-    padding: 11px 12px;
-
-    border: 1px solid #edf0f5;
-    border-radius: 11px;
-
-    background: #fbfcfe;
-
-    transition:
-        transform .22s ease,
-        box-shadow .22s ease;
-}
-
-.dash-line-stat:hover {
-    transform: translateY(-2px);
-
-    box-shadow:
-        0 7px 16px rgba(15,23,42,.045);
-}
-
-.dash-line-stat-lbl {
-    display: block;
-
-    margin-bottom: 3px;
-
-    color: #94a3b8;
-
-    font-size: 9px;
-    font-weight: 750;
-}
-
-.dash-linechart {
-    width: 100%;
-    min-height: 150px;
-
-    overflow: visible;
-}
-
-.dash-line-inc,
-.dash-line-exp {
-    fill: none;
-    stroke-width: 3;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-
-    stroke-dasharray: 700;
-    stroke-dashoffset: 700;
-
-    animation: drawChartLine 1.6s ease forwards;
-}
-
-.dash-line-inc {
-    stroke: #22c55e;
-}
-
-.dash-line-exp {
-    stroke: #f59e0b;
-
-    animation-delay: .15s;
-}
-
-.dash-line-labels {
-    display: flex;
-    justify-content: space-between;
-
-    color: #94a3b8;
-
-    font-size: 9px;
-}
-
-.dash-line-summary-row {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-
-    padding-top: 12px;
-    margin-top: 12px;
-
-    border-top: 1px solid #eef2f6;
-
-    font-size: 10px;
-    font-weight: 700;
-}
-
-
-/* =========================================================
-   CLASS CARDS
-   ========================================================= */
-
-.classes-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-}
-
-.class-card {
-    position: relative;
-    overflow: hidden;
-
-    border: 1px solid #e8edf4;
-    border-radius: 15px;
-
-    background:
-        linear-gradient(
-            145deg,
-            #fff,
-            #fbfcff
-        );
-
-    cursor: pointer;
-
-    box-shadow:
-        0 5px 14px rgba(15,23,42,.035);
-
-    transition:
-        transform .28s cubic-bezier(.22,.68,0,1.2),
-        box-shadow .28s ease,
-        border-color .28s ease;
-}
-
-.class-card::before {
-    content: "";
-
-    position: absolute;
-    top: 0;
-    left: 0;
-
-    width: 100%;
-    height: 3px;
-
-    background:
-        linear-gradient(
-            90deg,
-            #4f46e5,
-            #3b82f6,
-            #06b6d4
-        );
-
-    transform: scaleX(0);
-    transform-origin: left;
-
-    transition: transform .35s ease;
-}
-
-.class-card:hover {
-    transform: translateY(-5px);
-
-    border-color: rgba(99,102,241,.20);
-
-    box-shadow:
-        0 14px 28px rgba(15,23,42,.085);
-}
-
-.class-card:hover::before {
-    transform: scaleX(1);
-}
-
-.class-card-head {
-    padding: 15px;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-
-    border-bottom: 1px solid #f1f3f6;
-}
-
-.class-name-badge {
-    color: #3730a3;
-
-    font-weight: 850;
-    font-size: 14px;
-}
-
-.class-count-badge {
-    padding: 4px 8px;
-
-    border-radius: 8px;
-
-    background: #eef2ff;
-    color: #4f46e5;
-
-    font-size: 9px;
-    font-weight: 800;
-}
-
-.class-card-body {
-    padding: 14px 15px;
-}
-
-.class-fee-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    padding: 5px 0;
-}
-
-.fee-lbl {
-    color: #94a3b8;
-    font-size: 10px;
-}
-
-.fee-val {
-    color: #334155;
-
-    font-size: 11px;
-    font-weight: 750;
-}
-
-.class-card-footer {
-    padding: 10px 15px;
-
-    background: #fafbff;
-
-    color: #4f46e5;
-
-    font-size: 10px;
-    font-weight: 750;
-
-    transition:
-        background .22s ease,
-        padding-left .22s ease;
-}
-
-.class-card:hover .class-card-footer {
-    background: #f3f5ff;
-    padding-left: 19px;
-}
-
-
-/* =========================================================
-   BOTTOM SECTION
-   ========================================================= */
-
-.dash-bottom-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, .85fr);
-    gap: 18px;
-}
-
-
-/* =========================================================
-   ACTIVITY FEED
-   ========================================================= */
-
-.dash-feed-list {
-    display: flex;
-    flex-direction: column;
-}
-
-.dash-feed-item {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-
-    padding: 11px 6px;
-
-    border-bottom: 1px solid #f0f2f6;
-
-    transition:
-        background .2s ease,
-        padding-left .2s ease;
-}
-
-.dash-feed-item:hover {
-    padding-left: 10px;
-
-    background: #fafbff;
-}
-
-.dash-feed-ico {
-    width: 36px;
-    height: 36px;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    border-radius: 10px;
-
-    flex-shrink: 0;
-}
-
-.dash-feed-fee {
-    background: #ecfdf5;
-}
-
-.dash-feed-salary {
-    background: #fff1f2;
-}
-
-.dash-feed-body {
-    flex: 1;
-    min-width: 0;
-
-    display: flex;
-    flex-direction: column;
-}
-
-.dash-feed-body strong {
-    color: #334155;
-    font-size: 11px;
-}
-
-.dash-feed-desc,
-.dash-feed-txt {
-    color: #94a3b8;
-    font-size: 9px;
-}
-
-.dash-feed-amt,
-.dash-feed-amount {
-    font-size: 10px;
-    font-weight: 800;
-}
-
-
-/* =========================================================
-   QUICK SUMMARY
-   ========================================================= */
-
-.dash-summary-list {
-    display: flex;
-    flex-direction: column;
-}
-
-.dash-summary-row {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-
-    padding: 10px 5px;
-
-    border-bottom: 1px solid #f0f2f6;
-
-    transition:
-        background .2s ease,
-        padding-left .2s ease;
-}
-
-.dash-summary-row:hover {
-    padding-left: 9px;
-    background: #fafbff;
-}
-
-.dash-summary-ico {
-    width: 34px;
-    height: 34px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex-shrink: 0;
-
-    border-radius: 10px;
-}
-
-.dash-summary-info {
-    flex: 1;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.dash-summary-lbl {
-    color: #64748b;
-
-    font-size: 10px;
-    font-weight: 650;
-}
-
-.dash-summary-info strong {
-    color: #334155;
-    font-size: 11px;
-}
-
-
-/* =========================================================
-   MODALS
-   ========================================================= */
-
-.modal-overlay {
-    background:
-        rgba(15,23,42,.55) !important;
-
-    backdrop-filter: blur(7px);
-
-    transition:
-        opacity .25s ease,
-        visibility .25s ease;
-}
-
-.modal-overlay.active .modal-card {
-    animation: modalReveal .32s cubic-bezier(.2,.8,.2,1) both;
-}
-
-.modal-card {
-    border: 1px solid rgba(255,255,255,.7) !important;
-    border-radius: 19px !important;
-
-    background:
-        rgba(255,255,255,.98) !important;
-
-    box-shadow:
-        0 30px 80px rgba(15,23,42,.22) !important;
-}
-
-.modal-header {
-    padding: 18px 20px !important;
-
-    border-bottom: 1px solid #edf0f4 !important;
-
-    background:
-        linear-gradient(
-            180deg,
-            #fff,
-            #fbfcfe
-        );
-}
-
-.modal-header h3 {
-    color: #1e293b;
-    font-weight: 850;
-}
-
-.modal-body {
-    padding: 20px !important;
-}
-
-.modal-close-btn {
-    width: 34px;
-    height: 34px;
-
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 10px !important;
-
-    background: #fff !important;
-    color: #64748b !important;
-
-    font-size: 19px;
-
-    transition:
-        transform .2s ease,
-        background .2s ease,
-        color .2s ease;
-}
-
-.modal-close-btn:hover {
-    transform: rotate(90deg);
-
-    color: #dc2626 !important;
-
-    background: #fff1f2 !important;
-}
-
-
-/* =========================================================
-   QR FULL SCREEN MODAL
-   ========================================================= */
-
-#qrExpandOverlay {
-    backdrop-filter: blur(10px);
-}
-
-#qrExpandOverlay > div {
-    border: 1px solid rgba(255,255,255,.8);
-
-    box-shadow:
-        0 35px 90px rgba(0,0,0,.40) !important;
-
-    animation: qrModalReveal .35s ease both;
-}
-
-#qrImgLarge {
-    box-shadow:
-        0 10px 30px rgba(15,23,42,.10);
-}
-
-
-/* =========================================================
-   STUDENT PROFILE
-   ========================================================= */
-
-.profile-header-card {
-    padding: 18px;
-
-    border: 1px solid #e8edf4;
-    border-radius: 15px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #fafbff,
-            #fff
-        );
-
-    box-shadow:
-        0 6px 18px rgba(15,23,42,.035);
-}
-
-.profile-photo,
-.student-mini-avatar {
-    border: 2px solid #fff;
-
-    box-shadow:
-        0 0 0 1px #e2e8f0,
-        0 5px 13px rgba(15,23,42,.08);
-}
-
-.photo-placeholder,
-.avatar-placeholder {
-    background:
-        linear-gradient(
-            135deg,
-            #eef2ff,
-            #e0e7ff
-        ) !important;
-
-    color: #4f46e5 !important;
-}
-
-.profile-section-box {
-    box-shadow:
-        0 5px 15px rgba(15,23,42,.035) !important;
-}
-
-.stat-pill {
-    border: 1px solid #edf0f5;
-    border-radius: 10px;
-
-    background: #fafcff;
-
-    transition:
-        transform .2s ease,
-        box-shadow .2s ease;
-}
-
-.stat-pill:hover {
-    transform: translateY(-2px);
-
-    box-shadow:
-        0 6px 13px rgba(15,23,42,.05);
-}
-
-
-/* =========================================================
-   LOADING BOX
-   ========================================================= */
-
-.loading-spinner-box {
-    position: relative;
-
-    padding: 45px 20px !important;
-
-    color: #64748b;
-
-    text-align: center;
-}
-
-.loading-spinner-box::before {
-    content: "";
-
-    width: 27px;
-    height: 27px;
-
-    display: block;
-
-    margin: 0 auto 12px;
-
-    border: 3px solid #e2e8f0;
-    border-top-color: #4f46e5;
-
-    border-radius: 50%;
-
-    animation: spinnerRotate .75s linear infinite;
-}
-
-
-/* =========================================================
-   TEXT COLORS
-   ========================================================= */
-
-.text-success {
-    color: #16a34a !important;
-}
-
-.text-danger {
-    color: #dc2626 !important;
-}
-
-.text-primary {
-    color: #4f46e5 !important;
-}
-
-.text-muted {
-    color: #94a3b8 !important;
-}
-
-
-/* =========================================================
-   SCROLLBARS
-   ========================================================= */
-
-.dashboard-container *::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.dashboard-container *::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.dashboard-container *::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 20px;
-}
-
-.dashboard-container *::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-
-/* =========================================================
-   ANIMATIONS
-   ========================================================= */
-
-@keyframes dashboardFadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
+/{% extends "base.html" %}
+{% load tenant_tags %}
+{% load static %}
+{% block title %}Dashboard — {{ school_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Modern Header Bar -->
+    <div class="dash-header-bar">
+        <div class="dash-header-left">
+            <h1 class="dashboard-title">Dashboard Overview</h1>
+            <p class="dashboard-subtitle">
+                Welcome back, <strong>{{ request.user.username }}</strong> &bull; {{ today_date|date:"l, F j, Y" }}
+            </p>
+        </div>
+        <div class="dash-header-right">
+            <div class="dash-date-badge" title="Today's date">
+                <span class="dash-date-ico">📅</span>
+                <span class="dash-date-text">{{ today_date|date:"M j, Y" }}</span>
+            </div>
+            <!-- Academic Year Dropdown (uses existing filter) -->
+            <form method="GET" action="{% tenant_url 'core:dashboard' %}" class="dash-acad-form">
+                <label for="academic-year" class="dash-acad-label">Academic Year:</label>
+                <select name="year" id="academic-year" class="dash-acad-select" onchange="this.form.submit()">
+                    <option value="">All Years</option>
+                    {% for y in available_years %}
+                        <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+                {% if selected_month %}
+                    <input type="hidden" name="month" value="{{ selected_month }}">
+                {% endif %}
+                {% if selected_class_id %}
+                    <input type="hidden" name="class_id" value="{{ selected_class_id }}">
+                {% endif %}
+                <noscript>
+                    <button type="submit" class="btn btn-primary btn-xs">Go</button>
+                </noscript>
+            </form>
+            <button class="dash-icon-btn" title="Notifications" type="button">
+                <span class="dash-bell">🔔</span>
+                <span class="dash-bell-dot"></span>
+            </button>
+            <span class="dash-avatar" title="{{ request.user.username }}">{{ request.user.username|first|upper }}</span>
+        </div>
+    </div>
+
+    <!-- Active Filter Badge Indicator -->
+    <div class="dash-filter-indicator">
+        <span class="dash-filter-label">Showing Analytics For:</span>
+        <span class="badge badge-primary">{{ filter_label }}</span>
+        {% if not selected_year and not selected_month %}
+            <span class="text-muted text-xs">(All-time accumulated records)</span>
+        {% endif %}
+        {% if selected_year or selected_month %}
+            <a href="{% tenant_url 'core:dashboard' %}" class="btn btn-outline btn-xs">Reset Filters</a>
+        {% endif %}
+    </div>
+
+    <!-- MODERN METRIC CARDS -->
+    <div class="dash-metrics-grid">
+        <!-- Metric: Total Income -->
+        <div class="dash-metric-card">
+            <div class="dash-metric-icon dash-metric-icon-blue">📥</div>
+            <div class="dash-metric-body">
+                <span class="dash-metric-label">Total Income</span>
+                <span class="dash-metric-value">Rs {{ total_income|floatformat:2 }}</span>
+                <span class="dash-metric-hint">Paid student fees &bull; {{ filter_label }}</span>
+            </div>
+        </div>
+
+        <!-- Metric: Total Expenses -->
+        <div class="dash-metric-card">
+            <div class="dash-metric-icon dash-metric-icon-violet">📤</div>
+            <div class="dash-metric-body">
+                <span class="dash-metric-label">Total Expenses</span>
+                <span class="dash-metric-value">Rs {{ total_expenses|floatformat:2 }}</span>
+                <span class="dash-metric-hint">Disbursed salaries &bull; {{ filter_label }}</span>
+            </div>
+        </div>
+
+        <!-- Metric: Net Balance (solid blue card) -->
+        <div class="dash-metric-card dash-metric-solid">
+            <div class="dash-metric-icon dash-metric-icon-glass">💰</div>
+            <div class="dash-metric-body">
+                <span class="dash-metric-label">Net Balance</span>
+                <span class="dash-metric-value">Rs {{ remaining_balance|floatformat:2 }}</span>
+                <span class="dash-metric-hint">Income &minus; Expenses</span>
+            </div>
+        </div>
+
+        <!-- Metric: Teacher QR Check-in (compact live card) -->
+        <div class="dash-metric-card" id="teacherQrCard" style="flex-direction: column; align-items: center; text-align: center;">
+            <a href="{% tenant_url 'teachers:attendance_qr_png' %}" target="_blank" rel="noopener" title="Open QR image">
+                <img id="qrImgMini" src="{% tenant_url 'teachers:attendance_qr_png' %}"
+                     alt="Teacher check-in QR" width="140" height="140"
+                     style="border-radius: 12px; background: #fff; padding: 6px; border: 1px solid var(--border);">
+            </a>
+            <div class="dash-metric-body" style="align-items: center;">
+                <span class="dash-metric-label">Teacher QR Check-in
+                    <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #15803d; font-size: 10px; font-weight: 800; text-transform: uppercase;">
+                        <span id="qrLiveDot" style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block;"></span>Live
+                    </span>
+                </span>
+                <span class="dash-metric-value" style="font-size: 18px;">
+                    <span id="qrPresentCount">–</span><small style="font-size: 12px; color: var(--text-muted);">/{{ total_teachers }}</small>
+                </span>
+                <span class="dash-metric-hint">present today</span>
+                <span style="display: flex; justify-content: center; gap: 6px; margin-top: 8px;">
+                    <button type="button" class="dash-icon-btn" title="Refresh code" onclick="window.DashboardQR.refresh()">↻</button>
+                    <button type="button" class="dash-icon-btn" title="Expand / Fullscreen" onclick="window.DashboardQR.expand()">⛶</button>
+                    <a class="dash-icon-btn" title="Open full page" href="{% tenant_url 'teachers:attendance_qr' %}" style="text-decoration: none;">↗</a>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMISSION FEES REPORT WIDGET -->
+    <div class="dash-card" id="admission-fees-section">
+        <div class="dash-card-head">
+            <h3>🎓 Admission Fees Collected</h3>
+            <span class="dash-card-badge">{{ admission_scope_label }}</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-bottom: 14px;">
+            <form method="GET" action="{% tenant_url 'core:dashboard' %}" class="dash-acad-form" style="margin: 0;">
+                <label for="admission-class-filter" class="dash-acad-label">Filter by Class:</label>
+                <select name="class_id" id="admission-class-filter" class="dash-acad-select" onchange="this.form.submit()">
+                    <option value="">All Classes</option>
+                    {% for c in classes_list %}
+                        <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
+                {% if selected_month %}<input type="hidden" name="month" value="{{ selected_month }}">{% endif %}
+                <noscript><button type="submit" class="btn btn-primary btn-xs">Go</button></noscript>
+            </form>
+            <div>
+                <span class="dash-metric-label">Total Collected</span><br>
+                <span class="dash-metric-value" style="font-size: 22px;">Rs {{ admission_total|floatformat:2 }}</span>
+                <span class="text-muted text-xs">&bull; {{ admission_count }} payment{{ admission_count|pluralize }}</span>
+            </div>
+        </div>
+        {% if admission_breakdown %}
+        <div class="table-responsive">
+            <table class="data-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Class</th>
+                        <th>Payments</th>
+                        <th>Total (Rs)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in admission_breakdown %}
+                        <tr>
+                            <td>{{ row.school_class__name }}</td>
+                            <td>{{ row.payments }}</td>
+                            <td>{{ row.total|floatformat:2 }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-sm" style="margin: 0;">
+            No admission fees recorded yet. Enter an amount in the optional
+            &ldquo;Admission Fee&rdquo; field during student registration to track one here.
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- SECONDARY SUMMARY TILES -->
+    <div class="dash-metrics-grid dash-metrics-grid-sm">
+        <div class="dash-tile" onclick="scrollToSection('class-statistics-section')" title="Click to view class & student statistics">
+            <span class="dash-tile-ico dash-tile-blue">🎓</span>
+            <div><span class="dash-tile-label">Students</span><span class="dash-tile-value">{{ total_students }}</span></div>
+        </div>
+        <div class="dash-tile">
+            <span class="dash-tile-ico dash-tile-violet">👨‍🏫</span>
+            <div><span class="dash-tile-label">Teachers</span><span class="dash-tile-value">{{ total_teachers }}</span></div>
+        </div>
+        <div class="dash-tile">
+            <span class="dash-tile-ico dash-tile-cyan">📋</span>
+            <div><span class="dash-tile-label">Today's Attendance</span><span class="dash-tile-value" id="tileTodayPct">{{ attendance_percentage }}%</span></div>
+        </div>
+        <div class="dash-tile" onclick="scrollToSection('class-statistics-section')" title="Click to view all classes">
+            <span class="dash-tile-ico dash-tile-indigo">🏫</span>
+            <div><span class="dash-tile-label">Classes</span><span class="dash-tile-value">{{ total_classes }}</span></div>
+        </div>
+    </div>
+
+
+    <!-- TEACHER ATTENDANCE OVERVIEW SECTION -->
+    <div class="dash-card" id="teacher-attendance-section">
+        <div class="dash-card-head">
+            <h3>👨‍🏫 Teacher Attendance Overview</h3>
+            <span class="dash-card-badge">{{ today_date|date:"M j, Y" }}</span>
+        </div>
+
+        <!-- Live counters -->
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 18px;">
+            <div class="stat-card" style="flex: 1; min-width: 160px; margin: 0;">
+                <div class="stat-icon bg-indigo-light"><span>👨‍🏫</span></div>
+                <div class="stat-details">
+                    <span class="stat-label">Total Teachers</span>
+                    <span class="stat-value">{{ total_teachers }}</span>
+                    <span class="stat-hint">Active faculty</span>
+                </div>
+            </div>
+            <div class="stat-card" style="flex: 1; min-width: 160px; margin: 0;">
+                <div class="stat-icon bg-emerald-light"><span>✅</span></div>
+                <div class="stat-details">
+                    <span class="stat-label">Present Today</span>
+                    <span class="stat-value" style="color: #16a34a;">{{ teacher_present_count }}</span>
+                    <span class="stat-hint">Checked in before 10:00 AM</span>
+                </div>
+            </div>
+            <div class="stat-card" style="flex: 1; min-width: 160px; margin: 0;">
+                <div class="stat-icon bg-rose-light"><span>❌</span></div>
+                <div class="stat-details">
+                    <span class="stat-label">Absent Today</span>
+                    <span class="stat-value" style="color: #dc2626;">{{ teacher_absent_count }}</span>
+                    <span class="stat-hint">No check-in</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Present teachers -->
+            <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden;">
+                <div style="padding: 10px 16px; background: #ecfdf5; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="color: #15803d;">🟢 Present</strong>
+                    <span class="badge" style="background:#dcfce7;color:#15803d;">{{ teacher_present_count }}</span>
+                </div>
+                <ul style="list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto;">
+                    {% for item in present_teachers %}
+                        <li style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border);">
+                            {% if item.teacher.picture %}
+                                <img src="{{ item.teacher.picture.url }}" alt="{{ item.teacher.name }}" style="width: 42px; height: 42px; object-fit: cover; border-radius: 50%;">
+                            {% else %}
+                                <div style="width: 42px; height: 42px; border-radius: 50%; background: #dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-weight:800;">{{ item.teacher.name|first|upper }}</div>
+                            {% endif %}
+                            <div style="flex: 1; min-width: 0;">
+                                <strong style="display:block;">{{ item.teacher.name }}</strong>
+                                <span class="text-muted text-xs"><code>{{ item.teacher.teacher_id }}</code></span>
+                            </div>
+                            <div style="text-align:right;">
+                                {% if item.time_in %}
+                                    <span style="font-weight:700; color:#15803d;">{{ item.time_in|time:"g:i A" }}</span>
+                                {% else %}
+                                    <span class="text-muted text-sm">—</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% empty %}
+                        <li class="text-muted text-sm" style="padding: 20px 16px;">No teachers marked present yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Absent teachers -->
+            <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden;">
+                <div style="padding: 10px 16px; background: #fef2f2; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="color: #b91c1c;">🔴 Absent</strong>
+                    <span class="badge" style="background:#fee2e2;color:#b91c1c;">{{ teacher_absent_count }}</span>
+                </div>
+                <ul style="list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto;">
+                    {% for item in absent_teachers %}
+                        <li style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border);">
+                            {% if item.teacher.picture %}
+                                <img src="{{ item.teacher.picture.url }}" alt="{{ item.teacher.name }}" style="width: 42px; height: 42px; object-fit: cover; border-radius: 50%;">
+                            {% else %}
+                                <div style="width: 42px; height: 42px; border-radius: 50%; background: #fee2e2; color:#b91c1c; display:flex; align-items:center; justify-content:center; font-weight:800;">{{ item.teacher.name|first|upper }}</div>
+                            {% endif %}
+                            <div style="flex: 1; min-width: 0;">
+                                <strong style="display:block;">{{ item.teacher.name }}</strong>
+                                <div class="text-muted text-xs"><code>{{ item.teacher.teacher_id }}</code></div>
+                            </div>
+                            <span class="badge" style="background:#fee2e2;color:#b91c1c;">Absent</span>
+                        </li>
+                    {% empty %}
+                        <li class="text-muted text-sm" style="padding: 20px 16px;">No absent teachers today.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Pending note + link to full register -->
+        <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <span class="text-sm text-muted">Attendance closes daily at <strong>10:00 AM</strong>.</span>
+            <a href="{% tenant_url 'teachers:attendance_list' %}?range=today" class="btn btn-ghost btn-xs">Open Teacher Register &rarr;</a>
+        </div>
+    </div>
+
+    <!-- QR Expand / Fullscreen Modal -->
+    <div id="qrExpandOverlay" style="display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.88); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: #fff; border-radius: 18px; padding: 28px; text-align: center; max-width: 430px; box-shadow: 0 30px 80px rgba(0,0,0,.5);">
+            <h3 style="margin: 0 0 6px;">🧾 Teacher Check-in QR</h3>
+            <p class="text-sm text-muted" style="margin: 0 0 14px;">
+                Live &bull; auto-syncs every few seconds &bull;
+                <span id="qrModalPresent" class="badge badge-success">–</span> present today
+            </p>
+            <img id="qrImgLarge" src="{% tenant_url 'teachers:attendance_qr_png' %}"
+                 alt="Teacher check-in QR (large)" width="320" height="320"
+                 style="border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: #fff;">
+            <div style="margin-top: 18px; display: flex; justify-content: center; gap: 10px;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="window.DashboardQR.refresh()">↻ Refresh</button>
+                <a href="{% tenant_url 'teachers:attendance_qr' %}" class="btn btn-primary btn-sm">Open Full Page</a>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="window.DashboardQR.close()">✕ Close</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        window.DASHBOARD_QR_URL = "{% tenant_url 'teachers:attendance_qr_png' %}";
+    </script>
+    <script src="{% static 'js/dashboard.js' %}?v=1"></script>
+
+    <!-- CHART ROW: Attendance Donut + Financial Line -->
+    <div class="dash-charts-row">
+        <!-- Left: Attendance Circular Donut -->
+        <div class="dash-card">
+            <div class="dash-card-head">
+                <h3>Attendance Overview</h3>
+                <span class="dash-card-badge">{{ today_date|date:"M j, Y" }}</span>
+            </div>
+            <div class="dash-donut-wrap">
+                {% if selected_year or selected_month %}
+                    {% with rate=period_attendance_rate %}
+                    <div class="dash-donut" style="--rate: {{ rate }}%;">
+                        <div class="dash-donut-inner">
+                            <span class="dash-donut-value">{{ rate }}%</span>
+                            <span class="dash-donut-label">Period Rate</span>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    {% with rate=attendance_percentage %}
+                    <div class="dash-donut" style="--rate: {{ rate }}%;">
+                        <div class="dash-donut-inner">
+                            <span class="dash-donut-value">{{ rate }}%</span>
+                            <span class="dash-donut-label">Today's Rate</span>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% endif %}
+                <div class="dash-donut-legend">
+                    <div class="dash-donut-legend-row present"><span class="lg-dot"></span>Present <strong>{% if selected_year or selected_month %}{{ period_present }}{% else %}{{ today_present }}{% endif %}</strong></div>
+                    <div class="dash-donut-legend-row absent"><span class="lg-dot"></span>Absent <strong>{% if selected_year or selected_month %}{{ period_absent }}{% else %}{{ today_absent }}{% endif %}</strong></div>
+                    <div class="dash-donut-legend-row marked"><span class="lg-dot"></span>Marked <strong>{% if selected_year or selected_month %}{{ period_marked_total }}{% else %}{{ today_marked_total }}{% endif %}</strong></div>
+                </div>
+                {% if not selected_year and not selected_month and today_marked_total == 0 %}
+                    <p class="text-sm text-muted text-center" style="margin-top: 10px;">No attendance marked yet for today.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right: Financial Line Chart -->
+        <div class="dash-card">
+            <div class="dash-card-head">
+                <h3>Financial Summary</h3>
+                <span class="badge badge-outline">{{ filter_label }}</span>
+            </div>
+            <div class="dash-linechart-box">
+                <div class="dash-linechart-stats">
+                    <div class="dash-line-stat">
+                        <span class="dash-line-stat-lbl">Total Income</span>
+                        <strong class="text-success">Rs {{ total_income|floatformat:2 }}</strong>
+                    </div>
+                    <div class="dash-line-stat">
+                        <span class="dash-line-stat-lbl">Total Expenses</span>
+                        <strong class="text-muted">Rs {{ total_expenses|floatformat:2 }}</strong>
+                    </div>
+                    <div class="dash-line-stat">
+                        <span class="dash-line-stat-lbl">Net Balance</span>
+                        <strong class="{% if remaining_balance >= 0 %}text-success{% else %}text-danger{% endif %}">Rs {{ remaining_balance|floatformat:2 }}</strong>
+                    </div>
+                </div>
+                <svg class="dash-linechart" viewBox="0 0 320 120" preserveAspectRatio="none" aria-label="Financial summary line chart">
+                    <defs>
+                        <linearGradient id="dashLineGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.35"/>
+                            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.02"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Income polyline (green) -->
+                    <polyline class="dash-line-inc" points="0,95 64,70 128,52 192,40 256,26 320,14"/>
+                    <!-- Expense polyline (amber) -->
+                    <polyline class="dash-line-exp" points="0,100 64,88 128,80 192,72 256,66 320,60"/>
+                </svg>
+                <div class="dash-line-labels">
+                    <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+                </div>
+                <div class="dash-line-summary-row">
+                    <span class="text-success">◆ Income</span>
+                    <span class="text-muted">◆ Expenses</span>
+                    <span class="{% if all_time_balance >= 0 %}text-success{% else %}text-danger{% endif %}">All-time Net: Rs {{ all_time_balance|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Statistics Section -->
+    <div class="panel" id="class-statistics-section">
+        <div class="panel-header">
+            <div>
+                <h3>🏫 Class Statistics</h3>
+                <p class="text-muted text-sm" style="margin: 2px 0 0;">
+                    Click any class to inspect enrolled students and view their complete student profiles.
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="badge badge-primary">{{ total_classes }} Classes Available</span>
+                <a href="{% tenant_url 'classrooms:list' %}" class="btn btn-outline btn-sm">Manage Classes &rarr;</a>
+            </div>
+        </div>
+
+        <div class="classes-grid">
+            {% for sc in classes_list %}
+                <div class="class-card" onclick="loadClassStudents({{ sc.id }}, '{{ sc.name|escapejs }}')" tabindex="0" role="button">
+                    <div class="class-card-head">
+                        <div class="class-name-badge">{{ sc.name }}</div>
+                        <span class="class-count-badge">{{ sc.active_students }} Student{% if sc.active_students != 1 %}s{% endif %}</span>
+                    </div>
+                    <div class="class-card-body">
+                        <div class="class-fee-info">
+                            <span class="fee-lbl">Monthly Tuition:</span>
+                            <span class="fee-val">Rs {{ sc.monthly_fee|floatformat:0 }}</span>
+                        </div>
+                        <div class="class-fee-info">
+                            <span class="fee-lbl">Yearly Expected:</span>
+                            <span class="fee-val">Rs {{ sc.yearly_fee|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                    <div class="class-card-footer">
+                        <span>View Students &rarr;</span>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-muted">No classes found.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- RECENT ACTIVITIES + QUICK SUMMARY ROW -->
+    <div class="dash-bottom-row">
+        <!-- Recent Activities Feed -->
+        <div class="dash-card dash-feed">
+            <div class="dash-card-head">
+                <h3>Recent Activities</h3>
+                <span class="dash-card-badge">Latest</span>
+            </div>
+            <div class="dash-feed-list">
+                {% for fee in recent_fees %}
+                    <div class="dash-feed-item">
+                        <span class="dash-feed-ico dash-feed-fee">💳</span>
+                        <div class="dash-feed-body">
+                            <strong>{{ fee.student.name }}</strong>
+                            <span class="dash-feed-desc">Fee payment &bull; {{ fee.get_fee_month_display|slice:":3" }} {{ fee.fee_year }}</span>
+                        </div>
+                        <span class="dash-feed-amt text-success">+Rs {{ fee.amount|floatformat:0 }}</span>
+                    </div>
+                {% empty %}
+                    <p class="text-muted text-sm" style="padding: 8px 0;">No recent fee payments.</p>
+                {% endfor %}
+                {% for sal in recent_salaries %}
+                    <div class="dash-feed-item">
+                        <span class="dash-feed-ico dash-feed-salary">💸</span>
+                        <div class="dash-feed-body">
+                            <strong>{{ sal.teacher.name }}</strong>
+                            <span class="dash-feed-txt">Salary paid &bull; {{ sal.get_salary_month_display|slice:":3" }} {{ sal.salary_year }}</span>
+                        </div>
+                        <span class="dash-feed-amount text-danger">&minus;Rs {{ sal.amount|floatformat:0 }}</span>
+                    </div>
+                {% empty %}
+                    <p class="text-muted text-sm">No recent salary disbursements.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Quick Summary Rows -->
+        <div class="dash-card">
+            <div class="dash-card-head">
+                <h3>Quick Summary</h3>
+                <span class="dash-card-badge">{{ filter_label }}</span>
+            </div>
+            <div class="dash-summary-list">
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-blue">📥</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Total Income</span><strong class="text-success">Rs {{ total_income|floatformat:2 }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-violet">📤</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Total Expenses</span><strong class="text-danger">Rs {{ total_expenses|floatformat:2 }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-cyan">📋</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Today Marked</span><strong>{{ today_marked_total }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-amber">🎓</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">This Month's Income</span><strong>Rs {{ monthly_fee_income|floatformat:2 }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-green">💵</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Monthly Salaries</span><strong>Rs {{ monthly_teacher_salary|floatformat:2 }}</strong></div>
+                </div>
+                <div class="dash-summary-row">
+                    <span class="dash-summary-ico dash-tile-indigo">📊</span>
+                    <div class="dash-summary-info"><span class="dash-summary-lbl">Yearly Net</span><strong class="{% if yearly_net_income >= 0 %}text-success{% else %}text-danger{% endif %}">Rs {{ yearly_net_income|floatformat:2 }}</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MODAL 1: Class Students List Drilldown
+     ========================================================================= -->
+<div class="modal-overlay" id="class-students-modal" onclick="closeModalOnBackdrop(event, 'class-students-modal')">
+    <div class="modal-card modal-lg">
+        <div class="modal-header">
+            <div>
+                <h3 id="class-modal-title">Class Students</h3>
+                <p class="text-muted text-sm" id="class-modal-subtitle">Enrolled students</p>
+            </div>
+            <button class="modal-close-btn" onclick="closeModal('class-students-modal')">&times;</button>
+        </div>
+        <div class="modal-body" id="class-modal-body">
+            <!-- Populated dynamically via JS -->
+            <div class="loading-spinner-box">Loading students...</div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MODAL 2: Student Complete Profile Modal
+     ========================================================================= -->
+<div class="modal-overlay" id="student-profile-modal" onclick="closeModalOnBackdrop(event, 'student-profile-modal')">
+    <div class="modal-card modal-lg">
+        <div class="modal-header">
+            <div>
+                <h3 id="profile-modal-title">Student Profile</h3>
+                <p class="text-muted text-sm" id="profile-modal-subtitle">Full academic &amp; financial details</p>
+            </div>
+            <button class="modal-close-btn" onclick="closeModal('student-profile-modal')">&times;</button>
+        </div>
+        <div class="modal-body" id="profile-modal-body">
+            <!-- Populated dynamically via JS -->
+            <div class="loading-spinner-box">Loading student profile...</div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Interactive Dashboard Drilldowns -->
+<script>
+function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
 
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
+function openModal(id) {
+    const m = document.getElementById(id);
+    if (m) {
+        m.classList.add('active');
+        document.body.style.overflow = 'hidden';
     }
 }
 
-@keyframes fadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
+function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) {
+        m.classList.remove('active');
+        document.body.style.overflow = '';
     }
 }
 
-@keyframes cardReveal {
-    from {
-        opacity: 0;
-        transform: translateY(15px) scale(.985);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
+function closeModalOnBackdrop(e, id) {
+    if (e.target.id === id) {
+        closeModal(id);
     }
 }
 
-@keyframes bellSwing {
-    0% {
-        transform: rotate(0);
-    }
+// Load Students for a Class
+function loadClassStudents(classId, className) {
+    const modal = document.getElementById('class-students-modal');
+    const title = document.getElementById('class-modal-title');
+    const subtitle = document.getElementById('class-modal-subtitle');
+    const body = document.getElementById('class-modal-body');
 
-    25% {
-        transform: rotate(-13deg);
-    }
+    title.innerText = className;
+    subtitle.innerText = 'Loading enrolled students...';
+    body.innerHTML = '<div class="loading-spinner-box">Loading class students...</div>';
+    openModal('class-students-modal');
 
-    50% {
-        transform: rotate(11deg);
-    }
+    fetch('/api/class/' + classId + '/students/')
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.json();
+        })
+        .then(data => {
+            subtitle.innerText = data.total_students + ' Enrolled Students • Monthly Fee: Rs ' + data.monthly_fee.toFixed(2);
+            if (data.students.length === 0) {
+                body.innerHTML = `
+                    <div class="empty-state-box">
+                        <span style="font-size: 32px;">🎒</span>
+                        <h4>No Students Enrolled</h4>
+                        <p class="text-muted text-sm">There are currently no active students enrolled in ${data.class_name}.</p>
+                    </div>
+                `;
+                return;
+            }
 
-    75% {
-        transform: rotate(-7deg);
-    }
+            let html = `
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Father's Name</th>
+                                <th>Gender</th>
+                                <th>Monthly Fee</th>
+                                <th>Contact</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
 
-    100% {
-        transform: rotate(0);
-    }
+            data.students.forEach(s => {
+                const avatar = s.photo_url 
+                    ? `<img src="${s.photo_url}" class="student-mini-avatar" alt="${s.name}">`
+                    : `<div class="student-mini-avatar avatar-placeholder">${s.name.charAt(0)}</div>`;
+
+                html += `
+                    <tr>
+                        <td><code>${s.student_id}</code></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                ${avatar}
+                                <strong>${s.name}</strong>
+                            </div>
+                        </td>
+                        <td>${s.father_name}</td>
+                        <td>${s.gender}</td>
+                        <td>Rs ${s.effective_monthly_fee.toFixed(2)}</td>
+                        <td>${s.phone}</td>
+                        <td style="text-align: right;">
+                            <button class="btn btn-sm btn-primary" onclick="loadStudentProfile('${s.student_id}')">
+                                View Profile
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            body.innerHTML = html;
+        })
+        .catch(err => {
+            body.innerHTML = '<div class="alert alert-error">Failed to load students. Please try again.</div>';
+        });
 }
 
-@keyframes notificationPulse {
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 rgba(239,68,68,.35);
-    }
+// Load Student Profile Modal
+function loadStudentProfile(studentId) {
+    const modal = document.getElementById('student-profile-modal');
+    const title = document.getElementById('profile-modal-title');
+    const subtitle = document.getElementById('profile-modal-subtitle');
+    const body = document.getElementById('profile-modal-body');
 
-    50% {
-        box-shadow: 0 0 0 5px rgba(239,68,68,0);
-    }
+    title.innerText = 'Student Profile (' + studentId + ')';
+    subtitle.innerText = 'Loading details...';
+    body.innerHTML = '<div class="loading-spinner-box">Loading student profile...</div>';
+    openModal('student-profile-modal');
+
+    fetch('/api/student/' + encodeURIComponent(studentId) + '/profile/')
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.json();
+        })
+        .then(s => {
+            title.innerText = s.name;
+            subtitle.innerText = s.student_id + ' • ' + s.class_name;
+
+            const photoHtml = s.photo_url
+                ? `<img src="${s.photo_url}" class="profile-photo" alt="${s.name}">`
+                : `<div class="profile-photo photo-placeholder">${s.name.charAt(0)}</div>`;
+
+            let recentFeesHtml = '';
+            if (s.recent_fees && s.recent_fees.length > 0) {
+                recentFeesHtml = `
+                    <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                        <table class="data-table data-table-compact">
+                            <thead>
+                                <tr>
+                                    <th>Month/Year</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Ref</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${s.recent_fees.map(f => `
+                                    <tr>
+                                        <td>${f.month_display} ${f.fee_year}</td>
+                                        <td class="text-success font-weight-bold">Rs ${f.amount.toFixed(2)}</td>
+                                        <td>${f.payment_date}</td>
+                                        <td>${f.reference}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                recentFeesHtml = '<p class="text-muted text-sm" style="margin: 8px 0 0;">No fee payments recorded.</p>';
+            }
+
+            let recentAttHtml = '';
+            if (s.recent_attendance && s.recent_attendance.length > 0) {
+                recentAttHtml = `
+                    <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                        <table class="data-table data-table-compact">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${s.recent_attendance.map(a => `
+                                    <tr>
+                                        <td>${a.date}</td>
+                                        <td>
+                                            <span class="badge ${a.status === 'PRESENT' ? 'badge-success' : 'badge-danger'}">
+                                                ${a.status_display}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                recentAttHtml = '<p class="text-muted text-sm" style="margin: 8px 0 0;">No attendance records found.</p>';
+            }
+
+            body.innerHTML = `
+                <div class="profile-layout">
+                    <!-- Bio & Identity Card -->
+                    <div class="profile-header-card">
+                        ${photoHtml}
+                        <div class="profile-header-meta">
+                            <h4>${s.name}</h4>
+                            <div class="profile-badges">
+                                <span class="badge badge-primary">${s.student_id}</span>
+                                <span class="badge badge-outline">${s.class_name}</span>
+                                <span class="badge badge-info">${s.gender}</span>
+                            </div>
+                            <div class="profile-meta-grid">
+                                <div><strong>Father:</strong> ${s.father_name}</div>
+                                <div><strong>DOB:</strong> ${s.date_of_birth}</div>
+                                <div><strong>Form B:</strong> ${s.form_b_number}</div>
+                                <div><strong>Phone:</strong> ${s.phone}</div>
+                                <div><strong>Email:</strong> ${s.email}</div>
+                                <div><strong>Admitted:</strong> ${s.admission_date}</div>
+                            </div>
+                            <div style="margin-top: 6px; font-size: 13px;">
+                                <strong>Address:</strong> ${s.address}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fee and Attendance Details Grid -->
+                    <div class="profile-sections-grid">
+                        <!-- Fee Overview -->
+                        <div class="panel profile-section-box">
+                            <h5>💳 Fee Information</h5>
+                            <div class="profile-stat-pills">
+                                <div class="stat-pill">
+                                    <span class="lbl">Monthly Fee:</span>
+                                    <strong>Rs ${s.effective_monthly_fee.toFixed(2)}</strong>
+                                </div>
+                                <div class="stat-pill">
+                                    <span class="lbl">Yearly Expected:</span>
+                                    <strong>Rs ${s.yearly_expected_fee.toFixed(2)}</strong>
+                                </div>
+                                <div class="stat-pill text-success">
+                                    <span class="lbl">Total Paid:</span>
+                                    <strong>Rs ${s.total_paid_fees.toFixed(2)}</strong>
+                                </div>
+                                <div class="stat-pill text-danger">
+                                    <span class="lbl">Year Pending:</span>
+                                    <strong>Rs ${s.current_year_pending.toFixed(2)}</strong>
+                                </div>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <strong>Payment History</strong>
+                                ${recentFeesHtml}
+                            </div>
+                        </div>
+
+                        <!-- Attendance Overview -->
+                        <div class="panel profile-section-box">
+                            <h5>📋 Attendance Information</h5>
+                            <div class="profile-stat-pills">
+                                <div class="stat-pill">
+                                    <span class="lbl">Total Days:</span>
+                                    <strong>${s.total_attendance_days}</strong>
+                                </div>
+                                <div class="stat-pill text-success">
+                                    <span class="lbl">Present:</span>
+                                    <strong>${s.present_count}</strong>
+                                </div>
+                                <div class="stat-pill text-danger">
+                                    <span class="lbl">Absent:</span>
+                                    <strong>${s.absent_count}</strong>
+                                </div>
+                                <div class="stat-pill text-primary">
+                                    <span class="lbl">Attendance Rate:</span>
+                                    <strong>${s.attendance_percentage}%</strong>
+                                </div>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <strong>Recent Attendance</strong>
+                                ${recentAttHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(err => {
+            body.innerHTML = '<div class="alert alert-error">Failed to load student profile. Please try again.</div>';
+        });
 }
-
-@keyframes liveDot {
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 rgba(34,197,94,.40);
-    }
-
-    50% {
-        box-shadow: 0 0 0 5px rgba(34,197,94,0);
-    }
-}
-
-@keyframes spinnerRotate {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes modalReveal {
-    from {
-        opacity: 0;
-        transform: translateY(16px) scale(.97);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@keyframes qrModalReveal {
-    from {
-        opacity: 0;
-        transform: scale(.94) translateY(12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-@keyframes donutAppear {
-    from {
-        opacity: 0;
-        transform: scale(.86) rotate(-15deg);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) rotate(0deg);
-    }
-}
-
-@keyframes drawChartLine {
-    to {
-        stroke-dashoffset: 0;
-    }
-}
-
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 1200px) {
-
-    .dash-metrics-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .dash-metrics-grid-sm {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .classes-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-
-@media (max-width: 900px) {
-
-    .dash-header-bar {
-        align-items: flex-start;
-        flex-direction: column;
-        padding: 20px;
-    }
-
-    .dash-header-right {
-        width: 100%;
-    }
-
-    .dash-charts-row,
-    .dash-bottom-row {
-        grid-template-columns: 1fr;
-    }
-
-    .dash-linechart-stats {
-        grid-template-columns: 1fr;
-    }
-}
-
-
-@media (max-width: 650px) {
-
-    .dashboard-container {
-        padding-bottom: 25px;
-    }
-
-    .dash-header-bar {
-        border-radius: 16px;
-    }
-
-    .dashboard-title {
-        font-size: 23px;
-    }
-
-    .dash-header-right {
-        align-items: stretch;
-    }
-
-    .dash-acad-form {
-        width: 100%;
-        flex-wrap: wrap;
-    }
-
-    .dash-acad-select {
-        flex: 1;
-    }
-
-    .dash-metrics-grid,
-    .dash-metrics-grid-sm,
-    .classes-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .dash-metric-card {
-        min-height: 108px;
-    }
-
-    .dash-card,
-    .panel {
-        padding: 15px;
-        border-radius: 15px !important;
-    }
-
-    .dash-card-head,
-    .panel-header {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .dash-line-summary-row {
-        flex-direction: column;
-        gap: 7px;
-    }
-
-    .modal-card {
-        width: calc(100% - 20px) !important;
-        max-height: 92vh;
-        overflow-y: auto;
-    }
-}
-
-
-/* =========================================================
-   ACCESSIBILITY
-   Reduce animation when device requests it
-   ========================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        scroll-behavior: auto !important;
-        transition-duration: 0.01ms !important;
-    }
-}
+</script>
+{% endblock %}
