@@ -14,7 +14,10 @@
         box-shadow: 4px 0 24px rgba(4, 22, 62, 0.25);
         border-right: 1px solid rgba(255,255,255,0.06);
         transition: width 0.25s ease;
-        position: relative;
+        position: sticky;
+        top: 0;
+        flex: 0 0 260px;
+        overflow-y: auto;
         overflow-x: hidden;
     }
 
@@ -276,6 +279,16 @@
         .app-sidebar *, .app-sidebar *::before, .app-sidebar *::after {
             animation-duration: 0.01ms !important;
             transition-duration: 0.01ms !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .app-sidebar {
+            position: relative;
+            top: auto;
+            flex-basis: auto;
+            height: auto;
+            overflow-y: visible;
         }
     }
 </style>

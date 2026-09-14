@@ -1715,8 +1715,8 @@ body.sidebar-collapsed .sidebar-link { justify-content: center; padding: 10px 0;
 body.sidebar-collapsed .sidebar-user { justify-content: center; padding: 12px 0; }
 
 /* ---------- Main shell ---------- */
-.app-shell { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.app-content { flex: 1; padding: 28px 30px 60px; background: #f8fafc; }
+.app-shell { flex: 1; min-width: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.app-content { flex: 1; min-height: 0; overflow-y: auto; padding: 28px 30px 60px; background: #f8fafc; }
 
 /* ---------- Dashboard Header bar ---------- */
 .dash-header-bar {
@@ -1984,6 +1984,8 @@ body.sidebar-collapsed .sidebar-user { justify-content: center; padding: 12px 0;
 @media (max-width: 768px) {
   .app-frame { flex-direction: column; }
   .app-sidebar { width: 100%; flex-basis: auto; height: auto; position: relative; }
+  .app-shell { height: auto; overflow: visible; }
+  .app-content { overflow-y: visible; }
   .sidebar-collapse { display: none; }
   .app-content { padding: 20px 16px 48px; }
   .dash-header-bar { flex-direction: column; align-items: flex-start; }
