@@ -9,9 +9,8 @@
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <style>
         /* ============================================================
-           DARK GLASS · MESH GRADIENT · NEON LOGIN (scoped to this page)
+           CAMPUS-THEME LOGIN — split illustration + white card
            ============================================================ */
-
         * { box-sizing: border-box; }
 
         body.login-body {
@@ -23,305 +22,291 @@
             padding: 24px;
             position: relative;
             overflow: hidden;
-            background: #05060f;
             font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(160deg, #bfe3ff 0%, #4fa4e8 22%, #1c6fd6 55%, #0e4fb0 100%);
         }
 
-        /* ---------- Animated mesh gradient blobs ---------- */
-        .mesh-blob {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(90px);
-            opacity: 0.55;
+        /* soft moving light sweep across the sky */
+        body.login-body::before {
+            content: "";
+            position: fixed; inset: 0;
+            background: linear-gradient(120deg, rgba(255,255,255,0.16) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.1) 100%);
+            background-size: 250% 250%;
+            animation: skySweep 12s ease-in-out infinite;
             pointer-events: none;
             z-index: 0;
-            will-change: transform;
         }
-        .mesh-blob.b1 {
-            width: 480px; height: 480px; left: -120px; top: -100px;
-            background: radial-gradient(circle, #7c3aed, transparent 70%);
-            animation: blobDrift1 16s ease-in-out infinite;
-        }
-        .mesh-blob.b2 {
-            width: 420px; height: 420px; right: -100px; bottom: -80px;
-            background: radial-gradient(circle, #06b6d4, transparent 70%);
-            animation: blobDrift2 18s ease-in-out infinite;
-        }
-        .mesh-blob.b3 {
-            width: 360px; height: 360px; right: 15%; top: -140px;
-            background: radial-gradient(circle, #ec4899, transparent 70%);
-            animation: blobDrift3 14s ease-in-out infinite;
-        }
-        .mesh-blob.b4 {
-            width: 320px; height: 320px; left: 8%; bottom: -120px;
-            background: radial-gradient(circle, #6366f1, transparent 70%);
-            animation: blobDrift4 20s ease-in-out infinite;
+        @keyframes skySweep {
+            0%, 100% { background-position: 0% 0%; }
+            50%      { background-position: 100% 100%; }
         }
 
-        @keyframes blobDrift1 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33%      { transform: translate(60px, 40px) scale(1.15); }
-            66%      { transform: translate(-30px, 70px) scale(0.9); }
-        }
-        @keyframes blobDrift2 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50%      { transform: translate(-70px, -50px) scale(1.2); }
-        }
-        @keyframes blobDrift3 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50%      { transform: translate(-50px, 60px) scale(1.1); }
-        }
-        @keyframes blobDrift4 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50%      { transform: translate(40px, -60px) scale(1.15); }
-        }
-
-        /* Fine noise/grid overlay for texture */
-        .mesh-grid {
-            position: fixed; inset: 0; z-index: 0; pointer-events: none;
-            background-image:
-                linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
-            background-size: 42px 42px;
-            mask-image: radial-gradient(circle at 50% 40%, black 10%, transparent 75%);
-        }
-
-        /* Floating particles */
-        .spark {
+        /* ---------------- Side illustration panels ---------------- */
+        .side-panel {
             position: fixed;
-            width: 3px; height: 3px;
-            border-radius: 50%;
-            background: #a5b4fc;
-            box-shadow: 0 0 8px 2px rgba(165,180,252,0.7);
-            opacity: 0;
-            z-index: 1;
-            animation: sparkRise linear infinite;
+            top: 0; bottom: 0;
+            width: 32%;
+            min-width: 260px;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
         }
-        .spark:nth-child(1) { left: 12%; animation-duration: 9s;  animation-delay: 0s;   background:#67e8f9; box-shadow:0 0 8px 2px rgba(103,232,249,.7);}
-        .spark:nth-child(2) { left: 26%; animation-duration: 11s; animation-delay: 2s; }
-        .spark:nth-child(3) { left: 48%; animation-duration: 8s;  animation-delay: 1s;   background:#f0abfc; box-shadow:0 0 8px 2px rgba(240,171,252,.7);}
-        .spark:nth-child(4) { left: 68%; animation-duration: 12s; animation-delay: 3.5s; }
-        .spark:nth-child(5) { left: 82%; animation-duration: 10s; animation-delay: 0.8s;  background:#67e8f9; box-shadow:0 0 8px 2px rgba(103,232,249,.7);}
-        .spark:nth-child(6) { left: 92%; animation-duration: 9.5s;animation-delay: 4s; }
+        .side-panel.left  { left: 0; }
+        .side-panel.right { right: 0; }
 
-        @keyframes sparkRise {
-            0%   { transform: translateY(110vh) scale(0.6); opacity: 0; }
-            10%  { opacity: 0.9; }
-            90%  { opacity: 0.5; }
-            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        /* left: school building silhouette */
+        .building {
+            position: absolute; left: 6%; bottom: 8%; width: 90%;
+            animation: gentleFloat 6s ease-in-out infinite;
         }
+        .building svg { width: 100%; height: auto; display: block; }
 
-        @media (prefers-reduced-motion: reduce) {
-            .mesh-blob, .spark { animation: none !important; }
+        .flag-pole { transform-origin: bottom center; animation: flagWave 3s ease-in-out infinite; }
+        @keyframes flagWave {
+            0%, 100% { transform: rotate(0deg); }
+            50%      { transform: rotate(1.2deg); }
         }
 
-        /* ---------------- Glass card ---------------- */
+        .doodle-text-left {
+            position: absolute; left: 6%; top: 10%;
+            font-family: 'Brush Script MT', cursive, 'Segoe UI', sans-serif;
+            font-style: italic;
+            color: rgba(255,255,255,0.92);
+            font-size: 26px;
+            line-height: 1.25;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            animation: fadeInSlow 1.4s ease both;
+        }
+        .doodle-text-left .underline {
+            display: block; width: 70%; height: 2px;
+            background: rgba(255,255,255,0.8);
+            margin-top: 6px;
+        }
+
+        /* right: graduation doodles */
+        .doodle-right { position: absolute; inset: 0; }
+        .doodle-right svg {
+            position: absolute;
+            opacity: 0.9;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
+        }
+        .cap-doodle   { top: 12%; right: 18%; width: 150px; animation: gentleFloat 5s ease-in-out infinite; }
+        .book-doodle  { top: 30%; right: 55%; width: 80px;  animation: gentleFloat 7s ease-in-out infinite 0.5s; }
+        .plane-doodle { top: 16%; right: 8%;  width: 60px;  animation: planeFly 5s ease-in-out infinite; }
+
+        @keyframes gentleFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50%      { transform: translateY(-10px) rotate(-2deg); }
+        }
+        @keyframes planeFly {
+            0%   { transform: translate(0, 0) rotate(0deg); }
+            50%  { transform: translate(14px, -14px) rotate(8deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+        .doodle-text-right {
+            position: absolute; right: 6%; top: 38%;
+            font-family: 'Brush Script MT', cursive, 'Segoe UI', sans-serif;
+            font-style: italic;
+            color: rgba(255,255,255,0.92);
+            font-size: 26px;
+            line-height: 1.25;
+            text-align: right;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            animation: fadeInSlow 1.4s ease both;
+        }
+        .doodle-text-right .underline {
+            display: block; width: 60%; height: 2px;
+            margin-left: auto;
+            background: rgba(255,255,255,0.8);
+            margin-top: 6px;
+        }
+
+        /* books + stationery bottom right */
+        .books-stack { position: absolute; right: 6%; bottom: 10%; width: 46%; animation: gentleFloat 8s ease-in-out infinite; }
+        .books-stack svg { width: 100%; height: auto; }
+
+        @keyframes fadeInSlow {
+            0%   { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* bottom wave band across whole screen */
+        .wave-band {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 0;
+            pointer-events: none;
+        }
+
+        @media (max-width: 1100px) {
+            .side-panel { display: none; }
+        }
+
+        /* ---------------- Center white card ---------------- */
         .login-wrap {
             position: relative;
             z-index: 2;
             width: 100%;
-            max-width: 408px;
-            perspective: 1200px;
+            max-width: 430px;
         }
 
         .login-card {
             position: relative;
-            background: rgba(17, 19, 36, 0.62);
-            backdrop-filter: blur(22px) saturate(150%);
-            -webkit-backdrop-filter: blur(22px) saturate(150%);
-            border: 1px solid rgba(255,255,255,0.09);
-            border-radius: 26px;
-            padding: 44px 34px 30px;
-            box-shadow:
-                0 30px 80px rgba(0,0,0,0.55),
-                0 0 0 1px rgba(255,255,255,0.03) inset,
-                0 1px 0 rgba(255,255,255,0.12) inset;
-            animation: cardRise 0.7s cubic-bezier(0.19, 1, 0.22, 1);
-            transform-style: preserve-3d;
-        }
-
-        @keyframes cardRise {
-            0%   { opacity: 0; transform: translateY(40px) rotateX(6deg) scale(0.95); }
-            100% { opacity: 1; transform: translateY(0) rotateX(0) scale(1); }
-        }
-
-        /* Rotating conic-gradient border glow */
-        .login-card::before {
-            content: "";
-            position: absolute;
-            inset: -1.5px;
-            border-radius: 27px;
-            padding: 1.5px;
-            background: conic-gradient(from 0deg, #7c3aed, #06b6d4, #ec4899, #6366f1, #7c3aed);
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            animation: rotateBorder 6s linear infinite;
-            opacity: 0.55;
-            z-index: -1;
-        }
-        @keyframes rotateBorder { to { transform: rotate(360deg); } }
-
-        /* ---------------- Brand ---------------- */
-        .login-brand { text-align: center; margin-bottom: 28px; }
-
-        .login-brand-logo {
-            width: 78px; height: 78px;
-            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.97);
             border-radius: 22px;
-            background: linear-gradient(145deg, rgba(124,58,237,0.25), rgba(6,182,212,0.2));
-            border: 1px solid rgba(255,255,255,0.14);
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 0 30px rgba(124,58,237,0.35);
-            overflow: hidden;
-            animation: logoFloat 3.6s ease-in-out infinite;
+            padding: 38px 34px 26px;
+            box-shadow: 0 30px 70px rgba(4, 22, 62, 0.45), 0 0 0 1px rgba(255,255,255,0.4) inset;
+            animation: cardRise 0.6s cubic-bezier(0.2, 1, 0.3, 1);
         }
-        .login-brand-logo img { width: 58px; height: 58px; object-fit: contain; }
-        .login-brand .login-logo { font-size: 38px; filter: drop-shadow(0 0 10px rgba(124,58,237,0.6)); }
+        @keyframes cardRise {
+            0%   { opacity: 0; transform: translateY(30px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
 
-        @keyframes logoFloat {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50%      { transform: translateY(-7px) rotate(-2deg); }
+        /* ---------------- Brand / logo (shield) ---------------- */
+        .login-brand { text-align: center; margin-bottom: 20px; }
+
+        .shield-logo {
+            width: 96px; height: 96px;
+            margin: 0 auto 6px;
+            display: flex; align-items: center; justify-content: center;
+            animation: shieldPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+                       shieldGlow 3s ease-in-out infinite 0.8s;
+            border-radius: 50%;
+        }
+        .shield-logo img { width: 90px; height: 90px; object-fit: contain; border-radius: 50%; }
+
+        @keyframes shieldPop {
+            0%   { opacity: 0; transform: scale(0.6) rotate(-6deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        @keyframes shieldGlow {
+            0%, 100% { filter: drop-shadow(0 0 0 rgba(37,99,235,0)); }
+            50%      { filter: drop-shadow(0 0 14px rgba(37,99,235,0.45)); }
         }
 
         .login-brand h1 {
-            margin: 16px 0 6px;
-            font-size: 21px;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-            background: linear-gradient(90deg, #f8fafc, #c7d2fe, #f8fafc);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            animation: shimmerText 4s linear infinite;
-        }
-        @keyframes shimmerText {
-            0%   { background-position: 0% center; }
-            100% { background-position: 200% center; }
+            font-size: 20px;
+            font-weight: 800;
+            color: #0b2a63;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
+            margin: 4px 0 8px;
+            line-height: 1.3;
         }
 
         .login-tagline {
             display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 13px; border-radius: 999px;
-            background: rgba(124,58,237,0.14);
-            border: 1px solid rgba(124,58,237,0.35);
-            color: #c4b5fd;
-            font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+            color: #2563eb;
+            font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
         }
-        .login-tagline .dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: #34d399; box-shadow: 0 0 8px 2px rgba(52,211,153,0.8);
-            animation: dotPulse 1.6s ease-in-out infinite;
-        }
-        @keyframes dotPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50%      { opacity: 0.4; transform: scale(0.7); }
-        }
+        .login-tagline svg { width: 15px; height: 15px; }
 
-        /* ---------------- Messages / alerts ---------------- */
+        /* ---------------- messages / errors ---------------- */
         .messages, .alert {
-            font-size: 13px; padding: 10px 14px; border-radius: 11px; margin-bottom: 12px;
-            background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #fca5a5;
+            font-size: 13px; padding: 10px 14px; border-radius: 10px; margin: 14px 0 0;
+            background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
         }
-        .alert-success { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.35); color: #6ee7b7; }
-        .alert-info { background: rgba(6,182,212,0.12); border-color: rgba(6,182,212,0.35); color: #67e8f9; }
+        .alert-success { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+        .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
 
-        /* ---------------- Underline-style inputs ---------------- */
+        /* ---------------- Inputs with icon avatar ---------------- */
         .lgi-field {
             position: relative;
-            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #eef4ff;
+            border: 1.5px solid #dbeafe;
+            border-radius: 14px;
+            padding: 9px 14px;
+            margin-top: 18px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
-        .lgi-input {
-            width: 100%;
-            padding: 8px 34px 10px 2px;
-            background: transparent;
-            border: none;
-            border-bottom: 1.5px solid rgba(255,255,255,0.18);
-            color: #f1f5f9;
-            font-size: 15px;
-            outline: none;
-            transition: border-color 0.25s ease;
+        .lgi-field:focus-within {
+            border-color: #2563eb;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(37,99,235,0.12);
         }
-        .lgi-input::placeholder { color: transparent; }
-
-        .lgi-underline-glow {
-            position: absolute; left: 0; bottom: -1.5px;
-            height: 1.5px; width: 0;
-            background: linear-gradient(90deg, #7c3aed, #06b6d4);
-            box-shadow: 0 0 8px rgba(124,58,237,0.8);
-            transition: width 0.3s ease;
-        }
-        .lgi-input:focus ~ .lgi-underline-glow { width: 100%; }
-        .lgi-input:focus { border-color: transparent; }
-
-        .lgi-label {
-            position: absolute; left: 2px; top: 9px;
-            color: #64748b; font-size: 14.5px; pointer-events: none;
-            transition: top 0.2s ease, font-size 0.2s ease, color 0.2s ease, letter-spacing 0.2s ease;
-        }
-        .lgi-input:focus ~ .lgi-label,
-        .lgi-input:not(:placeholder-shown) ~ .lgi-label {
-            top: -14px; font-size: 10.5px; font-weight: 700;
-            color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.07em;
-        }
-
-        .lgi-icon {
-            position: absolute; right: 4px; top: 8px;
-            font-size: 15px; opacity: 0.55; pointer-events: none;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-        }
-        .lgi-input:focus ~ .lgi-icon { opacity: 1; transform: scale(1.1); }
-
-        .lgi-input.has-error { border-color: #f87171; animation: shakeX 0.4s ease; }
-        .lgi-input.has-error ~ .lgi-underline-glow { background: #f87171; width: 100%; box-shadow: 0 0 8px rgba(248,113,113,0.8); }
+        .lgi-field.has-error { border-color: #ef4444; animation: shakeX 0.4s ease; }
         @keyframes shakeX {
             0%, 100% { transform: translateX(0); }
             25%      { transform: translateX(-5px); }
             75%      { transform: translateX(5px); }
         }
-        .field-error { display: block; margin-top: 6px; font-size: 12px; color: #f87171; }
 
-        /* Password toggle */
+        .lgi-avatar {
+            flex: none;
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: #dbeafe;
+            display: flex; align-items: center; justify-content: center;
+            color: #2563eb;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .lgi-field:focus-within .lgi-avatar { background: #2563eb; color: #fff; transform: scale(1.06); }
+        .lgi-avatar svg { width: 17px; height: 17px; }
+
+        .lgi-col { flex: 1; min-width: 0; }
+        .lgi-label {
+            display: block;
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 1px;
+        }
+        .lgi-input {
+            width: 100%;
+            border: none; background: transparent; outline: none;
+            font-size: 15px; color: #0f172a; padding: 0;
+        }
+        .lgi-input::placeholder { color: #94a3b8; }
+
         .lgi-toggle {
-            position: absolute; right: 0; top: 6px;
+            flex: none;
             border: none; background: transparent; cursor: pointer;
-            font-size: 15px; opacity: 0.55;
-            padding: 4px; border-radius: 6px;
+            color: #64748b; opacity: 0.75;
+            padding: 4px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
             transition: opacity 0.15s ease, transform 0.15s ease;
         }
-        .lgi-toggle:hover { opacity: 1; transform: scale(1.15); }
+        .lgi-toggle svg { width: 18px; height: 18px; }
+        .lgi-toggle:hover { opacity: 1; transform: scale(1.12); }
 
-        /* Remember row */
-        .lgi-row { display: flex; align-items: center; margin: 4px 0 26px; }
+        .field-error { display: block; margin: 5px 0 0 46px; font-size: 12px; color: #dc2626; }
+
+        /* ---------------- remember row ---------------- */
+        .lgi-row {
+            display: flex; align-items: center; justify-content: space-between;
+            margin: 18px 0 20px;
+        }
         .lgi-check {
-            display: inline-flex; align-items: center; gap: 9px;
-            color: #94a3b8; font-size: 13px; font-weight: 500;
+            display: inline-flex; align-items: center; gap: 8px;
+            color: #334155; font-size: 13.5px; font-weight: 600;
             cursor: pointer; user-select: none;
         }
         .lgi-check input[type="checkbox"] {
-            width: 16px; height: 16px; accent-color: #7c3aed; cursor: pointer;
+            width: 18px; height: 18px; accent-color: #2563eb; cursor: pointer;
         }
-        .lgi-hint { margin-left: auto; font-size: 11px; color: #475569; }
+        .lgi-hint { font-size: 12px; color: #94a3b8; }
 
-        /* ---------------- Button ---------------- */
+        /* ---------------- Sign in button ---------------- */
         .btn-signin {
-            width: 100%; height: 52px;
-            border: none; border-radius: 14px; cursor: pointer;
+            width: 100%; height: 54px;
+            border: none; border-radius: 16px; cursor: pointer;
             display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-            background: linear-gradient(135deg, #7c3aed, #6366f1 50%, #06b6d4);
+            background: linear-gradient(100deg, #14357a, #2563eb 55%, #38bdf8);
             background-size: 220% 220%;
-            color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.01em;
-            box-shadow: 0 14px 34px rgba(124,58,237,0.4), 0 0 0 1px rgba(255,255,255,0.06) inset;
+            color: #fff; font-size: 16px; font-weight: 700;
+            box-shadow: 0 16px 34px rgba(37,99,235,0.4);
             transition: transform 0.18s ease, box-shadow 0.18s ease, background-position 0.5s ease;
             position: relative; overflow: hidden;
         }
         .btn-signin:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 18px 42px rgba(124,58,237,0.55), 0 0 0 1px rgba(255,255,255,0.08) inset;
+            box-shadow: 0 20px 42px rgba(37,99,235,0.5);
             background-position: 100% 50%;
         }
         .btn-signin:active:not(:disabled) { transform: translateY(0) scale(0.99); }
-        .btn-signin:disabled { opacity: 0.7; cursor: progress; }
+        .btn-signin:disabled { opacity: 0.75; cursor: progress; }
 
         .btn-signin::after {
             content: "";
@@ -333,57 +318,149 @@
         }
         .btn-signin:hover:not(:disabled)::after { left: 135%; }
 
+        .btn-signin svg { width: 18px; height: 18px; }
+        .btn-signin .rocket { animation: rocketWiggle 2.2s ease-in-out infinite; }
+        @keyframes rocketWiggle {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50%      { transform: translateY(-2px) rotate(-8deg); }
+        }
+        .btn-signin .arrow { transition: transform 0.2s ease; }
+        .btn-signin:hover:not(:disabled) .arrow { transform: translateX(4px); }
+
         .spinner {
-            width: 17px; height: 17px; border-radius: 50%;
+            width: 18px; height: 18px; border-radius: 50%;
             border: 2.5px solid rgba(255,255,255,0.35); border-top-color: #fff;
             animation: spin 0.7s linear infinite; display: none;
         }
         .btn-signin.is-loading .spinner { display: inline-block; }
+        .btn-signin.is-loading .rocket,
+        .btn-signin.is-loading .arrow { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
         .login-foot {
-            margin: 22px 0 0; text-align: center; font-size: 11.5px; color: #475569;
+            margin: 20px 0 0; text-align: center; font-size: 12px; color: #94a3b8;
             display: flex; align-items: center; justify-content: center; gap: 6px;
         }
-        .login-foot .lock-ic {
-            animation: lockWiggle 3s ease-in-out infinite;
-            display: inline-block;
+        .login-foot svg { width: 14px; height: 14px; }
+
+        .login-subfoot {
+            margin-top: 18px; text-align: center; color: rgba(255,255,255,0.9);
+            font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
         }
-        @keyframes lockWiggle {
-            0%, 90%, 100% { transform: rotate(0deg); }
-            92% { transform: rotate(-12deg); }
-            96% { transform: rotate(10deg); }
+        .login-subfoot::before, .login-subfoot::after {
+            content: ""; height: 1px; width: 34px; background: rgba(255,255,255,0.5);
+        }
+        .login-subtag {
+            display: block; text-align: center; margin-top: 6px;
+            color: rgba(255,255,255,0.85); font-style: italic; font-size: 12.5px;
         }
 
-        @media (max-width: 460px) {
-            .login-card { padding: 34px 24px 24px; border-radius: 20px; }
-            .mesh-blob { filter: blur(60px); }
+        @media (max-width: 480px) {
+            .login-card { padding: 30px 22px 22px; border-radius: 18px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
 <body class="login-body">
-    <div class="mesh-blob b1" aria-hidden="true"></div>
-    <div class="mesh-blob b2" aria-hidden="true"></div>
-    <div class="mesh-blob b3" aria-hidden="true"></div>
-    <div class="mesh-blob b4" aria-hidden="true"></div>
-    <div class="mesh-grid" aria-hidden="true"></div>
-    <span class="spark" aria-hidden="true"></span>
-    <span class="spark" aria-hidden="true"></span>
-    <span class="spark" aria-hidden="true"></span>
-    <span class="spark" aria-hidden="true"></span>
-    <span class="spark" aria-hidden="true"></span>
-    <span class="spark" aria-hidden="true"></span>
+
+    <!-- Left illustration: building + flag + doodle text -->
+    <div class="side-panel left" aria-hidden="true">
+        <p class="doodle-text-left">
+            Better<br>Education<br>Brighter<br>Future
+            <span class="underline"></span>
+        </p>
+        <div class="building">
+            <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+                <rect x="30" y="90" width="300" height="130" rx="4" fill="#eef4fb"/>
+                <rect x="30" y="90" width="300" height="26" fill="#1d4ed8"/>
+                <rect x="0" y="200" width="360" height="20" fill="#dce8fb"/>
+                <g fill="#bcd4f5">
+                    <rect x="55" y="130" width="28" height="28"/>
+                    <rect x="100" y="130" width="28" height="28"/>
+                    <rect x="145" y="130" width="28" height="28"/>
+                    <rect x="205" y="130" width="28" height="28"/>
+                    <rect x="250" y="130" width="28" height="28"/>
+                    <rect x="55" y="170" width="28" height="28"/>
+                    <rect x="100" y="170" width="28" height="28"/>
+                    <rect x="205" y="170" width="28" height="28"/>
+                    <rect x="250" y="170" width="28" height="28"/>
+                </g>
+                <rect x="160" y="165" width="40" height="55" fill="#93bdf2"/>
+                <g class="flag-pole">
+                    <rect x="60" y="10" width="4" height="90" fill="#e2e8f0"/>
+                    <rect x="64" y="16" width="46" height="28" fill="#0f6b3a"/>
+                    <rect x="64" y="16" width="14" height="28" fill="#f8fafc"/>
+                    <circle cx="86" cy="30" r="7" fill="#f8fafc"/>
+                    <circle cx="89" cy="30" r="6" fill="#0f6b3a"/>
+                    <polygon points="97,24 99,29 104,29 100,32 101,37 97,34 93,37 94,32 90,29 95,29" fill="#f8fafc"/>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Right illustration: graduation doodles + books -->
+    <div class="side-panel right" aria-hidden="true">
+        <p class="doodle-text-right">
+            Learn<br>Grow<br>Achieve
+            <span class="underline"></span>
+        </p>
+        <div class="doodle-right">
+            <svg class="cap-doodle" viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="3">
+                <polygon points="60,10 115,35 60,60 5,35" stroke-linejoin="round"/>
+                <path d="M30 42 V65 C30 74 90 74 90 65 V42" />
+                <line x1="112" y1="35" x2="112" y2="62"/>
+                <circle cx="112" cy="66" r="3.5" fill="rgba(255,255,255,0.95)" stroke="none"/>
+            </svg>
+            <svg class="book-doodle" viewBox="0 0 100 70" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="3">
+                <path d="M50 12 C40 5 15 5 8 10 V58 C15 53 40 53 50 60 C60 53 85 53 92 58 V10 C85 5 60 5 50 12 Z" stroke-linejoin="round"/>
+                <line x1="50" y1="12" x2="50" y2="60"/>
+            </svg>
+            <svg class="plane-doodle" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="3">
+                <path d="M5 40 L74 8 L50 74 L38 46 L5 40Z" stroke-linejoin="round"/>
+                <line x1="38" y1="46" x2="74" y2="8"/>
+            </svg>
+        </div>
+        <div class="books-stack">
+            <svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg">
+                <rect x="20" y="95" width="220" height="26" rx="3" fill="#c0392b"/>
+                <rect x="10" y="70" width="240" height="26" rx="3" fill="#1d4ed8"/>
+                <rect x="30" y="45" width="200" height="26" rx="3" fill="#eef4fb"/>
+                <rect x="180" y="0" width="8" height="46" fill="#334155"/>
+                <rect x="196" y="0" width="8" height="46" fill="#f59e0b"/>
+                <rect x="212" y="0" width="8" height="46" fill="#dc2626"/>
+                <circle cx="60" cy="20" r="16" fill="#22c55e"/>
+            </svg>
+        </div>
+    </div>
 
     <div class="login-wrap">
         <div class="login-card">
             <div class="login-brand">
-                {% if school_logo %}
-                    <span class="login-brand-logo"><img src="{{ school_logo.url }}" alt="{{ school_name }} logo"></span>
-                {% else %}
-                    <span class="login-brand-logo"><span class="login-logo" aria-hidden="true">🎓</span></span>
-                {% endif %}
+                <span class="shield-logo">
+                    {% if school_logo %}
+                        <img src="{{ school_logo.url }}" alt="{{ school_name }} logo">
+                    {% else %}
+                        <svg viewBox="0 0 100 110" width="90" height="96" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 4 L92 16 V52 C92 82 74 100 50 108 C26 100 8 82 8 52 V16 Z" fill="#eef4fb" stroke="#1d4ed8" stroke-width="3"/>
+                            <path d="M50 10 L86 20 V50 C86 64 50 64 50 64 C50 64 14 64 14 50 V20 Z" fill="#dc2626"/>
+                            <polygon points="50,24 53,32 61,32 54,37 57,45 50,40 43,45 46,37 39,32 47,32" fill="#fbbf24"/>
+                            <path d="M50 42 C50 42 34 40 30 46 V58 C34 54 46 55 50 60 C54 55 66 54 70 58 V46 C66 40 50 42 50 42 Z" fill="#1d4ed8"/>
+                        </svg>
+                    {% endif %}
+                </span>
                 <h1>{{ school_name }}</h1>
-                <p class="login-tagline"><span class="dot" aria-hidden="true"></span> Admin &amp; Staff Portal</p>
+                <p class="login-tagline">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z"/></svg>
+                    Admin &amp; Staff Portal
+                </p>
             </div>
 
             {% if messages %}
@@ -404,27 +481,39 @@
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ next }}">
 
-                <div class="lgi-field">
-                    <input type="text" name="username" id="id_username"
-                           value="{{ form.username.value|default_if_none:'' }}"
-                           class="lgi-input{% if form.username.errors %} has-error{% endif %}"
-                           placeholder=" " autocomplete="username" autofocus required>
-                    <label class="lgi-label" for="id_username">Username</label>
-                    <span class="lgi-icon" aria-hidden="true">👤</span>
-                    <span class="lgi-underline-glow" aria-hidden="true"></span>
-                    {% if form.username.errors %}<span class="field-error">{{ form.username.errors.0 }}</span>{% endif %}
+                <div class="lgi-field{% if form.username.errors %} has-error{% endif %}">
+                    <span class="lgi-avatar">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5Zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5Z"/></svg>
+                    </span>
+                    <span class="lgi-col">
+                        <label class="lgi-label" for="id_username">Username</label>
+                        <input type="text" name="username" id="id_username"
+                               value="{{ form.username.value|default_if_none:'' }}"
+                               class="lgi-input"
+                               placeholder="Enter username" autocomplete="username" autofocus required>
+                    </span>
                 </div>
+                {% if form.username.errors %}<span class="field-error">{{ form.username.errors.0 }}</span>{% endif %}
 
-                <div class="lgi-field">
-                    <input type="password" name="password" id="id_password"
-                           class="lgi-input{% if form.password.errors %} has-error{% endif %}"
-                           placeholder=" " autocomplete="current-password" required>
-                    <label class="lgi-label" for="id_password">Password</label>
+                <div class="lgi-field{% if form.password.errors %} has-error{% endif %}">
+                    <span class="lgi-avatar">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a4 4 0 0 0-4 4v3H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a4 4 0 0 0-4-4Zm-2 7V6a2 2 0 1 1 4 0v3h-4Z"/></svg>
+                    </span>
+                    <span class="lgi-col">
+                        <label class="lgi-label" for="id_password">Password</label>
+                        <input type="password" name="password" id="id_password"
+                               class="lgi-input"
+                               placeholder="Enter password" autocomplete="current-password" required>
+                    </span>
                     <button type="button" id="togglePassword" class="lgi-toggle"
-                            aria-label="Show password" aria-pressed="false">👁️</button>
-                    <span class="lgi-underline-glow" aria-hidden="true"></span>
-                    {% if form.password.errors %}<span class="field-error">{{ form.password.errors.0 }}</span>{% endif %}
+                            aria-label="Show password" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
                 </div>
+                {% if form.password.errors %}<span class="field-error">{{ form.password.errors.0 }}</span>{% endif %}
 
                 <div class="lgi-row">
                     <label class="lgi-check" for="id_remember_me">
@@ -436,12 +525,20 @@
 
                 <button type="submit" class="btn-signin" id="signinBtn">
                     <span class="spinner" aria-hidden="true"></span>
+                    <svg class="rocket" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c3 2 5 6 5 10 0 1.4-.3 2.7-.8 3.9l2.1 2.1-3.9 1.2-1-1a8 8 0 0 1-3.4.8 8 8 0 0 1-3.4-.8l-1 1-3.9-1.2 2.1-2.1A10 10 0 0 1 3 12c0-4 2-8 5-10 1.3 1.7 2.7 1.7 4 0Zm0 6.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/></svg>
                     <span class="btn-signin-text">Sign In</span>
+                    <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </button>
             </form>
 
-            <p class="login-foot"><span class="lock-ic" aria-hidden="true">🔐</span> Secured session &bull; CSRF protected</p>
+            <p class="login-foot">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1 4 4v6c0 5.2 3.4 9.7 8 11 4.6-1.3 8-5.8 8-11V4l-8-3Zm0 10.9-3.5-2 1-3.4L12 8l2.5-1.5 1 3.4-3.5 2Z" opacity="0"/><path d="M12 2 5 5v6c0 5 3.3 9.4 7 11 3.7-1.6 7-6 7-11V5l-7-3Zm-1.2 13.3-3.1-3.1 1.4-1.4 1.7 1.7 4.3-4.3 1.4 1.4-5.7 5.7Z"/></svg>
+                Secure &bull; Session + CSRF protected
+            </p>
         </div>
+
+        <p class="login-subfoot">{{ school_name }}</p>
+        <span class="login-subtag">Discipline &bull; Knowledge &bull; Success</span>
     </div>
 
     <script>
@@ -451,7 +548,6 @@
             toggle.addEventListener('click', function () {
                 var show = pwd.type === 'password';
                 pwd.type = show ? 'text' : 'password';
-                toggle.textContent = show ? '🙈' : '👁️';
                 toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
                 toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
             });
