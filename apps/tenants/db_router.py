@@ -35,6 +35,20 @@ MASTER_APPS = frozenset({"tenants", "sessions"})
 # the master DB so the super-admin login flow works there too).
 SHARED_FRAMEWORK_APPS = frozenset({"auth", "contenttypes", "admin"})
 
+# Keep the tenant-owned application contract explicit.  The fallback below
+# still permits future tenant apps without requiring a router change.
+TENANT_APPS = frozenset(
+    {
+        "accounts",
+        "attendance",
+        "classrooms",
+        "core",
+        "fees",
+        "students",
+        "teachers",
+    }
+)
+
 
 def get_current_db_alias() -> str | None:
     """Return the active tenant's DB alias, or None if no tenant is set."""
@@ -104,7 +118,9 @@ class TenantRouter:
             # and in each tenant DB (for tenant-scoped auth/sessions).
             return True
 
-        # School-scoped apps only migrate onto tenant databases.
+        # School-scoped apps only migrate onto tenant databases.  The explicit
+        # tenant-app set documents and protects the teachers schema contract;
+        # unknown non-master apps remain tenant-scoped by default.
         if db == "default":
             # Exception: when Django's test runner builds its throwaway test
             # database on the ``default`` alias (``manage.py test``), every
@@ -119,4 +135,6 @@ class TenantRouter:
             if name.startswith("test") or "memorydb_" in name:
                 return True
             return False
+        if app_label in TENANT_APPS:
+            return True
         return True

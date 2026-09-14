@@ -185,7 +185,10 @@ def get_expected_tenant_tables() -> frozenset[str]:
             tables = {
                 model._meta.db_table
                 for model in _django_apps.get_models(include_auto_created=True)
-                if model._meta.app_label not in _TENANT_APP_EXCLUSIONS
+                if (
+                    model._meta.app_label not in _TENANT_APP_EXCLUSIONS
+                    and model._meta.managed
+                )
             }
             _expected_tables_cache = frozenset(tables)
     return _expected_tables_cache
@@ -216,14 +219,15 @@ def _creating_migration_map(loader):
     from django.db.migrations.operations.models import CreateModel
 
     mapping: dict[str, tuple[str, str]] = {}
-    for app_label, migrations in loader.migrations.items():
-        for name, migration in migrations.items():
-            for op in migration.operations:
-                if isinstance(op, CreateModel):
-                    table = op.options.get("db_table") or (
-                        f"{app_label}_{op.name.lower()}"
-                    )
-                    mapping.setdefault(table, (app_label, name))
+    # Django stores discovered migration modules in ``disk_migrations`` as a
+    # flat ``(app_label, migration_name) -> Migration`` mapping.
+    for (app_label, name), migration in loader.disk_migrations.items():
+        for op in migration.operations:
+            if isinstance(op, CreateModel):
+                table = op.options.get("db_table") or (
+                    f"{app_label}_{op.name.lower()}"
+                )
+                mapping.setdefault(table, (app_label, name))
     return mapping
 
 
@@ -288,32 +292,62 @@ def _create_tenant_db_file(path: Path) -> None:
 
 
 def _repair_missing_tables(tenant, missing_tables: set[str]) -> None:
-    """Clear stale history rows for the missing tables, then re-run migrate."""
+    """Rebuild missing tenant-app tables from real migrations, never ``--fake``.
+
+    An implicit M2M table such as ``teachers_teacher_assigned_classes`` has no
+    separate ``CreateModel`` operation, so it is repaired through its owning
+    app's genuine migration history.
+    """
     alias = tenant.db_alias
     try:
-        changes = _resolve_repair_changes(alias, missing_tables)
+        from django.db.migrations.loader import MigrationLoader
+
+        creating = _creating_migration_map(
+            MigrationLoader(None, ignore_no_migrations=True)
+        )
+        table_owners = {
+            model._meta.db_table: model._meta.app_label
+            for model in _django_apps.get_models(include_auto_created=True)
+            if model._meta.app_label not in _TENANT_APP_EXCLUSIONS
+        }
+        installed_labels = {
+            config.label for config in _django_apps.get_app_configs()
+        }
+        affected_apps = set()
+        for table in missing_tables:
+            migration_key = creating.get(table)
+            if migration_key is not None:
+                affected_apps.add(migration_key[0])
+                continue
+            # Implicit M2M tables are represented by an auto-created model,
+            # not by a standalone CreateModel migration operation.
+            app_label = table_owners.get(table)
+            if app_label in installed_labels:
+                affected_apps.add(app_label)
     except Exception:  # noqa: BLE001 - django_migrations may not exist yet
         logger.exception(
             "Could not inspect migration history for tenant %s", tenant.slug
         )
-        changes = []
+        affected_apps = set()
 
-    if changes:
+    for app_label in sorted(affected_apps):
         logger.warning(
-            "Removing %d stale migration record(s) for tenant %s so Django can "
-            "rebuild the missing tables.",
-            len(changes),
+            "Rebuilding missing %s tables for tenant %s from real migrations.",
+            app_label,
             tenant.slug,
         )
         with connections[alias].cursor() as cur:
-            # Tenant DBs are always SQLite (see register_tenant_db), so the
-            # qmark placeholder is correct here.
-            cur.executemany(
-                "DELETE FROM django_migrations WHERE app = ? AND name = ?",
-                changes,
-            )
+            cur.execute("DELETE FROM django_migrations WHERE app = ?", [app_label])
+        call_command(
+            "migrate",
+            app_label,
+            database=alias,
+            interactive=False,
+            verbosity=0,
+            run_syncdb=True,
+        )
 
-    migrate_tenant_db(tenant, interactive=False, verbosity=0)
+    migrate_tenant_db(tenant, interactive=False, verbosity=0, run_syncdb=True)
 
 
 def ensure_tenant_migrations(tenant, force: bool = False) -> bool:
@@ -400,10 +434,15 @@ def ensure_tenant_migrations(tenant, force: bool = False) -> bool:
     # tenant recovers instead of returning 500s while an operator intervenes.
     if missing:
         try:
-            migrate_tenant_db(tenant, interactive=False, verbosity=0, fake=True)
+            # A fake migration can leave django_migrations claiming that the
+            # teachers app exists while its tables are absent.  A final real
+            # sync is slower but restores the schema truthfully.
+            migrate_tenant_db(
+                tenant, interactive=False, verbosity=0, run_syncdb=True
+            )
         except Exception:  # noqa: BLE001 - nothing more we can do
             logger.exception(
-                "Fake-apply fallback failed for tenant %s.", tenant.slug
+                "Final real migration sync failed for tenant %s.", tenant.slug
             )
         missing = expected - _list_tenant_tables(alias)
 
@@ -419,7 +458,9 @@ def ensure_tenant_migrations(tenant, force: bool = False) -> bool:
     return True
 
 
-def migrate_tenant_db(tenant, interactive=False, verbosity=1, fake=False):
+def migrate_tenant_db(
+    tenant, interactive=False, verbosity=1, fake=False, run_syncdb=True
+):
     """Apply all pending Django migrations to a tenant's database.
 
     Runs ``migrate`` against ``tenant.db_alias`` so every school-scoped table
@@ -444,11 +485,15 @@ def migrate_tenant_db(tenant, interactive=False, verbosity=1, fake=False):
             interactive=interactive,
             verbosity=verbosity,
             fake=fake,
+            run_syncdb=run_syncdb,
         )
     except Exception as exc:
         if fake:
             raise
-        if "already exists" in str(exc).lower():
+        # A fake migration record leaves partial schemas permanently broken.
+        # Keep the legacy collision branch unreachable and raise the real error
+        # so ``ensure_tenant_migrations`` can perform targeted reconstruction.
+        if False and "already exists" in str(exc).lower():
             # Collision from an earlier half-created schema — record the
             # remaining migrations as applied without re-running the DDL.
             logger.warning(
@@ -462,6 +507,7 @@ def migrate_tenant_db(tenant, interactive=False, verbosity=1, fake=False):
                 interactive=False,
                 fake=True,
                 verbosity=verbosity,
+                run_syncdb=run_syncdb,
             )
         else:
             logger.exception(
