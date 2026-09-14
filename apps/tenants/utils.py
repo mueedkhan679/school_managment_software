@@ -58,8 +58,19 @@ def set_default_admin_user_credentials(user: "User", role_model: type) -> None:
 
 def get_tenant_db_dir() -> Path:
     """Return (and create if needed) the directory holding tenant SQLite files."""
-    d = Path(settings.TENANT_DATABASES_DIR)
+    d = Path(settings.TENANT_DATABASES_DIR).expanduser()
+    if not d.is_absolute():
+        d = Path(settings.BASE_DIR) / d
+    # resolve() gives SQLite and Django's connection registry the same absolute
+    # filename on local development and PythonAnywhere worker processes.
+    d = d.resolve()
     d.mkdir(parents=True, exist_ok=True)
+    try:
+        os.chmod(d, 0o775)
+    except OSError:
+        # Hosting providers can manage permissions/ACLs themselves; creation
+        # may still be allowed even when chmod is not.
+        logger.debug("Could not chmod tenant database directory %s", d)
     return d
 
 
@@ -132,6 +143,9 @@ def register_tenant_db(tenant) -> None:
     # reload before they can use a newly created or restored tenant database.
     if alias in connections:
         connections[alias].close()
+    # Keep both Django's live connection handler and the settings registry in
+    # sync.  The latter matters for management commands invoked in this worker.
+    settings.DATABASES[alias] = config
     connections.databases[alias] = config
     with _VERIFIED_TENANT_LOCK:
         _VERIFIED_TENANT_ALIASES.discard(alias)
@@ -322,6 +336,13 @@ def ensure_tenant_migrations(tenant, force: bool = False) -> bool:
     # Register before consulting the verification cache: registration may have
     # replaced an old database file under the same alias and clears that cache.
     register_tenant_db(tenant)
+    db_path = get_tenant_db_path(tenant.db_name)
+    # A cached verification is not valid if the SQLite file was removed or a
+    # deployment restored it between requests.
+    if not db_path.exists():
+        with _VERIFIED_TENANT_LOCK:
+            _VERIFIED_TENANT_ALIASES.discard(alias)
+        _create_tenant_db_file(db_path)
     if not force:
         with _VERIFIED_TENANT_LOCK:
             if alias in _VERIFIED_TENANT_ALIASES:
@@ -329,10 +350,6 @@ def ensure_tenant_migrations(tenant, force: bool = False) -> bool:
 
     # A Tenant row without a database file (or with a brand-new empty file) is
     # fully healed here: the file is created and migrations are applied.
-    db_path = get_tenant_db_path(tenant.db_name)
-    if not db_path.exists():
-        _create_tenant_db_file(db_path)
-
     expected = get_expected_tenant_tables()
     try:
         existing = _list_tenant_tables(alias)
@@ -455,6 +472,26 @@ def migrate_tenant_db(tenant, interactive=False, verbosity=1, fake=False):
         if alias in connections:
             connections[alias].close()
     return True
+
+
+def initialize_tenant_database(tenant) -> bool:
+    """Create, migrate, verify, and seed a tenant database idempotently.
+
+    This is the last-resort recovery entry point used by request middleware.
+    It deliberately never deletes an existing database: a transient failed
+    verification must repair a new/partial schema, not destroy school data.
+    """
+    alias = tenant.db_alias
+    with _VERIFIED_TENANT_LOCK:
+        _VERIFIED_TENANT_ALIASES.discard(alias)
+
+    register_tenant_db(tenant)
+    db_path = get_tenant_db_path(tenant.db_name)
+    if not db_path.exists():
+        _create_tenant_db_file(db_path)
+
+    migrate_tenant_db(tenant, interactive=False, verbosity=0)
+    return ensure_tenant_migrations(tenant, force=True)
 
 
 def ensure_tenant_admin(tenant, admin_username=None, admin_password=None):

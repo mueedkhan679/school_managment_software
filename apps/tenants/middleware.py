@@ -36,7 +36,11 @@ from django.shortcuts import render
 
 from .db_router import set_current_db_alias
 from .models import Tenant
-from .utils import ensure_tenant_migrations, register_tenant_db
+from .utils import (
+    ensure_tenant_migrations,
+    initialize_tenant_database,
+    register_tenant_db,
+)
 
 logger = logging.getLogger("tenants.middleware")
 
@@ -225,16 +229,24 @@ class TenantMiddleware:
                 # migration history claims it was applied — run / fake-apply the
                 # missing migrations automatically so the user never has to run
                 # manual SQL deletes or management commands again.
-                if getattr(settings, "TENANT_AUTO_REPAIR_ENABLED", True):
-                    ensure_tenant_migrations(tenant)
-            except Exception:  # noqa: S110
+                # Always verify: a new tenant must be initialized even when a
+                # legacy deployment disabled the old optional repair switch.
+                ensure_tenant_migrations(tenant)
+            except Exception:
                 logger.exception(
                     "failed_to_load_or_repair_tenant_db slug=%s", tenant_slug
                 )
-                return HttpResponseForbidden(
-                    "<h1>Service Unavailable</h1>"
-                    "<p>This school's database could not be verified. Please try again later.</p>"
-                )
+                try:
+                    # Retry the complete non-destructive ready-state flow:
+                    # register, create the SQLite file, migrate, verify, seed.
+                    initialize_tenant_database(tenant)
+                except Exception:
+                    logger.exception(
+                        "tenant_database_recovery_failed slug=%s", tenant_slug
+                    )
+                    # Do not disguise a real filesystem/database outage as the
+                    # old generic verification response.
+                    raise
 
             # Set tenant context.
             request.tenant = tenant

@@ -156,8 +156,13 @@ DATABASE_ROUTERS = ['apps.tenants.db_router.TenantRouter']
 # Directory that holds each tenant's SQLite database file.  In production this
 # would be a mounted volume or persistent disk.  Defaults to a sibling dir of
 # BASE_DIR so the master database is not cluttered with per-tenant files.
-TENANT_DATABASES_DIR = os.environ.get(
-    "TENANT_DATABASES_DIR", str(BASE_DIR.parent / "tenant_databases")
+_tenant_databases_dir = Path(
+    os.environ.get("TENANT_DATABASES_DIR", BASE_DIR / "tenant_databases")
+).expanduser()
+TENANT_DATABASES_DIR = (
+    _tenant_databases_dir
+    if _tenant_databases_dir.is_absolute()
+    else (BASE_DIR / _tenant_databases_dir).resolve()
 )
 
 # When True, tenant is resolved from the request subdomain rather than the URL
@@ -260,10 +265,11 @@ DATABASE_ROUTERS = ['apps.tenants.db_router.TenantRouter']
 # Directory that holds each tenant's SQLite database file.  Defaults to a
 # sibling directory of the project so the master ``db.sqlite3`` is not
 # cluttered with per-tenant files.
-TENANT_DATABASES_DIR = os.environ.get(
-    'TENANT_DATABASES_DIR',
-    str(BASE_DIR.parent / 'tenant_databases'),
-)
+TENANT_DATABASES_DIR = Path(
+    os.environ.get('TENANT_DATABASES_DIR', BASE_DIR / 'tenant_databases')
+).expanduser()
+if not TENANT_DATABASES_DIR.is_absolute():
+    TENANT_DATABASES_DIR = (BASE_DIR / TENANT_DATABASES_DIR).resolve()
 
 # Master-admin portal URL prefix.  URLs under this prefix deliberately bypass
 # the tenant middleware — only super-admins may access them.
@@ -358,4 +364,3 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
-
