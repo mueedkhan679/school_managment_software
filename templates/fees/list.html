@@ -4,6 +4,258 @@
 {% block title %}Fee Management — {{ school_name }}{% endblock %}
 
 {% block content %}
+<style>
+    /* ============================================================
+       FEE MANAGEMENT — CAMPUS BLUE THEME (design-only, scoped)
+       ============================================================ */
+    .dashboard-container { padding: 26px 30px 50px; animation: pageFade 0.4s ease both; }
+    @keyframes pageFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ---------- Header ---------- */
+    .dashboard-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 26px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .dashboard-title {
+        font-size: 25px; font-weight: 800; color: #0e2a5e; letter-spacing: -0.01em; margin: 0 0 6px;
+    }
+    .dashboard-subtitle { font-size: 13.5px; color: #64748b; margin: 0; max-width: 560px; line-height: 1.5; }
+    .dashboard-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 10px 18px; border-radius: 11px;
+        font-size: 13.5px; font-weight: 700;
+        border: 1px solid transparent; cursor: pointer;
+        text-decoration: none; line-height: 1.2;
+        transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-xs { padding: 6px 11px; font-size: 12px; border-radius: 8px; }
+
+    .btn-primary {
+        background: linear-gradient(120deg, #1d4ed8, #2563eb, #38bdf8);
+        background-size: 200% 200%;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(37,99,235,0.35);
+    }
+    .btn-primary:hover {
+        background-position: 100% 50%;
+        box-shadow: 0 10px 26px rgba(37,99,235,0.45);
+        transform: translateY(-1px);
+        color: #fff;
+    }
+
+    .btn-ghost {
+        background: #eef4ff; color: #1d4ed8; border-color: #dbeafe;
+    }
+    .btn-ghost:hover { background: #dbeafe; color: #0e2a5e; }
+
+    .btn-outline {
+        background: #fff; color: #2563eb; border-color: #bfdbfe;
+    }
+    .btn-outline:hover { background: #eff6ff; border-color: #93c5fd; }
+
+    .btn-danger {
+        background: linear-gradient(120deg, #dc2626, #ef4444);
+        color: #fff; box-shadow: 0 8px 18px rgba(220,38,38,0.3);
+    }
+    .btn-danger:hover { filter: brightness(1.06); transform: translateY(-1px); color: #fff; }
+
+    .btn-danger-ghost { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+    .btn-danger-ghost:hover { background: #fee2e2; }
+
+    /* ---------- Stat cards ---------- */
+    .stats-grid { display: grid; gap: 16px; }
+    .stat-card {
+        display: flex; align-items: center; gap: 14px;
+        background: #ffffff;
+        border: 1px solid #e6edf7;
+        border-radius: 16px;
+        padding: 18px 18px;
+        box-shadow: 0 4px 16px rgba(15, 41, 94, 0.06);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 14px 30px rgba(15, 41, 94, 0.12);
+    }
+    .stat-icon {
+        flex: none;
+        width: 46px; height: 46px;
+        border-radius: 13px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px;
+    }
+    .stat-icon.bg-emerald-light { background: linear-gradient(145deg, #d1fae5, #a7f3d0); }
+    .stat-icon.bg-teal-light    { background: linear-gradient(145deg, #ccfbf1, #99f6e4); }
+    .stat-icon.bg-indigo-light  { background: linear-gradient(145deg, #e0e7ff, #c7d2fe); }
+    .stat-icon.bg-amber-light   { background: linear-gradient(145deg, #fef3c7, #fde68a); }
+
+    .stat-details { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .stat-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+    .stat-value { font-size: 19px; font-weight: 800; color: #0e2a5e; white-space: nowrap; }
+    .stat-hint { font-size: 11.5px; color: #94a3b8; }
+
+    /* ---------- Panels ---------- */
+    .panel {
+        background: #ffffff;
+        border: 1px solid #e6edf7;
+        border-radius: 18px;
+        box-shadow: 0 4px 18px rgba(15, 41, 94, 0.05);
+        overflow: hidden;
+    }
+    .panel-header {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; flex-wrap: wrap;
+        padding: 18px 24px;
+        border-bottom: 1px solid #eef2f9;
+    }
+    .panel-header h3 { margin: 0; font-size: 16px; font-weight: 800; color: #0e2a5e; }
+
+    /* ---------- Filter form ---------- */
+    .filter-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-col { display: flex; flex-direction: column; gap: 6px; }
+    .search-box-col { flex: 1; min-width: 220px; }
+    .filter-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+
+    .form-control {
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 13.5px;
+        color: #0f172a;
+        background: #f8fafc;
+        outline: none;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+    .form-control:focus {
+        border-color: #2563eb; background: #fff;
+        box-shadow: 0 0 0 4px rgba(37,99,235,0.12);
+    }
+
+    .search-input-wrap { position: relative; display: flex; align-items: center; }
+    .search-icon { position: absolute; left: 12px; font-size: 14px; opacity: 0.6; pointer-events: none; }
+    .search-input { width: 100%; padding-left: 34px; }
+
+    /* ---------- Table ---------- */
+    .table-responsive { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .data-table thead th {
+        text-align: left;
+        font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+        color: #64748b;
+        background: #f5f8fd;
+        padding: 12px 16px;
+        border-bottom: 1.5px solid #e6edf7;
+        white-space: nowrap;
+    }
+    .data-table tbody td {
+        padding: 13px 16px;
+        border-bottom: 1px solid #eef2f9;
+        color: #1e293b;
+        vertical-align: middle;
+    }
+    .data-table tbody tr { transition: background 0.15s ease; }
+    .data-table tbody tr:hover { background: #f7faff; }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+
+    .table-link { color: #1d4ed8; text-decoration: none; transition: color 0.15s ease; }
+    .table-link:hover { color: #0e2a5e; text-decoration: underline; }
+    .font-semibold { font-weight: 700; }
+    .text-primary { color: #1d4ed8; }
+    .text-danger { color: #dc2626; }
+    .text-muted { color: #94a3b8; }
+    .text-sm { font-size: 12.5px; }
+    .text-center { text-align: center; }
+
+    code {
+        background: #eef4ff; color: #1d4ed8;
+        padding: 2px 7px; border-radius: 6px; font-size: 12px;
+    }
+
+    /* ---------- Badges ---------- */
+    .badge {
+        display: inline-flex; align-items: center;
+        padding: 3px 10px; border-radius: 999px;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+    }
+    .badge-primary { background: #dbeafe; color: #1d4ed8; }
+    .badge-outline { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .badge-success { background: #d1fae5; color: #059669; }
+    .badge-warning { background: #fef3c7; color: #b45309; }
+    .badge-xs, .text-xs { font-size: 10px; padding: 2px 7px; }
+
+    .action-btn-group { display: inline-flex; gap: 6px; justify-content: flex-end; }
+
+    /* ---------- Pagination ---------- */
+    .pagination-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 10px;
+        padding: 16px 24px;
+        border-top: 1px solid #eef2f9;
+    }
+    .pagination-links { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pagination-links span.btn-primary { pointer-events: none; }
+
+    /* ---------- Modals ---------- */
+    .modal-overlay {
+        position: fixed; inset: 0; z-index: 999;
+        background: rgba(9, 20, 45, 0.55);
+        backdrop-filter: blur(3px);
+        align-items: center; justify-content: center;
+        animation: overlayFade 0.2s ease;
+    }
+    @keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal-card {
+        background: #fff;
+        border-radius: 18px;
+        width: 100%; max-width: 460px;
+        box-shadow: 0 30px 70px rgba(4,22,62,0.4);
+        animation: modalRise 0.25s cubic-bezier(0.2,1,0.3,1);
+        overflow: hidden;
+    }
+    @keyframes modalRise {
+        from { opacity: 0; transform: translateY(16px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px;
+        padding: 18px 22px;
+        border-bottom: 1px solid #eef2f9;
+    }
+    .modal-header h3 { margin: 0; font-size: 16px; font-weight: 800; color: #0e2a5e; }
+    .modal-close, .modal-close-btn {
+        border: none; background: #f1f5f9; color: #64748b;
+        width: 30px; height: 30px; border-radius: 9px;
+        font-size: 17px; line-height: 1; cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center;
+        transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+    .modal-close:hover, .modal-close-btn:hover { background: #fee2e2; color: #dc2626; transform: rotate(90deg); }
+
+    .modal-body { padding: 20px 22px; font-size: 13.5px; color: #334155; line-height: 1.6; }
+    .modal-footer {
+        display: flex; justify-content: flex-end; gap: 10px;
+        padding: 16px 22px; border-top: 1px solid #eef2f9;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+</style>
+
 <div class="dashboard-container">
     <!-- Header -->
     <div class="dashboard-header">

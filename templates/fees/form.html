@@ -1,215 +1,1074 @@
 {% extends "base.html" %}
 {% load tenant_tags %}
 {% load static %}
+
 {% block title %}{{ title }} — {{ school_name }}{% endblock %}
 
 {% block content %}
-<div class="dashboard-container" style="max-width: 780px; margin: 0 auto;">
-    <!-- Header -->
-    <div class="dashboard-header">
-        <div>
-            <a href="{% tenant_url 'fees:list' %}" class="btn btn-ghost btn-xs">&larr; Back to Fee Transactions</a>
-            <h1 class="dashboard-title" style="margin-top: 8px;">{{ title }}</h1>
-            <p class="dashboard-subtitle">
+
+<style>
+    /* =========================================================
+       MODERN FEE COLLECTION FORM
+       UI ONLY — DJANGO LOGIC & JAVASCRIPT PRESERVED
+       ========================================================= */
+
+    .fee-page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 8px 0 40px;
+    }
+
+    /* ---------- Header ---------- */
+
+    .fee-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 20px;
+        margin-bottom: 22px;
+    }
+
+    .fee-header-left {
+        min-width: 0;
+    }
+
+    .fee-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 11px;
+        margin-bottom: 13px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--card, #fff);
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 650;
+        transition: all .2s ease;
+    }
+
+    .fee-back:hover {
+        color: var(--primary);
+        border-color: var(--primary-100);
+        background: var(--primary-50);
+        transform: translateY(-1px);
+    }
+
+    .fee-title {
+        margin: 0;
+        color: var(--text, #111827);
+        font-size: clamp(23px, 3vw, 30px);
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -.5px;
+    }
+
+    .fee-subtitle {
+        margin: 8px 0 0;
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+
+    /* ---------- Main Card ---------- */
+
+    .fee-panel {
+        overflow: hidden;
+        padding: 0 !important;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow:
+            0 12px 35px rgba(15, 23, 42, .06),
+            0 2px 8px rgba(15, 23, 42, .03);
+    }
+
+    .fee-form {
+        padding: 32px;
+    }
+
+    /* ---------- Sections ---------- */
+
+    .fee-section {
+        margin-bottom: 4px;
+    }
+
+    .fee-section-heading {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 0 0 19px;
+    }
+
+    .fee-section-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        border-radius: 10px;
+        background: var(--primary-50, #f5f3ff);
+        border: 1px solid var(--primary-100, #ddd6fe);
+        font-size: 16px;
+    }
+
+    .fee-section-heading h4 {
+        margin: 0;
+        color: var(--text, #1f2937);
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .fee-section-heading p {
+        margin: 3px 0 0;
+        color: var(--text-muted);
+        font-size: 11px;
+    }
+
+    .fee-divider {
+        height: 1px;
+        margin: 27px 0;
+        background: var(--border);
+        border: 0;
+    }
+
+    /* ---------- Form Fields ---------- */
+
+    .fee-form-group {
+        margin-bottom: 19px;
+    }
+
+    .fee-form-group label {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--text, #374151);
+        font-size: 12.5px;
+        font-weight: 700;
+    }
+
+    .fee-form-group input,
+    .fee-form-group select,
+    .fee-form-group textarea {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .fee-help {
+        display: block;
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: 10.5px;
+        line-height: 1.5;
+    }
+
+    .fee-error {
+        margin-top: 5px;
+        color: var(--danger, #dc2626);
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    /* ---------- Form Grid ---------- */
+
+    .fee-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .fee-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    /* ---------- Alerts ---------- */
+
+    .fee-alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.55;
+    }
+
+    .fee-alert-info {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
+    }
+
+    .fee-alert-warning {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #92400e;
+    }
+
+    .fee-alert-error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #b91c1c;
+    }
+
+    .fee-alert strong {
+        font-weight: 800;
+    }
+
+    /* ---------- Month Selection ---------- */
+
+    .fee-month-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 11px;
+    }
+
+    .fee-month-label {
+        margin: 0 !important;
+        color: var(--text, #374151);
+        font-size: 12.5px !important;
+        font-weight: 800 !important;
+    }
+
+    .fee-month-actions {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+    }
+
+    .fee-mini-btn {
+        padding: 5px 9px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: #fff;
+        color: var(--text-muted);
+        font-size: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all .18s ease;
+    }
+
+    .fee-mini-btn:hover {
+        color: var(--primary);
+        border-color: var(--primary-100);
+        background: var(--primary-50);
+    }
+
+    /* ---------- Month Cards ---------- */
+
+    .fee-month-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 9px !important;
+    }
+
+    .fee-month-card {
+        position: relative;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 61px;
+        padding: 10px 11px !important;
+        box-sizing: border-box;
+        border: 1px solid var(--border) !important;
+        border-radius: 10px !important;
+        background: #fff;
+        cursor: pointer;
+        user-select: none;
+        transition:
+            border-color .18s ease,
+            background .18s ease,
+            box-shadow .18s ease,
+            transform .18s ease;
+    }
+
+    .fee-month-card:hover {
+        border-color: #c4b5fd !important;
+        background: #faf5ff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(109, 40, 217, .07);
+    }
+
+    .fee-month-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 5px;
+    }
+
+    .fee-month-name {
+        color: var(--text, #1f2937);
+        font-size: 12.5px;
+        font-weight: 800;
+    }
+
+    .fee-month-checkbox {
+        width: 16px !important;
+        height: 16px;
+        margin: 0 !important;
+        cursor: pointer;
+        accent-color: var(--primary);
+        transform: none !important;
+    }
+
+    .fee-month-status {
+        color: var(--text-muted);
+        font-size: 9.5px;
+        line-height: 1.2;
+    }
+
+    /* ---------- Summary Card ---------- */
+
+    .fee-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        margin: 20px 0 22px;
+        padding: 17px 19px;
+        background: linear-gradient(
+            135deg,
+            var(--primary-50, #f5f3ff),
+            #faf5ff
+        );
+        border: 1px solid var(--primary-100, #ddd6fe);
+        border-radius: 12px;
+    }
+
+    .fee-summary-label {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text-muted);
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .7px;
+    }
+
+    .fee-summary-breakdown {
+        color: var(--text, #374151);
+        font-size: 12px;
+    }
+
+    .fee-summary-total {
+        text-align: right;
+    }
+
+    .fee-total-value {
+        display: block;
+        color: var(--primary, #7c3aed);
+        font-size: 23px;
+        font-weight: 900;
+        line-height: 1.1;
+    }
+
+    /* ---------- Extra Payment Box ---------- */
+
+    .fee-extra-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        margin-bottom: 24px;
+        padding: 14px 15px;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+    }
+
+    .fee-extra-box input {
+        width: 17px !important;
+        height: 17px;
+        flex: 0 0 17px;
+        margin-top: 1px !important;
+        accent-color: var(--primary);
+    }
+
+    .fee-extra-content {
+        min-width: 0;
+    }
+
+    .fee-extra-content label {
+        margin: 0 !important;
+        cursor: pointer;
+        font-size: 12.5px !important;
+        font-weight: 800 !important;
+    }
+
+    .fee-extra-help {
+        display: block;
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: 10.5px;
+        line-height: 1.45;
+    }
+
+    /* ---------- Bottom Actions ---------- */
+
+    .fee-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-top: 29px;
+        padding-top: 22px;
+        border-top: 1px solid var(--border);
+    }
+
+    .fee-action-btn {
+        min-width: 105px;
+    }
+
+    /* ---------- Responsive ---------- */
+
+    @media (max-width: 760px) {
+
+        .fee-page {
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+        .fee-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .fee-form {
+            padding: 24px 20px;
+        }
+
+        .fee-grid-3 {
+            grid-template-columns: 1fr;
+        }
+
+        .fee-month-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 560px) {
+
+        .fee-page {
+            padding: 5px 8px 25px;
+        }
+
+        .fee-title {
+            font-size: 22px;
+        }
+
+        .fee-form {
+            padding: 20px 15px;
+        }
+
+        .fee-grid-2 {
+            grid-template-columns: 1fr;
+        }
+
+        .fee-month-toolbar {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .fee-month-actions {
+            width: 100%;
+        }
+
+        .fee-mini-btn {
+            flex: 1;
+        }
+
+        .fee-month-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .fee-summary {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .fee-summary-total {
+            width: 100%;
+            text-align: left;
+        }
+
+        .fee-actions {
+            flex-direction: column-reverse;
+        }
+
+        .fee-action-btn {
+            width: 100%;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .fee-back,
+        .fee-mini-btn,
+        .fee-month-card {
+            transition: none;
+        }
+    }
+</style>
+
+
+<div class="fee-page">
+
+    <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
+
+    <div class="fee-header">
+
+        <div class="fee-header-left">
+
+            <a
+                href="{% tenant_url 'fees:list' %}"
+                class="fee-back"
+            >
+                <span>←</span>
+                <span>Back to Fee Transactions</span>
+            </a>
+
+            <h1 class="fee-title">
+                {{ title }}
+            </h1>
+
+            <p class="fee-subtitle">
                 Select a student, fee month, and record payment details.
             </p>
+
         </div>
+
     </div>
 
-    <!-- Fee Form Panel -->
-    <div class="panel">
-        <form method="post" id="fee-collection-form" action="{% tenant_url 'fees:create' %}">
+
+    <!-- =====================================================
+         FORM PANEL
+         ===================================================== -->
+
+    <div class="panel fee-panel">
+
+        <form
+            method="post"
+            id="fee-collection-form"
+            action="{% tenant_url 'fees:create' %}"
+            class="fee-form"
+        >
+
             {% csrf_token %}
 
+
+            <!-- NON FIELD ERRORS -->
+
             {% if form.non_field_errors %}
-                <div class="alert alert-error">
-                    {{ form.non_field_errors }}
-                </div>
-            {% endif %}
 
-            <!-- Section 1: Student Selection -->
-            <div class="form-section-title">
-                <h4>👤 Student Selection</h4>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label for="{{ form.student.id_for_label }}">{{ form.student.label }}</label>
-                {{ form.student }}
-                {% if form.student.errors %}
-                    <div class="form-error">{{ form.student.errors.0 }}</div>
-                {% endif %}
-                <small class="form-help">Select the student for whom this fee payment is being recorded.</small>
-            </div>
-
-            <div id="student-fee-info-box" class="alert alert-info" style="display: none; margin-bottom: 20px;">
-                <span id="student-fee-info-text"></span>
-            </div>
-
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
-
-            <!-- Section 2: Fee Billing Period & Amount -->
-            <div class="form-section-title">
-                <h4>📅 Billing Period & Amount</h4>
-            </div>
-
-            <div id="session-lock-banner" class="alert alert-warning" style="display: none; margin-bottom: 16px;">
-                <span id="session-lock-text"></span>
-            </div>
-
-            {% if fee %}
-                <!-- Single Month selector for editing existing fee record -->
-                <div class="form-row-3col" style="margin-bottom: 16px;">
-                    <div class="form-group">
-                        <label for="{{ form.fee_month.id_for_label }}">{{ form.fee_month.label }}</label>
-                        {{ form.fee_month }}
-                        {% if form.fee_month.errors %}
-                            <div class="form-error">{{ form.fee_month.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.fee_year.id_for_label }}">{{ form.fee_year.label }}</label>
-                        {{ form.fee_year }}
-                        {% if form.fee_year.errors %}
-                            <div class="form-error">{{ form.fee_year.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
-                        {{ form.amount }}
-                        {% if form.amount.errors %}
-                            <div class="form-error">{{ form.amount.errors.0 }}</div>
-                        {% endif %}
-                        <small class="form-help">{{ form.amount.help_text }}</small>
-                    </div>
-                </div>
-            {% else %}
-                <!-- Multi-Month Selection for new fee collection -->
-                <div class="form-row-2col" style="margin-bottom: 16px;">
-                    <div class="form-group">
-                        <label for="{{ form.fee_year.id_for_label }}">{{ form.fee_year.label }}</label>
-                        {{ form.fee_year }}
-                        {% if form.fee_year.errors %}
-                            <div class="form-error">{{ form.fee_year.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.amount.id_for_label }}">Fee Amount (Rs) *</label>
-                        {{ form.amount }}
-                        {% if form.amount.errors %}
-                            <div class="form-error">{{ form.amount.errors.0 }}</div>
-                        {% endif %}
-                        <small class="form-help">Automatically calculated as (selected months × monthly rate). You can adjust if needed.</small>
-                    </div>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <label style="font-weight: 600; font-size: 13.5px; margin: 0;">
-                            Select Fee Months *
-                        </label>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="button" id="btn-select-all-unpaid" class="btn btn-ghost btn-xs" style="padding: 2px 8px;">Select All Unpaid</button>
-                            <button type="button" id="btn-clear-months" class="btn btn-ghost btn-xs" style="padding: 2px 8px;">Clear</button>
-                        </div>
-                    </div>
-
-                    <!-- Multi-Select Checkbox Grid (Jan - Dec) -->
-                    <div id="months-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px;">
-                        {% for month_num, month_name in months_choices %}
-                            <label class="month-card" id="month-card-{{ month_num }}" style="display: flex; flex-direction: column; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: #fff; transition: all 0.15s ease; user-select: none;">
-                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                                    <strong style="font-size: 13px;">{{ month_name|slice:":3" }}</strong>
-                                    <input type="checkbox" name="fee_months" value="{{ month_num }}" id="month-cb-{{ month_num }}" class="month-checkbox" style="cursor: pointer; transform: scale(1.15);">
-                                </div>
-                                <span class="month-status-label" id="month-status-{{ month_num }}" style="font-size: 10.5px; color: var(--text-muted);">
-                                    {{ month_name }}
-                                </span>
-                            </label>
-                        {% endfor %}
-                    </div>
-                    {% if form.fee_months.errors %}
-                        <div class="form-error" style="color: var(--danger); margin-top: 6px;">{{ form.fee_months.errors.0 }}</div>
-                    {% endif %}
-                    {% if form.fee_month.errors %}
-                        <div class="form-error" style="color: var(--danger); margin-top: 6px;">{{ form.fee_month.errors.0 }}</div>
-                    {% endif %}
-                </div>
-
-                <!-- Total Amount Due Live Calculation Card -->
-                <div id="total-amount-summary" style="background: var(--primary-50); border: 1px solid var(--primary-100); border-radius: var(--radius-sm); padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="fee-alert fee-alert-error">
+                    <span>⚠️</span>
                     <div>
-                        <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">
-                            Summary & Standing
-                        </span>
-                        <span id="calc-breakdown-text" style="font-size: 13px; color: var(--text);">
-                            0 month(s) selected &bull; Monthly Rate: Rs 0.00
-                        </span>
-                    </div>
-                    <div style="text-align: right;">
-                        <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">
-                            Total Amount Due
-                        </span>
-                        <strong id="calc-total-display" style="font-size: 22px; color: var(--primary);">
-                            Rs 0.00
-                        </strong>
+                        {{ form.non_field_errors }}
                     </div>
                 </div>
+
             {% endif %}
 
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
 
-            <!-- Section 3: Payment Details & Receipt -->
-            <div class="form-section-title">
-                <h4>💳 Payment & Voucher Details</h4>
-            </div>
+            <!-- =================================================
+                 SECTION 1 — STUDENT
+                 ================================================= -->
 
-            <div class="form-row-2col" style="margin-bottom: 16px;">
-                <div class="form-group">
-                    <label for="{{ form.payment_date.id_for_label }}">{{ form.payment_date.label }}</label>
-                    {{ form.payment_date }}
-                    {% if form.payment_date.errors %}
-                        <div class="form-error">{{ form.payment_date.errors.0 }}</div>
-                    {% endif %}
-                </div>
+            <div class="fee-section">
 
-                <div class="form-group">
-                    <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
-                    {{ form.status }}
-                    {% if form.status.errors %}
-                        <div class="form-error">{{ form.status.errors.0 }}</div>
-                    {% endif %}
-                </div>
-            </div>
+                <div class="fee-section-heading">
 
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
-                {{ form.reference }}
-                {% if form.reference.errors %}
-                    <div class="form-error">{{ form.reference.errors.0 }}</div>
-                {% endif %}
-                <small class="form-help">Leave blank to automatically assign a sequential receipt number (e.g. REC-202608-0001).</small>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 24px; background: var(--bg); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin: 0;">
-                    {{ form.is_extra }}
-                    <span>
-                        <strong>{{ form.is_extra.label }}</strong>
-                        <small style="display: block; color: var(--text-muted); margin-top: 2px;">{{ form.is_extra.help_text }}</small>
+                    <span class="fee-section-icon">
+                        👤
                     </span>
-                </label>
+
+                    <div>
+                        <h4>
+                            Student Selection
+                        </h4>
+
+                        <p>
+                            Choose the student for this fee transaction.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="fee-form-group">
+
+                    <label for="{{ form.student.id_for_label }}">
+                        {{ form.student.label }}
+                    </label>
+
+                    {{ form.student }}
+
+                    {% if form.student.errors %}
+                        <div class="fee-error">
+                            {{ form.student.errors.0 }}
+                        </div>
+                    {% endif %}
+
+                    <small class="fee-help">
+                        Select the student for whom this fee payment is being recorded.
+                    </small>
+
+                </div>
+
+
+                <!-- Student Fee Information -->
+
+                <div
+                    id="student-fee-info-box"
+                    class="fee-alert fee-alert-info"
+                    style="display: none;"
+                >
+                    <span>ℹ️</span>
+
+                    <div id="student-fee-info-text"></div>
+                </div>
+
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px;">
-                <a href="{% tenant_url 'fees:list' %}" class="btn btn-ghost">Cancel</a>
-                <button type="submit" class="btn btn-primary">{{ action_text }}</button>
+
+            <hr class="fee-divider">
+
+
+            <!-- =================================================
+                 SECTION 2 — BILLING
+                 ================================================= -->
+
+            <div class="fee-section">
+
+                <div class="fee-section-heading">
+
+                    <span class="fee-section-icon">
+                        📅
+                    </span>
+
+                    <div>
+                        <h4>
+                            Billing Period & Amount
+                        </h4>
+
+                        <p>
+                            Select the applicable billing period and payment amount.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <!-- Session Lock -->
+
+                <div
+                    id="session-lock-banner"
+                    class="fee-alert fee-alert-warning"
+                    style="display: none;"
+                >
+                    <span>🔒</span>
+
+                    <div id="session-lock-text"></div>
+                </div>
+
+
+                {% if fee %}
+
+                    <!-- =============================================
+                         EDIT MODE
+                         ============================================= -->
+
+                    <div class="fee-grid-3">
+
+                        <div class="fee-form-group">
+
+                            <label for="{{ form.fee_month.id_for_label }}">
+                                {{ form.fee_month.label }}
+                            </label>
+
+                            {{ form.fee_month }}
+
+                            {% if form.fee_month.errors %}
+                                <div class="fee-error">
+                                    {{ form.fee_month.errors.0 }}
+                                </div>
+                            {% endif %}
+
+                        </div>
+
+
+                        <div class="fee-form-group">
+
+                            <label for="{{ form.fee_year.id_for_label }}">
+                                {{ form.fee_year.label }}
+                            </label>
+
+                            {{ form.fee_year }}
+
+                            {% if form.fee_year.errors %}
+                                <div class="fee-error">
+                                    {{ form.fee_year.errors.0 }}
+                                </div>
+                            {% endif %}
+
+                        </div>
+
+
+                        <div class="fee-form-group">
+
+                            <label for="{{ form.amount.id_for_label }}">
+                                {{ form.amount.label }}
+                            </label>
+
+                            {{ form.amount }}
+
+                            {% if form.amount.errors %}
+                                <div class="fee-error">
+                                    {{ form.amount.errors.0 }}
+                                </div>
+                            {% endif %}
+
+                            <small class="fee-help">
+                                {{ form.amount.help_text }}
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <!-- =============================================
+                         NEW FEE COLLECTION
+                         ============================================= -->
+
+                    <div class="fee-grid-2">
+
+                        <div class="fee-form-group">
+
+                            <label for="{{ form.fee_year.id_for_label }}">
+                                {{ form.fee_year.label }}
+                            </label>
+
+                            {{ form.fee_year }}
+
+                            {% if form.fee_year.errors %}
+                                <div class="fee-error">
+                                    {{ form.fee_year.errors.0 }}
+                                </div>
+                            {% endif %}
+
+                        </div>
+
+
+                        <div class="fee-form-group">
+
+                            <label for="{{ form.amount.id_for_label }}">
+                                Fee Amount (Rs) *
+                            </label>
+
+                            {{ form.amount }}
+
+                            {% if form.amount.errors %}
+                                <div class="fee-error">
+                                    {{ form.amount.errors.0 }}
+                                </div>
+                            {% endif %}
+
+                            <small class="fee-help">
+                                Automatically calculated as
+                                (selected months × monthly rate).
+                                You can adjust if needed.
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Month Selection -->
+
+                    <div class="fee-form-group">
+
+                        <div class="fee-month-toolbar">
+
+                            <label class="fee-month-label">
+                                Select Fee Months *
+                            </label>
+
+                            <div class="fee-month-actions">
+
+                                <button
+                                    type="button"
+                                    id="btn-select-all-unpaid"
+                                    class="fee-mini-btn"
+                                >
+                                    Select All Unpaid
+                                </button>
+
+                                <button
+                                    type="button"
+                                    id="btn-clear-months"
+                                    class="fee-mini-btn"
+                                >
+                                    Clear
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Month Grid -->
+
+                        <div
+                            id="months-checkbox-grid"
+                            class="fee-month-grid"
+                        >
+
+                            {% for month_num, month_name in months_choices %}
+
+                                <label
+                                    class="month-card fee-month-card"
+                                    id="month-card-{{ month_num }}"
+                                >
+
+                                    <div class="fee-month-top">
+
+                                        <strong class="fee-month-name">
+                                            {{ month_name|slice:":3" }}
+                                        </strong>
+
+                                        <input
+                                            type="checkbox"
+                                            name="fee_months"
+                                            value="{{ month_num }}"
+                                            id="month-cb-{{ month_num }}"
+                                            class="month-checkbox fee-month-checkbox"
+                                        >
+
+                                    </div>
+
+                                    <span
+                                        class="month-status-label fee-month-status"
+                                        id="month-status-{{ month_num }}"
+                                    >
+                                        {{ month_name }}
+                                    </span>
+
+                                </label>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        {% if form.fee_months.errors %}
+                            <div class="fee-error">
+                                {{ form.fee_months.errors.0 }}
+                            </div>
+                        {% endif %}
+
+                        {% if form.fee_month.errors %}
+                            <div class="fee-error">
+                                {{ form.fee_month.errors.0 }}
+                            </div>
+                        {% endif %}
+
+                    </div>
+
+
+                    <!-- Total Amount Summary -->
+
+                    <div
+                        id="total-amount-summary"
+                        class="fee-summary"
+                    >
+
+                        <div>
+
+                            <span class="fee-summary-label">
+                                Summary & Standing
+                            </span>
+
+                            <span
+                                id="calc-breakdown-text"
+                                class="fee-summary-breakdown"
+                            >
+                                0 month(s) selected &bull; Monthly Rate: Rs 0.00
+                            </span>
+
+                        </div>
+
+
+                        <div class="fee-summary-total">
+
+                            <span class="fee-summary-label">
+                                Total Amount Due
+                            </span>
+
+                            <strong
+                                id="calc-total-display"
+                                class="fee-total-value"
+                            >
+                                Rs 0.00
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
             </div>
+
+
+            <hr class="fee-divider">
+
+
+            <!-- =================================================
+                 SECTION 3 — PAYMENT
+                 ================================================= -->
+
+            <div class="fee-section">
+
+                <div class="fee-section-heading">
+
+                    <span class="fee-section-icon">
+                        💳
+                    </span>
+
+                    <div>
+                        <h4>
+                            Payment & Voucher Details
+                        </h4>
+
+                        <p>
+                            Record payment date, status, and receipt information.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="fee-grid-2">
+
+                    <div class="fee-form-group">
+
+                        <label for="{{ form.payment_date.id_for_label }}">
+                            {{ form.payment_date.label }}
+                        </label>
+
+                        {{ form.payment_date }}
+
+                        {% if form.payment_date.errors %}
+                            <div class="fee-error">
+                                {{ form.payment_date.errors.0 }}
+                            </div>
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="fee-form-group">
+
+                        <label for="{{ form.status.id_for_label }}">
+                            {{ form.status.label }}
+                        </label>
+
+                        {{ form.status }}
+
+                        {% if form.status.errors %}
+                            <div class="fee-error">
+                                {{ form.status.errors.0 }}
+                            </div>
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+
+                <!-- Reference -->
+
+                <div class="fee-form-group">
+
+                    <label for="{{ form.reference.id_for_label }}">
+                        {{ form.reference.label }}
+                    </label>
+
+                    {{ form.reference }}
+
+                    {% if form.reference.errors %}
+                        <div class="fee-error">
+                            {{ form.reference.errors.0 }}
+                        </div>
+                    {% endif %}
+
+                    <small class="fee-help">
+                        Leave blank to automatically assign a sequential receipt number
+                        (e.g. REC-202608-0001).
+                    </small>
+
+                </div>
+
+
+                <!-- Extra Payment -->
+
+                <div class="fee-extra-box">
+
+                    {{ form.is_extra }}
+
+                    <div class="fee-extra-content">
+
+                        <label for="{{ form.is_extra.id_for_label }}">
+                            {{ form.is_extra.label }}
+                        </label>
+
+                        <small class="fee-extra-help">
+                            {{ form.is_extra.help_text }}
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 ACTIONS
+                 ================================================= -->
+
+            <div class="fee-actions">
+
+                <a
+                    href="{% tenant_url 'fees:list' %}"
+                    class="btn btn-ghost fee-action-btn"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    class="btn btn-primary fee-action-btn"
+                >
+                    {{ action_text }}
+                </button>
+
+            </div>
+
         </form>
+
     </div>
+
 </div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -233,178 +1092,354 @@ document.addEventListener('DOMContentLoaded', function() {
     let sessionYear = '';
 
     function recalculateTotal() {
-        if (!calcTotalDisplay) return; // In edit mode, multi-select is not present
+        if (!calcTotalDisplay) return;
 
         const checkboxes = document.querySelectorAll('.month-checkbox:checked');
         const count = checkboxes.length;
         const total = count * currentMonthlyFee;
 
-        // Automatically update the amount input field
         amountInput.value = total.toFixed(2);
 
-        // Update the prominent Total Amount Due display
-        calcBreakdownText.innerHTML = `<strong>${count}</strong> month${count === 1 ? '' : 's'} selected &bull; Rate: <strong>Rs ${currentMonthlyFee.toFixed(2)}</strong>/month`;
+        calcBreakdownText.innerHTML =
+            `<strong>${count}</strong> month${count === 1 ? '' : 's'} selected &bull; Rate: <strong>Rs ${currentMonthlyFee.toFixed(2)}</strong>/month`;
+
         calcTotalDisplay.textContent = `Rs ${total.toFixed(2)}`;
 
-        // Check 12-month session guard
         const isExtra = isExtraCheckbox && isExtraCheckbox.checked;
+
         if (!isExtra && sessionPaidCount + count > 12) {
+
             if (lockBanner && lockText) {
-                lockBanner.className = 'alert alert-error';
-                lockText.innerHTML = `⚠️ <strong>Limit Exceeded:</strong> Student already has <strong>${sessionPaidCount}/12</strong> months paid for Session ${sessionYear}. Selecting ${count} months would exceed the 12-month maximum session limit (only ${Math.max(0, 12 - sessionPaidCount)} month(s) remaining).`;
-                lockBanner.style.display = 'block';
+
+                lockBanner.className = 'fee-alert fee-alert-error';
+
+                lockText.innerHTML =
+                    `⚠️ <strong>Limit Exceeded:</strong> Student already has <strong>${sessionPaidCount}/12</strong> months paid for Session ${sessionYear}. Selecting ${count} months would exceed the 12-month maximum session limit (only ${Math.max(0, 12 - sessionPaidCount)} month(s) remaining).`;
+
+                lockBanner.style.display = 'flex';
             }
+
         } else if (!isExtra && isSessionCleared) {
+
             if (lockBanner && lockText) {
-                lockBanner.className = 'alert alert-warning';
-                lockText.innerHTML = `🔒 <strong>Session Cleared:</strong> All 12/12 months have been paid for Session ${sessionYear}. Monthly fee collection is locked — promote the student or check "Allow Extra / Additional Payment".`;
-                lockBanner.style.display = 'block';
+
+                lockBanner.className = 'fee-alert fee-alert-warning';
+
+                lockText.innerHTML =
+                    `🔒 <strong>Session Cleared:</strong> All 12/12 months have been paid for Session ${sessionYear}. Monthly fee collection is locked — promote the student or check "Allow Extra / Additional Payment".`;
+
+                lockBanner.style.display = 'flex';
             }
+
         } else {
+
             if (lockBanner) {
                 lockBanner.style.display = 'none';
             }
+
         }
 
-        // Highlight selected month cards
         document.querySelectorAll('.month-checkbox').forEach(cb => {
-            const card = document.getElementById(`month-card-${cb.value}`);
+
+            const card =
+                document.getElementById(`month-card-${cb.value}`);
+
             if (card) {
+
                 if (cb.checked) {
+
                     card.style.borderColor = 'var(--primary)';
                     card.style.background = 'var(--primary-50)';
+
                 } else if (!cb.disabled) {
+
                     card.style.borderColor = 'var(--border)';
                     card.style.background = '#fff';
+
                 }
+
             }
+
         });
     }
 
+
     function updateMonthCards() {
-        const isExtra = isExtraCheckbox && isExtraCheckbox.checked;
+
+        const isExtra =
+            isExtraCheckbox && isExtraCheckbox.checked;
 
         for (let m = 1; m <= 12; m++) {
-            const cb = document.getElementById(`month-cb-${m}`);
-            const card = document.getElementById(`month-card-${m}`);
-            const statusLabel = document.getElementById(`month-status-${m}`);
+
+            const cb =
+                document.getElementById(`month-cb-${m}`);
+
+            const card =
+                document.getElementById(`month-card-${m}`);
+
+            const statusLabel =
+                document.getElementById(`month-status-${m}`);
+
             if (!cb || !card) continue;
 
-            const isPaid = paidMonthsInYear.includes(m);
+            const isPaid =
+                paidMonthsInYear.includes(m);
 
             if (isPaid && !isExtra) {
+
                 cb.disabled = true;
                 cb.checked = false;
+
                 card.style.background = '#f1f5f9';
                 card.style.borderColor = '#cbd5e1';
                 card.style.opacity = '0.75';
                 card.style.cursor = 'not-allowed';
+
                 if (statusLabel) {
-                    statusLabel.innerHTML = '<span class="badge badge-success" style="font-size: 9.5px; padding: 2px 5px;">PAID</span>';
+
+                    statusLabel.innerHTML =
+                        '<span class="badge badge-success" style="font-size: 9.5px; padding: 2px 5px;">PAID</span>';
+
                 }
+
             } else {
+
                 cb.disabled = false;
+
                 card.style.opacity = '1';
                 card.style.cursor = 'pointer';
+
                 if (isPaid && isExtra) {
+
                     card.style.background = '#fef3c7';
                     card.style.borderColor = '#f59e0b';
+
                     if (statusLabel) {
-                        statusLabel.innerHTML = '<span class="badge badge-warning" style="font-size: 9.5px; padding: 2px 5px;">PAID (EXTRA)</span>';
+
+                        statusLabel.innerHTML =
+                            '<span class="badge badge-warning" style="font-size: 9.5px; padding: 2px 5px;">PAID (EXTRA)</span>';
+
                     }
+
                 } else {
+
                     card.style.borderColor = 'var(--border)';
                     card.style.background = '#fff';
+
                     if (statusLabel) {
-                        const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                        statusLabel.textContent = monthNames[m] || '';
+
+                        const monthNames = [
+                            "",
+                            "January",
+                            "February",
+                            "March",
+                            "April",
+                            "May",
+                            "June",
+                            "July",
+                            "August",
+                            "September",
+                            "October",
+                            "November",
+                            "December"
+                        ];
+
+                        statusLabel.textContent =
+                            monthNames[m] || '';
+
                     }
+
                 }
+
             }
+
         }
+
         recalculateTotal();
     }
 
+
     function checkStudentFee() {
-        const studentId = studentSelect ? studentSelect.value : '';
+
+        const studentId =
+            studentSelect ? studentSelect.value : '';
+
         if (!studentId) {
-            if (infoBox) infoBox.style.display = 'none';
-            if (lockBanner) lockBanner.style.display = 'none';
+
+            if (infoBox)
+                infoBox.style.display = 'none';
+
+            if (lockBanner)
+                lockBanner.style.display = 'none';
+
             currentMonthlyFee = 0;
             paidMonthsInYear = [];
             sessionPaidCount = 0;
             isSessionCleared = false;
+
             updateMonthCards();
+
             return;
         }
 
-        const year = yearInput ? yearInput.value : new Date().getFullYear();
+        const year =
+            yearInput
+                ? yearInput.value
+                : new Date().getFullYear();
 
-        fetch(`{% tenant_url 'fees:api_student_fee_info' student_id=0 %}`.replace('0', studentId) + `?year=${year}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.effective_monthly_fee !== undefined) {
-                    currentMonthlyFee = data.effective_monthly_fee;
-                    paidMonthsInYear = data.paid_months || [];
-                    sessionPaidCount = data.paid_session_count || 0;
-                    isSessionCleared = !!data.is_cleared;
-                    sessionYear = data.session_year || `${year}-${parseInt(year)+1}`;
+        fetch(
+            `{% tenant_url 'fees:api_student_fee_info' student_id=0 %}`
+                .replace('0', studentId)
+            + `?year=${year}`
+        )
+        .then(res => res.json())
+        .then(data => {
 
-                    let paidMonthsStr = paidMonthsInYear.length > 0 ? paidMonthsInYear.join(', ') : 'None';
-                    if (infoBox && infoText) {
-                        infoText.innerHTML = `ℹ️ <strong>${data.name}</strong> (${data.class_name}) &bull; Monthly Rate: <strong>Rs ${currentMonthlyFee.toFixed(2)}</strong> &bull; Session ${sessionYear}: <strong>${sessionPaidCount}/12 Months Paid</strong> &bull; Paid in ${year}: [${paidMonthsStr}]`;
-                        infoBox.style.display = 'block';
-                    }
+            if (
+                data &&
+                data.effective_monthly_fee !== undefined
+            ) {
 
-                    updateMonthCards();
+                currentMonthlyFee =
+                    data.effective_monthly_fee;
+
+                paidMonthsInYear =
+                    data.paid_months || [];
+
+                sessionPaidCount =
+                    data.paid_session_count || 0;
+
+                isSessionCleared =
+                    !!data.is_cleared;
+
+                sessionYear =
+                    data.session_year ||
+                    `${year}-${parseInt(year)+1}`;
+
+                let paidMonthsStr =
+                    paidMonthsInYear.length > 0
+                        ? paidMonthsInYear.join(', ')
+                        : 'None';
+
+                if (infoBox && infoText) {
+
+                    infoText.innerHTML =
+                        `ℹ️ <strong>${data.name}</strong> (${data.class_name}) &bull; Monthly Rate: <strong>Rs ${currentMonthlyFee.toFixed(2)}</strong> &bull; Session ${sessionYear}: <strong>${sessionPaidCount}/12 Months Paid</strong> &bull; Paid in ${year}: [${paidMonthsStr}]`;
+
+                    infoBox.style.display = 'flex';
                 }
-            })
-            .catch(err => console.error('Error fetching student fee info:', err));
+
+                updateMonthCards();
+            }
+
+        })
+        .catch(err =>
+            console.error(
+                'Error fetching student fee info:',
+                err
+            )
+        );
     }
+
 
     // Attach listeners
+
     if (studentSelect) {
-        studentSelect.addEventListener('change', checkStudentFee);
+        studentSelect.addEventListener(
+            'change',
+            checkStudentFee
+        );
     }
+
     if (yearInput) {
-        yearInput.addEventListener('change', checkStudentFee);
+        yearInput.addEventListener(
+            'change',
+            checkStudentFee
+        );
     }
+
     if (isExtraCheckbox) {
-        isExtraCheckbox.addEventListener('change', function() {
-            updateMonthCards();
-        });
+
+        isExtraCheckbox.addEventListener(
+            'change',
+            function() {
+                updateMonthCards();
+            }
+        );
+
     }
+
 
     // Checkbox change listener
-    document.querySelectorAll('.month-checkbox').forEach(cb => {
-        cb.addEventListener('change', recalculateTotal);
-    });
+
+    document
+        .querySelectorAll('.month-checkbox')
+        .forEach(cb => {
+
+            cb.addEventListener(
+                'change',
+                recalculateTotal
+            );
+
+        });
+
 
     // Quick Action Buttons
+
     if (btnSelectAllUnpaid) {
-        btnSelectAllUnpaid.addEventListener('click', function() {
-            document.querySelectorAll('.month-checkbox').forEach(cb => {
-                if (!cb.disabled) {
-                    cb.checked = true;
-                }
-            });
-            recalculateTotal();
-        });
+
+        btnSelectAllUnpaid.addEventListener(
+            'click',
+            function() {
+
+                document
+                    .querySelectorAll('.month-checkbox')
+                    .forEach(cb => {
+
+                        if (!cb.disabled) {
+                            cb.checked = true;
+                        }
+
+                    });
+
+                recalculateTotal();
+            }
+        );
+
     }
+
 
     if (btnClearMonths) {
-        btnClearMonths.addEventListener('click', function() {
-            document.querySelectorAll('.month-checkbox').forEach(cb => {
-                cb.checked = false;
-            });
-            recalculateTotal();
-        });
+
+        btnClearMonths.addEventListener(
+            'click',
+            function() {
+
+                document
+                    .querySelectorAll('.month-checkbox')
+                    .forEach(cb => {
+
+                        cb.checked = false;
+
+                    });
+
+                recalculateTotal();
+            }
+        );
+
     }
 
+
     // Initialize on page load
-    if (studentSelect && studentSelect.value) {
+
+    if (
+        studentSelect &&
+        studentSelect.value
+    ) {
         checkStudentFee();
     }
+
 });
 </script>
+
 {% endblock %}
