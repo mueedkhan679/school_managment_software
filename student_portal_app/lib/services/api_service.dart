@@ -536,4 +536,36 @@ class ApiService {
       };
     }
   }
+
+  // --- Student Message APIs ---
+  Future<Map<String, dynamic>> sendStudentMessage(String message) async {
+    final url = Uri.parse('$baseUrl/api/v1/students/messages/');
+    try {
+      final response = await http.post(
+        url,
+        headers: await _getHeaders(requireAuth: true),
+        body: jsonEncode({'message': message}),
+      );
+      return _processResponse(response);
+    } catch (e) {
+      debugPrint('Network error on sendStudentMessage: $e');
+      return {
+        'status': 'error',
+        'message': 'Network or server error: $e',
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getStudentMessages() async {
+    try {
+      return await _authenticatedGet('$baseUrl/api/v1/students/messages/');
+    } catch (e) {
+      debugPrint('Network error fetching messages: $e');
+      return {
+        'status': 'error',
+        'message': 'Network or server error: $e',
+      };
+    }
+  }
+
 }

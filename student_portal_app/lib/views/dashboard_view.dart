@@ -11,360 +11,710 @@ class DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final studentCtrl = context.watch<StudentController>();
     final profile = studentCtrl.profile;
     final attendance = studentCtrl.attendanceData;
     final fees = studentCtrl.feeData;
 
+    final attendanceRate = attendance?.attendanceRate ?? 0.0;
+    final isFeePaid = fees?.overallStatus == 'PAID';
+    final hasPendingFee =
+        fees?.yearlyPending != '0.00' && fees?.yearlyPending != '0';
+
     return RefreshIndicator(
+      color: colors.primary,
+      backgroundColor: colors.surface,
       onRefresh: () async {
         await studentCtrl.fetchAllData();
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Student Profile Welcome Header Banner
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              color: theme.colorScheme.primary,
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  children: [
-                    // Photo falls back to a placeholder icon when missing or
-                    // when the network image fails to load.
-                    StudentAvatar(
-                      imageUrl: profile?.photoUrl,
-                      radius: 36,
-                      backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
-                      iconColor: theme.colorScheme.onPrimary,
-                      iconSize: 40,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome Back,',
-                            style: TextStyle(
-                              color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
-                              fontSize: 14,
+            // ---------------------------------------------------------
+            // STUDENT PROFILE HEADER
+            // ---------------------------------------------------------
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    colors.primary,
+                    colors.primary.withValues(alpha: 0.78),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.primary.withValues(alpha: 0.20),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      // Student Avatar
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.20),
+                        ),
+                        child: StudentAvatar(
+                          imageUrl: profile?.photoUrl,
+                          radius: 35,
+                          backgroundColor: Colors.white.withValues(alpha: 0.14),
+                          iconColor: Colors.white,
+                          iconSize: 38,
+                        ),
+                      ),
+
+                      const SizedBox(width: 15),
+
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Welcome Back 👋',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.78),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            profile?.fullName ?? 'Student',
-                            style: TextStyle(
-                              color: theme.colorScheme.onPrimary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                            const SizedBox(height: 4),
+                            Text(
+                              profile?.fullName ?? 'Student',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            // FittedBox: long ID/class combinations scale
-                            // down inside the chip instead of overflowing
-                            // the welcome banner on small screens.
-                            child: FittedBox(
+                            const SizedBox(height: 8),
+                            FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.centerLeft,
-                              child: Text(
-                                'ID: ${profile?.studentId ?? '---'} | Class: ${profile?.className ?? '---'}',
-                                maxLines: 1,
-                                softWrap: false,
-                                style: TextStyle(
-                                  color: theme.colorScheme.onPrimary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.13),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.10),
+                                  ),
+                                ),
+                                child: Text(
+                                  'ID: ${profile?.studentId ?? '---'}  •  Class: ${profile?.className ?? '---'}',
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      if (profile?.statusDisplay != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            profile!.statusDisplay,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          // Status Badge
-                          if (profile?.statusDisplay != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.white24,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                profile!.statusDisplay,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Header bottom information
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 11,
                     ),
-                  ],
-                ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.school_rounded,
+                          color: Colors.white70,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            profile?.className ?? 'Student Portal',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.verified_rounded,
+                          color: Colors.white70,
+                          size: 17,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
+            ).animate().fadeIn(duration: 400.ms).slideY(
+                  begin: -0.08,
+                  end: 0,
+                ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 25),
 
-            // Attendance & Fee Quick Overview Row
-            // IntrinsicHeight + stretch keeps the Attendance and Fee Status
-            // cards exactly the same height regardless of content.
+            // ---------------------------------------------------------
+            // QUICK OVERVIEW TITLE
+            // ---------------------------------------------------------
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.dashboard_rounded,
+                    color: colors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Text(
+                  'Quick Overview',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            // ---------------------------------------------------------
+            // ATTENDANCE + FEE CARDS
+            // ---------------------------------------------------------
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Attendance Circular Indicator Card
+                  // ATTENDANCE CARD
                   Expanded(
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: Padding(
-                      // Symmetric padding keeps the twin overview cards
-                      // comfortable on small screens.
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 16,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: colors.outline.withValues(alpha: 0.10),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.035),
+                            blurRadius: 16,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
                       child: Column(
                         children: [
-                          // FittedBox: the section title always renders on a
-                          // single line, scaling down on narrow devices.
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              'Attendance',
-                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                            ),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: colors.primary.withValues(alpha: 0.10),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.calendar_month_rounded,
+                                  color: colors.primary,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Attendance',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 12),
+
+                          const SizedBox(height: 18),
+
+                          // Circular Progress
                           SizedBox(
-                            height: 90,
-                            width: 90,
+                            height: 100,
+                            width: 100,
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                CircularProgressIndicator(
-                                  value: (attendance?.attendanceRate ?? 0.0) / 100.0,
-                                  strokeWidth: 8,
-                                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                                  color: (attendance?.attendanceRate ?? 0) >= 75
-                                      ? Colors.green
-                                      : Colors.orange,
+                                SizedBox(
+                                  height: 100,
+                                  width: 100,
+                                  child: CircularProgressIndicator(
+                                    value: attendanceRate / 100.0,
+                                    strokeWidth: 9,
+                                    strokeCap: StrokeCap.round,
+                                    backgroundColor:
+                                        colors.surfaceContainerHighest,
+                                    color: attendanceRate >= 75
+                                        ? const Color(0xFF22C55E)
+                                        : const Color(0xFFF59E0B),
+                                  ),
                                 ),
                                 Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      '${attendance?.attendanceRate ?? 0.0}%',
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
+                                      '$attendanceRate%',
+                                      style:
+                                          theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -0.5,
                                       ),
                                     ),
                                     Text(
                                       'Rate',
-                                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        fontSize: 10,
+                                        color: colors.onSurface
+                                            .withValues(alpha: 0.50),
+                                      ),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Column(
-                            children: [
-                              Text(
-                                '✅ Present: ${attendance?.presentCount ?? 0}',
-                                style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '❌ Absent: ${attendance?.absentCount ?? 0}',
-                                style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+
+                          const SizedBox(height: 18),
+
+                          // Present
+                          _buildMiniStat(
+                            context,
+                            icon: Icons.check_circle_rounded,
+                            label: 'Present ${attendance?.presentCount ?? 0}',
+                            color: const Color(0xFF16A34A),
+                          ),
+
+                          const SizedBox(height: 7),
+
+                          // Absent
+                          _buildMiniStat(
+                            context,
+                            icon: Icons.cancel_rounded,
+                            label: 'Absent ${attendance?.absentCount ?? 0}',
+                            color: const Color(0xFFDC2626),
                           ),
                         ],
                       ),
-                    ),
-                  ).animate().fadeIn(delay: 200.ms).scale(),
-                ),
+                    ).animate().fadeIn(delay: 200.ms).scale(),
+                  ),
 
-                const SizedBox(width: 12),
+                  const SizedBox(width: 12),
 
-                // Quick Fee Status Card
-                Expanded(
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 16,
+                  // FEE CARD
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: colors.outline.withValues(alpha: 0.10),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.035),
+                            blurRadius: 16,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // FittedBox: the title stays on a single line on
-                          // any screen width instead of wrapping/clipping.
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Fee Status',
-                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          // Status badge – wrapped so it can scale down on
-                          // very narrow cards instead of overflowing.
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: (fees?.overallStatus == 'PAID')
-                                      ? Colors.green.withValues(alpha: 0.15)
-                                      : Colors.red.withValues(alpha: 0.15),
+                                  color: colors.primary.withValues(alpha: 0.10),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      (fees?.overallStatus == 'PAID')
-                                          ? Icons.check_circle_rounded
-                                          : Icons.pending_actions_rounded,
-                                      size: 16,
-                                      color: (fees?.overallStatus == 'PAID') ? Colors.green : Colors.red,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      fees?.overallStatus ?? 'PENDING',
-                                      style: TextStyle(
-                                        color: (fees?.overallStatus == 'PAID') ? Colors.green : Colors.red,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
+                                child: Icon(
+                                  Icons.account_balance_wallet_rounded,
+                                  color: colors.primary,
+                                  size: 18,
                                 ),
                               ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Fee Status',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Fee Status Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isFeePaid
+                                  ? const Color(0xFF16A34A)
+                                      .withValues(alpha: 0.10)
+                                  : const Color(0xFFDC2626)
+                                      .withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isFeePaid
+                                      ? Icons.check_circle_rounded
+                                      : Icons.pending_actions_rounded,
+                                  size: 16,
+                                  color: isFeePaid
+                                      ? const Color(0xFF16A34A)
+                                      : const Color(0xFFDC2626),
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    fees?.overallStatus ?? 'PENDING',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: isFeePaid
+                                          ? const Color(0xFF16A34A)
+                                          : const Color(0xFFDC2626),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 14),
+
+                          const SizedBox(height: 18),
+
                           Text(
-                            'Pending Balance:',
-                            style: theme.textTheme.bodySmall,
+                            'Pending Balance',
+                            style: TextStyle(
+                              color: colors.onSurface.withValues(alpha: 0.50),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          // Large amount scales down instead of wrapping or
-                          // breaking out of the card ("RIGHT OVERFLOWED").
+
+                          const SizedBox(height: 4),
+
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text(
                               Format.rupees(fees?.yearlyPending),
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: (fees?.yearlyPending != '0.00' && fees?.yearlyPending != '0')
-                                    ? Colors.red
-                                    : Colors.green,
-                              ),
-                            ),
-                          ),
-                          const Divider(height: 20),
-                          // Stacked vertically inside Columns — never rigid
-                          // inline rows — removing the horizontal overflow.
-                          Text(
-                            'Total Paid:',
-                            style: theme.textTheme.bodySmall,
-                          ),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              Format.rupees(fees?.totalPaidFees),
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Monthly Tuition:',
-                            style: theme.textTheme.bodySmall,
-                          ),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              Format.rupees(fees?.effectiveMonthlyFee),
                               maxLines: 1,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                              style: TextStyle(
+                                color: hasPendingFee
+                                    ? const Color(0xFFDC2626)
+                                    : const Color(0xFF16A34A),
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
                               ),
                             ),
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          Container(
+                            height: 1,
+                            color: colors.outline.withValues(alpha: 0.08),
+                          ),
+
+                          const SizedBox(height: 13),
+
+                          // Total Paid
+                          _buildFeeInfo(
+                            context,
+                            'Total Paid',
+                            Format.rupees(fees?.totalPaidFees),
+                            const Color(0xFF16A34A),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Monthly Tuition
+                          _buildFeeInfo(
+                            context,
+                            'Monthly Tuition',
+                            Format.rupees(fees?.effectiveMonthlyFee),
+                            colors.primary,
                           ),
                         ],
                       ),
+                    ).animate().fadeIn(delay: 300.ms).scale(),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 27),
+
+            // ---------------------------------------------------------
+            // ANNOUNCEMENTS
+            // ---------------------------------------------------------
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.campaign_rounded,
+                    color: colors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Text(
+                    'Notice & Announcements',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
                     ),
-                  ).animate().fadeIn(delay: 300.ms).scale(),
+                  ),
                 ),
               ],
-            ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // School Announcements / Notice Card
-            Text(
-              'Notice & Announcements',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ).animate().fadeIn(delay: 400.ms),
-            const SizedBox(height: 10),
-            Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
+
+            const SizedBox(height: 14),
+
+            // Announcement Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: colors.outline.withValues(alpha: 0.10),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
                   ),
-                  child: Icon(Icons.campaign_rounded, color: theme.colorScheme.primary),
-                ),
-                title: const Text(
-                  'Academic Term Notice',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: const Text(
-                  'Monthly fees and attendance records have been updated for the current academic session. Check details in your portal.',
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
+                ],
               ),
-            ).animate().fadeIn(delay: 500.ms).slideX(begin: 0.1, end: 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Icon(
+                      Icons.notifications_active_rounded,
+                      color: colors.primary,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 13),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Academic Term Notice',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'Monthly fees and attendance records have been updated for the current academic session. Check details in your portal.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.5,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: colors.onSurface.withValues(alpha: 0.35),
+                  ),
+                ],
+              ),
+            ).animate().fadeIn(delay: 500.ms).slideX(
+                  begin: 0.08,
+                  end: 0,
+                ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMiniStat(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 7,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 15,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeeInfo(
+    BuildContext context,
+    String label,
+    String value,
+    Color valueColor,
+  ) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: colors.onSurface.withValues(alpha: 0.50),
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: TextStyle(
+                color: valueColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
