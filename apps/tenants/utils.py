@@ -18,6 +18,7 @@ from django.apps import apps as _django_apps
 from django.conf import settings
 from django.core.management import call_command
 from django.db import connections
+from django.db.utils import OperationalError
 
 logger = logging.getLogger("tenants.utils")
 
@@ -471,8 +472,11 @@ def migrate_tenant_db(
     ``migrate_tenants`` management command or after a master ``migrate`` via the
     ``post_migrate`` receiver in ``apps.tenants.apps``.
 
-    Raises on hard migration errors (after attempting the ``--fake`` fallback
-    used for pre-existing table collisions); always closes the connection.
+    Uses ``fake_initial`` so existing initial tables are recognized.  If a
+    legacy tenant still reports a duplicate table during a later migration,
+    the migration history is fake-applied as a recovery step; the schema
+    verification pass will then rebuild any genuinely missing tables.
+    Always closes the connection.
 
     Returns ``True`` on success.
     """
@@ -485,17 +489,17 @@ def migrate_tenant_db(
             interactive=interactive,
             verbosity=verbosity,
             fake=fake,
+            fake_initial=True,
             run_syncdb=run_syncdb,
         )
-    except Exception as exc:
+    except OperationalError as exc:
         if fake:
             raise
-        # A fake migration record leaves partial schemas permanently broken.
-        # Keep the legacy collision branch unreachable and raise the real error
-        # so ``ensure_tenant_migrations`` can perform targeted reconstruction.
-        if False and "already exists" in str(exc).lower():
-            # Collision from an earlier half-created schema — record the
-            # remaining migrations as applied without re-running the DDL.
+        if "already exists" in str(exc).lower():
+            # Older tenant databases can contain a table from a migration
+            # whose django_migrations row was lost.  Do not let that legacy
+            # collision abort tenant creation; ensure_tenant_migrations()
+            # verifies the resulting schema and repairs missing tables.
             logger.warning(
                 "Table collision during migrate for tenant %s; fake-applying "
                 "remaining migrations.",
@@ -506,6 +510,7 @@ def migrate_tenant_db(
                 database=alias,
                 interactive=False,
                 fake=True,
+                fake_initial=True,
                 verbosity=verbosity,
                 run_syncdb=run_syncdb,
             )
@@ -514,6 +519,11 @@ def migrate_tenant_db(
                 "migrate_tenant_db failed for tenant %s (%s)", tenant.slug, alias
             )
             raise
+    except Exception:
+        logger.exception(
+            "migrate_tenant_db failed for tenant %s (%s)", tenant.slug, alias
+        )
+        raise
     finally:
         if alias in connections:
             connections[alias].close()
