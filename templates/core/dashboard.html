@@ -4063,7 +4063,7 @@ function loadClassStudents(classId, className) {
     openModal('class-students-modal');
 
 
-    fetch('/api/class/' + classId + '/students/')
+    fetch(`{% tenant_url 'core:api_class_students' class_id=0 %}`.replace('0', classId))
 
         .then(response => {
 
@@ -4279,9 +4279,7 @@ function loadStudentProfile(studentId) {
 
 
     fetch(
-        '/api/student/' +
-        encodeURIComponent(studentId) +
-        '/profile/'
+        `{% tenant_url 'core:api_student_profile' student_id='PLACEHOLDER' %}`.replace('PLACEHOLDER', encodeURIComponent(studentId))
     )
 
     .then(response => {

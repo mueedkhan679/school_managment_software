@@ -109,7 +109,7 @@
         
         const csrftoken = getCookie('csrftoken');
         
-        fetch('/api/terminal/', {
+        fetch(`{% tenant_url 'core:terminal_command' %}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

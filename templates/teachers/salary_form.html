@@ -840,7 +840,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const yearInput = document.getElementById('id_salary_year');
         const year = yearInput ? yearInput.value : new Date().getFullYear();
 
-        fetch(`/teachers/api/teacher-info/${teacherId}/?year=${year}`, {
+        const apiUrl = `{% tenant_url 'teachers:api_teacher_salary_info' teacher_id=0 %}`.replace('0', teacherId) + `?year=${year}`;
+        fetch(apiUrl, {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
