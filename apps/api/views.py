@@ -909,6 +909,35 @@ class TeacherAttendanceView(TenantAPIContextMixin, APIView):
                     defaults={"status": status_val, "marked_by": request.user},
                 )
 
+                # --- Task 2: Send Push Notifications & In-App Alerts ---
+                # Retrieve the student's User account to deliver notifications
+                student_user = getattr(student, 'user', None)
+                if student_user:
+                    from apps.core.models import Notification
+                    from apps.core.fcm import send_fcm_notification
+                    
+                    if status_val == AttendanceStatus.PRESENT:
+                        title = "✅ Attendance Marked"
+                        body = f"You have been marked Present for {attendance_date.strftime('%B %d, %Y')}."
+                    elif status_val == AttendanceStatus.ABSENT:
+                        title = "⚠️ Attendance Alert"
+                        body = f"You have been marked Absent for {attendance_date.strftime('%B %d, %Y')}. Please contact the school if this is an error."
+                    elif status_val == AttendanceStatus.LEAVE:
+                        title = "📋 Leave Approved"
+                        body = f"Your leave for {attendance_date.strftime('%B %d, %Y')} has been recorded."
+                    else:
+                        title = "Attendance Update"
+                        body = f"Your attendance status was updated to {status_val}."
+                        
+                    # 1. Save in-app notification
+                    Notification.objects.create(
+                        user=student_user,
+                        title=title,
+                        message=body
+                    )
+                    
+                    # 2. Dispatch FCM push notification
+                    send_fcm_notification(student_user, title, body)
 
                 marked_count += 1
 
@@ -1382,3 +1411,54 @@ class StudentFeeStatementPDFView(APIView):
         response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{student.roll_number or student.student_id}_fee_statement.pdf"'
         return response
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class StudentMessageView(APIView):
+    """GET/POST /api/v1/students/messages/ — Student-to-School chat."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        from apps.core.models import StudentMessage
+        from apps.students.models import Student
+        
+        student = getattr(request.user, 'student_profile', None)
+        if not student:
+            return Response({"status": "error", "message": "Not a student."}, status=status.HTTP_403_FORBIDDEN)
+            
+        messages = StudentMessage.objects.filter(student=student).order_by('created_at')
+        payload = [
+            {
+                "id": m.id,
+                "message": m.message,
+                "created_at": m.created_at.isoformat(),
+                "expires_at": m.expires_at.isoformat(),
+            }
+            for m in messages
+        ]
+        return Response({"status": "success", "payload": payload}, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        from apps.core.models import StudentMessage
+        student = getattr(request.user, 'student_profile', None)
+        if not student:
+            return Response({"status": "error", "message": "Not a student."}, status=status.HTTP_403_FORBIDDEN)
+            
+        text = request.data.get("message", "").strip()
+        if not text:
+            return Response({"status": "error", "message": "Message cannot be empty."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if len(text) > 1000:
+            return Response({"status": "error", "message": "Message too long (max 1000 chars)."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        msg = StudentMessage.objects.create(student=student, message=text)
+        return Response({
+            "status": "success",
+            "message": "Message sent to school.",
+            "payload": {
+                "id": msg.id,
+                "message": msg.message,
+                "created_at": msg.created_at.isoformat()
+            }
+        }, status=status.HTTP_201_CREATED)

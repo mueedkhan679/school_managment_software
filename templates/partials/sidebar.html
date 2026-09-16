@@ -329,6 +329,9 @@
                 <a href="{% tenant_url 'core:dashboard' %}" class="sidebar-link {% if request.resolver_match.app_name == 'core' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">📊</span><span>Dashboard</span>
                 </a>
+                <a href="{% tenant_url 'core:inbox' %}" class="sidebar-link {% if request.resolver_match.url_name == 'inbox' %}active{% endif %}">
+                    <span class="sidebar-ico" aria-hidden="true">📭</span><span>Inbox</span>
+                </a>
                 <a href="{% tenant_url 'classrooms:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'classrooms' %}active{% endif %}">
                     <span class="sidebar-ico" aria-hidden="true">🏫</span><span>Classes</span>
                 </a>

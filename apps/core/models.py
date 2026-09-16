@@ -112,3 +112,41 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"To {self.user}: {self.message[:20]}"
+
+class ActiveMessageManager(models.Manager):
+    """Returns only messages that have not yet expired (within 24 hours)."""
+
+    def get_queryset(self):
+        from django.utils import timezone as _tz
+        return super().get_queryset().filter(expires_at__gt=_tz.now())
+
+
+class StudentMessage(models.Model):
+    """A message sent by a student to the school administration."""
+
+    student = models.ForeignKey(
+        'students.Student',
+        on_delete=models.CASCADE,
+        related_name='school_messages',
+    )
+    message = models.TextField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(editable=False)
+
+    objects = ActiveMessageManager()
+    all_objects = models.Manager()
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Student Message'
+        verbose_name_plural = 'Student Messages'
+
+    def __str__(self):
+        return f"{self.student} — {self.created_at:%Y-%m-%d %H:%M}: {self.message[:40]}"
+
+    def save(self, *args, **kwargs):
+        from django.utils import timezone as _tz
+        from datetime import timedelta
+        if not self.pk:
+            self.expires_at = _tz.now() + timedelta(hours=24)
+        super().save(*args, **kwargs)
