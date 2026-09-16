@@ -840,7 +840,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const yearInput = document.getElementById('id_salary_year');
         const year = yearInput ? yearInput.value : new Date().getFullYear();
 
-        fetch(`/teachers/api/teacher-info/${teacherId}/?year=${year}`)
+        fetch(`/teachers/api/teacher-info/${teacherId}/?year=${year}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
             .then(res => res.json())
             .then(data => {
                 if (data && data.monthly_salary) {
