@@ -24,6 +24,7 @@ from apps.teachers.models import (
     TeacherAttendanceStatus,
     SalaryStatus,
 )
+from apps.teachers.profile_utils import get_teacher_profile_for_user
 
 from .serializers import (
     AttendanceRecordSerializer,
@@ -47,19 +48,8 @@ def _get_student(request):
 
 
 def _get_teacher_profile(user):
-    """Retrieve Teacher profile for an authenticated user, or return None.
-
-    Uses ``getattr`` to avoid crashing with AttributeError when the reverse
-    OneToOne relation is missing, and catches the related-object DoesNotExist
-    exception raised by Django for unset OneToOne fields.
-    """
-    try:
-        teacher = getattr(user, "teacher_profile", None)
-        if teacher is not None and teacher.is_active:
-            return teacher
-    except Teacher.DoesNotExist:
-        pass
-    return None
+    """Retrieve or repair the active Teacher profile for an authenticated user."""
+    return get_teacher_profile_for_user(user)
 
 
 @method_decorator(csrf_exempt, name='dispatch')

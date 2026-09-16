@@ -7,6 +7,7 @@ from apps.attendance.models import Attendance
 from apps.fees.models import StudentFee
 from apps.students.models import Student
 from apps.teachers.models import Teacher
+from apps.teachers.profile_utils import get_teacher_profile_for_user
 
 User = get_user_model()
 
@@ -50,7 +51,7 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
             if not student_profile or not student_profile.is_active:
                 raise serializers.ValidationError({"detail": "No active student profile linked to this account."})
         elif user.is_teacher:
-            teacher_profile = getattr(user, "teacher_profile", None)
+            teacher_profile = get_teacher_profile_for_user(user)
             if not teacher_profile or not teacher_profile.is_active:
                 raise serializers.ValidationError({"detail": "No active teacher profile linked to this account."})
         elif not user.is_admin:

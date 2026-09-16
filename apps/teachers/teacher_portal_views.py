@@ -11,17 +11,15 @@ from apps.attendance.models import Attendance, AttendanceStatus
 from apps.classrooms.models import SchoolClass
 from apps.students.models import Student
 from apps.teachers.models import Teacher
+from apps.teachers.profile_utils import get_teacher_profile_for_user
 
 
 def _get_teacher_profile(user):
     """Retrieve the Teacher profile for the logged-in user, raising 403 if unlinked."""
-    try:
-        teacher = user.teacher_profile
-        if not teacher or not teacher.is_active:
-            raise PermissionDenied("Active teacher profile not found.")
-        return teacher
-    except (Teacher.DoesNotExist, AttributeError):
+    teacher = get_teacher_profile_for_user(user)
+    if teacher is None:
         raise PermissionDenied("No teacher profile linked to this user account.")
+    return teacher
 
 
 @teacher_required
