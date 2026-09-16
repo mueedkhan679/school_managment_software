@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -22,25 +23,30 @@ class ApiService {
   Future<Map<String, String>> _getHeaders({
     bool requireAuth = true,
     String? tenantSlug,
+    bool includeTenantHeaders = true,
   }) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest',
     };
 
     // Route every request to the correct school database on the backend.
     // ``X-Tenant-Key`` is understood by older deployments; ``X-Tenant-Slug``
     // is the canonical name. Sending both keeps compatibility.
     final slug = await _resolveTenantSlug(tenantSlug);
-    if (slug != null) {
+    if (includeTenantHeaders && slug != null) {
       headers['X-Tenant-Slug'] = slug;
       headers['X-Tenant-Key'] = slug;
     }
 
-    final cookie = await _storageService.getSessionCookie();
-    if (cookie != null && cookie.isNotEmpty) {
-      headers['Cookie'] = cookie;
+    // Browsers own the Cookie header and reject attempts to set it from
+    // Flutter Web. Authentication uses JWT, so the stored cookie is only
+    // useful on native clients.
+    if (!kIsWeb) {
+      final cookie = await _storageService.getSessionCookie();
+      if (cookie != null && cookie.isNotEmpty) {
+        headers['Cookie'] = cookie;
+      }
     }
 
     if (requireAuth) {
@@ -66,17 +72,26 @@ class ApiService {
 
     try {
       final slug = await _resolveTenantSlug(tenantSlug);
-      final response = await http.post(
-        url,
-        headers: await _getHeaders(requireAuth: false, tenantSlug: slug),
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-          // Fallback identification channel: the backend also accepts the
-          // school in the body when the header is missing.
-          if (slug != null) 'tenant': slug,
-        }),
-      );
+      final response = await http
+          .post(
+            url,
+            // The backend also resolves the tenant from the JSON body. Avoiding
+            // custom tenant headers here keeps login compatible with deployments
+            // whose CORS allow-list has not been reloaded yet.
+            headers: await _getHeaders(
+              requireAuth: false,
+              tenantSlug: slug,
+              includeTenantHeaders: false,
+            ),
+            body: jsonEncode({
+              'username': username,
+              'password': password,
+              // Fallback identification channel: the backend also accepts the
+              // school in the body when the header is missing.
+              if (slug != null) 'tenant': slug,
+            }),
+          )
+          .timeout(const Duration(seconds: 25));
 
       debugPrint('LOGIN RESPONSE HEADERS: ${response.headers}');
 
@@ -91,7 +106,9 @@ class ApiService {
       // Process response with robust error handling
       final result = _processResponse(response);
 
-      if (result['status'] != 'error' && response.statusCode >= 200 && response.statusCode < 300) {
+      if (result['status'] != 'error' &&
+          response.statusCode >= 200 &&
+          response.statusCode < 300) {
         debugPrint('✓ Login successful on exact URL: $endpoint');
         // Persist the canonical school slug returned by the backend so every
         // subsequent request is routed to the right tenant database, even
@@ -108,8 +125,26 @@ class ApiService {
       }
 
       return result;
-    } catch (e) {
+    } on http.ClientException catch (e, stackTrace) {
+      debugPrint('LOGIN CLIENT EXCEPTION on $endpoint: $e');
+      debugPrint('$stackTrace');
+      return {
+        'status': 'error',
+        'message':
+            'Could not reach the server. Check your connection and confirm the School ID.',
+        'errorType': 'network',
+      };
+    } on TimeoutException catch (e, stackTrace) {
+      debugPrint('LOGIN TIMEOUT on $endpoint: $e');
+      debugPrint('$stackTrace');
+      return {
+        'status': 'error',
+        'message': 'The server took too long to respond. Please try again.',
+        'errorType': 'timeout',
+      };
+    } catch (e, stackTrace) {
       debugPrint('Network error on $endpoint: $e');
+      debugPrint('$stackTrace');
       return {
         'status': 'error',
         'message': 'Network or server error: $e',
@@ -133,7 +168,8 @@ class ApiService {
         final newAccess = data['access'] as String?;
         final newRefresh = data['refresh'] as String? ?? refresh;
         if (newAccess != null) {
-          await _storageService.saveTokens(access: newAccess, refresh: newRefresh);
+          await _storageService.saveTokens(
+              access: newAccess, refresh: newRefresh);
           return true;
         }
       }
@@ -156,7 +192,7 @@ class ApiService {
     return _authenticatedGet(endpoint);
   }
 
-    Future<Map<String, dynamic>> getFees() async {
+  Future<Map<String, dynamic>> getFees() async {
     return _authenticatedGet('$baseUrl/api/v1/students/fees/');
   }
 
@@ -216,7 +252,8 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getTeacherAttendance({int? month, int? year, String? date, int? classId}) async {
+  Future<Map<String, dynamic>> getTeacherAttendance(
+      {int? month, int? year, String? date, int? classId}) async {
     var endpoint = '$baseUrl/api/v1/teacher/attendance/';
     final params = <String>[];
     if (date != null) params.add('date=$date');
@@ -280,7 +317,7 @@ class ApiService {
   }) async {
     const endpoint = '$baseUrl/api/v1/teacher/students/add/';
     final url = Uri.parse(endpoint);
-    
+
     try {
       final response = await http.post(
         url,
@@ -295,10 +332,10 @@ class ApiService {
           if (monthlyFee != null) 'monthly_fee': monthlyFee,
         }),
       );
-      
+
       debugPrint('Create Student Status Code: ${response.statusCode}');
       debugPrint('Create Student Response Body: ${response.body}');
-      
+
       return _processResponse(response);
     } catch (e) {
       debugPrint('Network error on $endpoint: $e');
@@ -309,7 +346,8 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> changePassword(String oldPassword, String newPassword) async {
+  Future<Map<String, dynamic>> changePassword(
+      String oldPassword, String newPassword) async {
     final url = Uri.parse('$baseUrl/api/v1/auth/change-password/');
     try {
       final response = await http.post(
@@ -362,23 +400,27 @@ class ApiService {
 
   Future<Map<String, dynamic>> _authenticatedGet(String urlStr) async {
     final url = Uri.parse(urlStr);
-    var response = await http.get(url, headers: await _getHeaders(requireAuth: true));
+    var response =
+        await http.get(url, headers: await _getHeaders(requireAuth: true));
 
     if (response.statusCode == 401) {
       final refreshed = await refreshToken();
       if (refreshed) {
-        response = await http.get(url, headers: await _getHeaders(requireAuth: true));
+        response =
+            await http.get(url, headers: await _getHeaders(requireAuth: true));
       }
     }
-    
-    if (urlStr.contains('/api/data/') && !urlStr.contains('attendance') && !urlStr.contains('fees')) {
+
+    if (urlStr.contains('/api/data/') &&
+        !urlStr.contains('attendance') &&
+        !urlStr.contains('fees')) {
       debugPrint('PROFILE RESPONSE CODE: ${response.statusCode}');
       debugPrint('PROFILE RESPONSE BODY: ${response.body}');
     } else {
       debugPrint('GET $urlStr Status Code: ${response.statusCode}');
       debugPrint('GET $urlStr Response Body: ${response.body}');
     }
-    
+
     return _processResponse(response);
   }
 
@@ -409,55 +451,59 @@ class ApiService {
     // Log response details for debugging
     debugPrint('Response Status Code: ${response.statusCode}');
     debugPrint('Response Content-Type: ${response.headers['content-type']}');
-    final bodyPreview = response.body.length > 500 
-        ? '${response.body.substring(0, 500)}...' 
+    final bodyPreview = response.body.length > 500
+        ? '${response.body.substring(0, 500)}...'
         : response.body;
     debugPrint('Response Body (first 500 chars): $bodyPreview');
-    
+
     // Check if response is HTML (common for error pages, redirects, or server issues)
     final trimmedBody = response.body.trim().toLowerCase();
-    if (trimmedBody.startsWith('<!doctype html>') || 
-        trimmedBody.startsWith('<html') || 
+    if (trimmedBody.startsWith('<!doctype html>') ||
+        trimmedBody.startsWith('<html') ||
         trimmedBody.startsWith('<?xml')) {
       debugPrint('⚠️ Server returned HTML instead of JSON');
       return {
         'status': 'error',
-        'message': 'Server returned an HTML page (Status ${response.statusCode}). This usually indicates a server error, incorrect endpoint, or maintenance mode.',
+        'message':
+            'Server returned an HTML page (Status ${response.statusCode}). This usually indicates a server error, incorrect endpoint, or maintenance mode.',
         'statusCode': response.statusCode,
         'rawBody': response.body,
         'isHtmlResponse': true,
       };
     }
-    
+
     // Check content-type header to verify JSON response
     final contentType = response.headers['content-type'] ?? '';
-    if (!contentType.contains('application/json') && !contentType.contains('text/json')) {
+    if (!contentType.contains('application/json') &&
+        !contentType.contains('text/json')) {
       debugPrint('⚠️ Response Content-Type is not JSON: $contentType');
       // If it's not JSON content-type, try to parse anyway but with warning
-      if (!contentType.contains('text/') && !contentType.contains('application/')) {
+      if (!contentType.contains('text/') &&
+          !contentType.contains('application/')) {
         return {
           'status': 'error',
-          'message': 'Unexpected content type: $contentType (Status ${response.statusCode})',
+          'message':
+              'Unexpected content type: $contentType (Status ${response.statusCode})',
           'statusCode': response.statusCode,
           'rawBody': response.body,
         };
       }
     }
-    
+
     // Attempt to parse JSON
     try {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
-      
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         debugPrint('✓ Request successful with status ${response.statusCode}');
         return body;
       } else {
         // Extract error message from response
-        final msg = body['message'] ?? 
-                   body['detail'] ?? 
-                   body['error'] ?? 
-                   'Request failed with status ${response.statusCode}';
-        
+        final msg = body['message'] ??
+            body['detail'] ??
+            body['error'] ??
+            'Request failed with status ${response.statusCode}';
+
         debugPrint('✗ Request failed: $msg');
         return {
           'status': 'error',
@@ -470,10 +516,11 @@ class ApiService {
       // JSON parsing failed - response is not valid JSON
       debugPrint('✗ JSON parsing failed: ${e.toString()}');
       debugPrint('Response body: ${response.body}');
-      
+
       return {
         'status': 'error',
-        'message': 'Server returned invalid JSON (Status ${response.statusCode}). ${e.toString()}',
+        'message':
+            'Server returned invalid JSON (Status ${response.statusCode}). ${e.toString()}',
         'statusCode': response.statusCode,
         'rawBody': response.body,
         'parseError': e.toString(),
