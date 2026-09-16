@@ -418,26 +418,6 @@ def api_student_profile(request, student_id):
     return JsonResponse(data)
 
 
-def csrf_failure(request, reason=""):
-    """Render a 403 for CSRF failures, except on the public login form.
-
-    A stale login page or a browser that discarded its CSRF cookie must not
-    present an anonymous user with the application's generic Access Denied
-    page.  Redirecting to the same (possibly tenant-prefixed) login URL turns
-    the failed POST into a fresh GET, which issues a new CSRF token.
-    """
-    normalised_path = request.path.rstrip("/")
-    if (
-        normalised_path == "/accounts/login"
-        or normalised_path.endswith("/accounts/login")
-    ):
-        return redirect(request.get_full_path())
-
-    context = {
-        "reason": reason,
-    }
-    return render(request, "403.html", context, status=403)
-
 
 
 def csrf_failure(request, reason=""):

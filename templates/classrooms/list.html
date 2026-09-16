@@ -217,7 +217,7 @@ function closeAddClassModal() {
 }
 function confirmDeleteClass(classId, className, studentCount) {
     const form = document.getElementById('delete-class-form');
-    form.action = `/classrooms/${classId}/delete/`;
+    form.action = `{% tenant_url 'classrooms:delete' pk=0 %}`.replace('0', classId);
     
     const msg = document.getElementById('delete-modal-msg');
     const warning = document.getElementById('delete-warning-box');

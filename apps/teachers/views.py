@@ -12,6 +12,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import admin_required
+from apps.tenants.utils import with_tenant_prefix
+
 from apps.classrooms.models import SchoolClass
 from apps.core.constants import MONTHS, MONTHS_MAP
 from .forms import TeacherForm, TeacherSalaryForm
@@ -330,13 +332,28 @@ def salary_create(request):
         if form.is_valid():
             salary = form.save(commit=False)
             salary.recorded_by = request.user
-            salary.save()
+            # Explicitly write to the active tenant DB to guarantee correct
+            # routing even if the thread-local alias is cleared early by any
+            # signal/middleware running after the view.
+            tenant = getattr(request, "tenant", None)
+            if tenant is not None:
+                salary.save(using=tenant.db_alias)
+            else:
+                salary.save()
             messages.success(
                 request,
                 f"Salary payment of Rs {salary.amount:.2f} for {salary.teacher.name} "
                 f"({salary.get_salary_month_display()} {salary.salary_year}) recorded successfully.",
             )
-            return redirect("teachers:salary_voucher", pk=salary.pk)
+            # Use with_tenant_prefix so the browser stays inside the tenant
+            # URL space — the middleware _fix_redirect() does this too, but
+            # being explicit here avoids any edge-case double-redirect.
+            voucher_url = with_tenant_prefix(
+                reverse("teachers:salary_voucher", kwargs={"pk": salary.pk}),
+                request,
+            )
+            return redirect(voucher_url)
+
     else:
         initial = {}
         teacher_param = request.GET.get("teacher_id") or request.GET.get("teacher")

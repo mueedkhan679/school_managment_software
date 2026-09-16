@@ -496,7 +496,7 @@
 <script>
 function confirmArchiveStudent(studentId, studentName) {
     const form = document.getElementById('archive-student-form');
-    form.action = `/students/${studentId}/delete/`;
+    form.action = `{% tenant_url 'students:delete' student_id='PLACEHOLDER' %}`.replace('PLACEHOLDER', studentId);
     document.getElementById('archive-modal-msg').innerHTML = `Are you sure you want to deactivate and archive <strong>${studentName} (${studentId})</strong>?`;
     document.getElementById('archive-student-modal').style.display = 'flex';
 }

@@ -1601,7 +1601,7 @@
 <script>
 function confirmArchiveTeacher(teacherId, teacherName) {
     const form = document.getElementById('archive-teacher-form');
-    form.action = `/teachers/${teacherId}/delete/`;
+    form.action = `{% tenant_url 'teachers:delete' teacher_id='PLACEHOLDER' %}`.replace('PLACEHOLDER', teacherId);
     document.getElementById('archive-modal-msg').innerHTML = `Are you sure you want to archive <strong>${teacherName} (${teacherId})</strong>?`;
     document.getElementById('archive-teacher-modal').style.display = 'flex';
 }

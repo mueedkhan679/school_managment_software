@@ -336,7 +336,7 @@ function updateProfileSelect() {
     });
 }
 function confirmDeleteAccount(userId, username) {
-    document.getElementById('delete-acc-form').action = `/accounts/manage/${userId}/delete/`;
+    document.getElementById('delete-acc-form').action = `{% tenant_url 'accounts:account_delete' user_id=0 %}`.replace('0', userId);
     document.getElementById('delete-acc-msg').innerHTML = `Delete account <strong>${username}</strong>? The linked profile record will NOT be deleted.`;
     document.getElementById('delete-acc-modal').style.display = 'flex';
 }

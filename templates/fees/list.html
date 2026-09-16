@@ -544,7 +544,7 @@
 <script>
 function confirmDeleteFee(feeId, studentName, feeMonth, amount) {
     const form = document.getElementById('delete-fee-form');
-    form.action = `/fees/${feeId}/delete/`;
+    form.action = `{% tenant_url 'fees:delete' pk=0 %}`.replace('0', feeId);
     document.getElementById('delete-fee-msg').innerHTML = `Are you sure you want to delete fee payment of <strong>Rs ${amount}</strong> for <strong>${studentName}</strong> (${feeMonth})?`;
     document.getElementById('delete-fee-modal').style.display = 'flex';
 }
