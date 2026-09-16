@@ -79,9 +79,13 @@ class TenantRouter:
         return tenant_db or "default"
 
     def db_for_read(self, model, **hints: Any) -> str:
+        if hasattr(model, "_meta") and model._meta.app_label == "sessions":
+            return "default"
         return self._route(model, **hints)
 
     def db_for_write(self, model, **hints: Any) -> str:
+        if hasattr(model, "_meta") and model._meta.app_label == "sessions":
+            return "default"
         return self._route(model, **hints)
 
     def allow_relation(self, obj1: Any, obj2: Any, **hints: Any) -> bool:
@@ -110,6 +114,9 @@ class TenantRouter:
           (i.e. tenant databases), so the master DB stays free of
           school-scoped tables.
         """
+        if app_label == "sessions":
+            return db == "default"
+
         if app_label in MASTER_APPS:
             return db == "default"
 
