@@ -276,13 +276,19 @@ class StudentLoginView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class StudentProfileView(APIView):
+class StudentProfileView(TenantAPIContextMixin, APIView):
     """GET /api/v1/students/profile/
     Returns full profile details of the logged-in student.
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        # Ensure the tenant DB alias is active on this thread before any ORM
+        # query — guards against thread-local loss between middleware and view.
+        _tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
+
         student = _get_student(request)
         if not student:
             return Response(
@@ -305,7 +311,7 @@ class StudentProfileView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class StudentAttendanceView(APIView):
+class StudentAttendanceView(TenantAPIContextMixin, APIView):
     """GET /api/v1/students/attendance/
     Returns attendance summary metrics and paginated records log.
     Supports filtering via query parameters: ?month=XX&year=YYYY
@@ -313,6 +319,10 @@ class StudentAttendanceView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        _tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
+
         student = _get_student(request)
         if not student:
             return Response(
@@ -366,13 +376,17 @@ class StudentAttendanceView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class StudentFeeView(APIView):
+class StudentFeeView(TenantAPIContextMixin, APIView):
     """GET /api/v1/students/fees/
     Returns fee history, yearly pending balance, and payment status schedule.
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        _tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
+
         student = _get_student(request)
         if not student:
             return Response(
@@ -493,7 +507,7 @@ class TeacherClassListView(TenantAPIContextMixin, APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class TeacherProfileApiView(APIView):
+class TeacherProfileApiView(TenantAPIContextMixin, APIView):
     """GET /api/v1/teacher/profile/
     Full profile of the logged-in teacher — powers the in-app Digital ID Card
     (photo, full name, teacher ID, designation, contact details) and any other
@@ -502,6 +516,10 @@ class TeacherProfileApiView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        _tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
+
         teacher = _get_teacher_profile(request.user)
         if not teacher:
             return Response(
@@ -553,7 +571,7 @@ class TeacherProfileApiView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class TeacherStudentCreateView(APIView):
+class TeacherStudentCreateView(TenantAPIContextMixin, APIView):
     """POST /api/v1/teacher/students/add/
     Lets an authenticated teacher register a new student directly from the app.
 
@@ -573,6 +591,10 @@ class TeacherStudentCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        _tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
+
         teacher = _get_teacher_profile(request.user)
         if not teacher:
             return Response(
@@ -959,7 +981,7 @@ class TeacherSalaryView(TenantAPIContextMixin, APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class TeacherAttendanceScanView(APIView):
+class TeacherAttendanceScanView(TenantAPIContextMixin, APIView):
     """POST /api/v1/teacher/attendance/scan/   (alias: /api/v1/teachers/attendance/scan/)
 
     Body: {"token": "<QR payload scanned from the admin dashboard>"}
@@ -975,6 +997,10 @@ class TeacherAttendanceScanView(APIView):
 
     def post(self, request, *args, **kwargs):
         from apps.attendance.qr_tokens import verify_token
+
+        _tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
 
         teacher = _get_teacher_profile(request.user)
         if not teacher:
@@ -1053,7 +1079,7 @@ class TeacherAttendanceScanView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class TeacherLatestScanView(APIView):
+class TeacherLatestScanView(TenantAPIContextMixin, APIView):
     """GET /api/v1/teacher/attendance/latest-scan/
     (alias: /api/v1/teachers/attendance/latest-scan/)
 
@@ -1065,6 +1091,10 @@ class TeacherLatestScanView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        _tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
+
         today = timezone.localdate()
 
         todays_scans = (
