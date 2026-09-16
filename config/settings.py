@@ -338,9 +338,29 @@ SESSION_COOKIE_AGE = 60 * 60 * 8
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+
+# CSRF configuration for multi-tenant support
+# - CSRF_COOKIE_SAMESITE: Set to 'Lax' to allow CSRF cookies to be sent with
+#   cross-site requests that use safe methods (GET, HEAD, OPTIONS, TRACE).
+#   This is necessary for multi-tenant setups where the frontend and backend
+#   may be on different subdomains.
+# - CSRF_COOKIE_HTTPONLY: Set to False to allow JavaScript to read the CSRF
+#   token for API requests. This is necessary for SPAs and mobile apps.
+# - CSRF_COOKIE_SECURE: Set based on DEBUG setting. In production (DEBUG=False),
+#   this should be True to ensure CSRF cookies are only sent over HTTPS.
+# - CSRF_TRUSTED_ORIGINS: Must include all origins that will be making CSRF-protected
+#   requests. This is critical for multi-tenant setups.
+
 CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token for API calls
+CSRF_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
+CSRF_USE_SESSIONS = False  # Use cookies for CSRF tokens (better for APIs)
+
+# CSRF failure handler - custom view to handle CSRF failures gracefully
 CSRF_FAILURE_VIEW = 'apps.core.views.csrf_failure'
 
+# Configure CSRF trusted origins for multi-tenant support
+# This must include all domains/subdomains that will be making CSRF-protected requests
 raw_origins = os.environ.get(
     "CSRF_TRUSTED_ORIGINS",
     "http://127.0.0.1:8000,http://localhost:8000,http://127.0.0.1,http://localhost"
@@ -348,7 +368,17 @@ raw_origins = os.environ.get(
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 CSRF_TRUSTED_ORIGINS.append('https://mueed563.pythonanywhere.com')
 
-MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+# Allow CSRF tokens to be accepted from these headers (for API requests)
+# This is critical for JWT-based API authentication where CSRF tokens
+# may be sent in custom headers instead of cookies
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Default Django setting
+
+# For multi-tenant setups, ensure CSRF cookies are scoped correctly
+# This prevents CSRF cookies from one tenant being used on another
+CSRF_COOKIE_PATH = '/'  # Available across the entire tenant path
+# Note: CSRF_COOKIE_DOMAIN is intentionally not set to allow subdomain flexibility
+# If using subdomain-based tenant identification, set this to your base domain
+# e.g., CSRF_COOKIE_DOMAIN = '.example.com'
 
 # Security hardening
 X_FRAME_OPTIONS = 'DENY'

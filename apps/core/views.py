@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.csrf import requires_csrf_token
 
 from apps.tenants.utils import with_tenant_prefix
 from apps.accounts.decorators import admin_required
@@ -437,3 +438,138 @@ def csrf_failure(request, reason=""):
     }
     return render(request, "403.html", context, status=403)
 
+
+
+def csrf_failure(request, reason=""):
+    """
+    Custom CSRF failure view for handling CSRF token errors gracefully.
+    
+    This view is called when Django's CSRF protection rejects a request.
+    It provides detailed error information for debugging while maintaining
+    security by not exposing sensitive implementation details.
+    
+    For API requests (AJAX, mobile apps), returns a JSON response.
+    For browser requests, renders a user-friendly error page.
+    
+    Args:
+        request: The HTTP request object
+        reason: The reason why CSRF validation failed (provided by Django)
+        
+    Returns:
+        HttpResponse with appropriate error message and status code 403
+    """
+    # Check if this is an API request (JSON expected)
+    is_api_request = (
+        request.headers.get('Accept', '').find('application/json') != -1 or
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    )
+    
+    # Common reasons for CSRF failure and their user-friendly messages
+    error_messages = {
+        'CSRF token missing': 'CSRF token is missing. Please refresh the page and try again.',
+        'CSRF token from POST incorrect': 'CSRF token is invalid or expired. Please refresh the page and try again.',
+        'CSRF token from cookie incorrect': 'CSRF cookie is invalid or expired. Please clear your cookies and try again.',
+    }
+    
+    user_message = error_messages.get(
+        reason,
+        'A security validation error occurred. Please try again.'
+    )
+    
+    if is_api_request:
+        # Return JSON response for API requests
+        response_data = {
+            'status': 'error',
+            'code': 'CSRF_ERROR',
+            'message': user_message,
+            'detail': reason if request.user.is_staff else None,  # Only show detail to staff
+            'suggestion': _get_csrf_suggestion(request, reason),
+        }
+        return JsonResponse(response_data, status=403)
+    
+    # Render HTML error page for browser requests
+    context = {
+        'error_title': 'Security Validation Error',
+        'error_message': user_message,
+        'reason': reason if request.user.is_staff else None,
+        'suggestion': _get_csrf_suggestion(request, reason),
+        'retry_url': request.get_full_path(),
+    }
+    
+    return render(request, 'core/csrf_error.html', context, status=403)
+
+
+def _get_csrf_suggestion(request, reason):
+    """
+    Get a helpful suggestion based on the CSRF error reason and request context.
+    
+    Args:
+        request: The HTTP request object
+        reason: The CSRF error reason
+        
+    Returns:
+        A user-friendly suggestion string
+    """
+    # Check if this is a multi-tenant context
+    tenant_slug = getattr(request, 'tenant_slug', None)
+    
+    if 'missing' in reason.lower():
+        if tenant_slug:
+            return (
+                f"Please refresh the page at /t/{tenant_slug}/ to obtain a new CSRF token. "
+                "If you're using an API, ensure you're sending the CSRF token in the X-CSRFToken header."
+            )
+        return (
+            "Please refresh the page to obtain a new CSRF token. "
+            "If you're using an API, ensure you're sending the CSRF token correctly."
+        )
+    
+    if 'incorrect' in reason.lower() or 'expired' in reason.lower():
+        if tenant_slug:
+            return (
+                f"The CSRF token has expired or is invalid for tenant /t/{tenant_slug}/. "
+                "Please refresh the page or clear your browser cookies and try again."
+            )
+        return (
+            "The CSRF token has expired or is invalid. "
+            "Please refresh the page or clear your browser cookies and try again."
+        )
+    
+    if 'cookie' in reason.lower():
+        return (
+            "Your CSRF cookie may be corrupted or expired. "
+            "Try clearing your browser cookies for this site and refreshing the page."
+        )
+    
+    return (
+        "If you're using an API or mobile app, ensure you're sending authentication "
+        "credentials correctly. For web browsers, try refreshing the page."
+    )
+
+
+@requires_csrf_token
+def csrf_token_view(request):
+    """
+    Endpoint to retrieve a fresh CSRF token.
+    
+    This can be used by single-page applications or mobile apps to
+    obtain a valid CSRF token before making POST requests.
+    
+    Args:
+        request: The HTTP request object
+        
+    Returns:
+        JSON response containing the CSRF token
+    """
+    from django.middleware.csrf import get_token
+    
+    # Force generation of a CSRF token
+    get_token(request)
+    
+    # Get the token from the cookie
+    csrf_token = request.META.get('CSRF_COOKIE', '')
+    
+    return JsonResponse({
+        'csrfToken': csrf_token,
+        'message': 'CSRF token retrieved successfully',
+    })

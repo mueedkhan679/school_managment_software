@@ -16,6 +16,7 @@ from apps.attendance.models import Attendance, AttendanceStatus
 from apps.classrooms.models import SchoolClass
 from apps.core.constants import MONTHS
 from apps.core.fcm import send_fcm_notification
+from apps.core.database_utils import format_sql_query
 from apps.fees.models import FeeStatus
 from apps.students.models import Student
 from apps.teachers.models import (
@@ -34,6 +35,111 @@ from .serializers import (
 )
 
 User = get_user_model()
+
+
+class TenantAPIContextMixin:
+    """
+    Mixin to ensure tenant context is properly set for API requests.
+    
+    This mixin should be used with APIView classes to ensure that
+    the tenant database is correctly identified and set before
+    any database operations occur.
+    """
+    
+    def _resolve_tenant_from_request(self, request):
+        """
+        Resolve the tenant from the request.
+        
+        Returns:
+            Tuple of (tenant_instance, error_message)
+        """
+        from apps.tenants.models import Tenant
+        from apps.tenants.db_router import set_current_db_alias
+        from apps.tenants.utils import register_tenant_db
+        
+        # First check if middleware already set the tenant
+        tenant = getattr(request, 'tenant', None)
+        if tenant is not None:
+            return tenant, None
+        
+        # 1. Try HTTP headers
+        header_key = request.META.get('HTTP_X_TENANT_KEY')
+        if not header_key:
+            header_key = request.META.get('HTTP_X_TENANT_SLUG')
+        if header_key:
+            tenant_slug = str(header_key).strip().lower()
+            try:
+                tenant = Tenant.objects.get(slug=tenant_slug)
+                if not tenant.is_active:
+                    return None, "This school account is suspended."
+                if tenant.is_locked:
+                    return None, "This school portal is currently locked."
+                register_tenant_db(tenant)
+                set_current_db_alias(tenant.db_alias)
+                request.tenant = tenant
+                request.tenant_slug = tenant.slug
+                return tenant, None
+            except Tenant.DoesNotExist:
+                return None, f"Unknown school identifier '{tenant_slug}'."
+        
+        # 2. Try query parameter
+        qp_slug = request.GET.get('tenant')
+        if qp_slug:
+            tenant_slug = str(qp_slug).strip().lower()
+            try:
+                tenant = Tenant.objects.get(slug=tenant_slug)
+                if not tenant.is_active:
+                    return None, "This school account is suspended."
+                if tenant.is_locked:
+                    return None, "This school portal is currently locked."
+                register_tenant_db(tenant)
+                set_current_db_alias(tenant.db_alias)
+                request.tenant = tenant
+                request.tenant_slug = tenant.slug
+                return tenant, None
+            except Tenant.DoesNotExist:
+                return None, f"Unknown school identifier '{tenant_slug}'."
+        
+        # 3. Try request body
+        if hasattr(request, 'data') and request.data:
+            for key in ('tenant', 'school', 'school_slug', 'tenant_slug'):
+                value = request.data.get(key)
+                if value and str(value).strip():
+                    raw = str(value).strip().lower()
+                    try:
+                        tenant = Tenant.objects.get(slug=raw)
+                    except Tenant.DoesNotExist:
+                        try:
+                            tenant = Tenant.objects.get(slug__iexact=raw)
+                        except Tenant.DoesNotExist:
+                            try:
+                                tenant = Tenant.objects.get(school_name__iexact=raw)
+                            except Tenant.DoesNotExist:
+                                return None, f"Unknown school '{raw}'."
+                    
+                    if not tenant.is_active:
+                        return None, "This school account is suspended."
+                    if tenant.is_locked:
+                        return None, "This school portal is currently locked."
+                    register_tenant_db(tenant)
+                    set_current_db_alias(tenant.db_alias)
+                    request.tenant = tenant
+                    request.tenant_slug = tenant.slug
+                    return tenant, None
+        
+        return None, None
+    
+    def ensure_tenant_context(self, request):
+        """
+        Ensure tenant context is set for the request.
+        """
+        tenant, error = self._resolve_tenant_from_request(request)
+        if error:
+            return None, Response(
+                {'status': 'error', 'message': error},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return tenant, None
 
 
 def _get_student(request):
@@ -332,7 +438,7 @@ class StudentFeeView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class TeacherClassListView(APIView):
+class TeacherClassListView(TenantAPIContextMixin, APIView):
     """GET /api/v1/teacher/classes/
     Returns ALL active school classes so any teacher can pick a class,
     view its enrolled students and take attendance for it.
@@ -341,6 +447,11 @@ class TeacherClassListView(APIView):
 
     def get(self, request, *args, **kwargs):
         from django.db.models import Count
+
+        # Ensure tenant context is set
+        tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
 
         teacher = _get_teacher_profile(request.user)
         if not teacher:
@@ -604,7 +715,7 @@ class TeacherStudentCreateView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class TeacherAttendanceView(APIView):
+class TeacherAttendanceView(TenantAPIContextMixin, APIView):
     """GET/POST /api/v1/teacher/attendance/
     - GET:  List students from any class (optionally filtered by class_id & date).
     - POST: Save daily attendance for students in any class.
@@ -617,6 +728,11 @@ class TeacherAttendanceView(APIView):
         return _get_teacher_profile(request.user)
 
     def get(self, request, *args, **kwargs):
+        # Ensure tenant context is set
+        tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
+        
         teacher = self._get_teacher_or_403(request)
         if not teacher:
             return Response(
@@ -792,11 +908,16 @@ class TeacherAttendanceView(APIView):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class TeacherSalaryView(APIView):
+class TeacherSalaryView(TenantAPIContextMixin, APIView):
     """GET /api/v1/teacher/salary/ — base salary and monthly paid/pending breakdown."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        # Ensure tenant context is set
+        tenant, error_response = self.ensure_tenant_context(request)
+        if error_response:
+            return error_response
+        
         teacher = _get_teacher_profile(request.user)
         if not teacher:
             return Response(
