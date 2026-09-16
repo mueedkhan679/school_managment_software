@@ -109,6 +109,5 @@ class StorageService {
     await _storage.delete(key: _keyTeacherName);
     await _storage.delete(key: _keyRole);
     await _storage.delete(key: _keySessionCookie);
-    await _storage.deleteAll(); // Fallback to wipe any remaining keys
   }
 }

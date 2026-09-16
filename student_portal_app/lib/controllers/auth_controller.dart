@@ -78,7 +78,11 @@ class AuthController extends ChangeNotifier {
         _session = UserSession.fromJson(payload);
 
         // Clear old storage values before saving new ones to prevent data leakage between users
+        final savedSlug = await _storageService.getTenantSlug();
         await _storageService.clearAll();
+        if (savedSlug != null && savedSlug.isNotEmpty) {
+          await _storageService.saveTenantSlug(savedSlug);
+        }
 
         await _storageService.saveTokens(
           access: _session!.accessToken,
