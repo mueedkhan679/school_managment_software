@@ -108,6 +108,21 @@ def with_tenant_prefix(path: str, request=None) -> str:
     return f"/t/{tenant.slug}{path}"
 
 
+def _prepare_sqlite_path(path: Path) -> None:
+    """Ensure the SQLite parent directory and file are writable by the app."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.chmod(path.parent, 0o775)
+    except OSError:
+        logger.debug("Could not chmod SQLite directory %s", path.parent)
+    if not path.exists():
+        path.touch()
+    try:
+        os.chmod(path, 0o664)
+    except OSError:
+        logger.debug("Could not chmod SQLite file %s", path)
+
+
 def register_tenant_db(tenant) -> None:
     """Dynamically register a tenant's database alias in Django's connection handler.
 
@@ -284,12 +299,7 @@ def _resolve_repair_changes(
 
 def _create_tenant_db_file(path: Path) -> None:
     """Create an empty SQLite file (mirroring provision_tenant_db permissions)."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.touch()
-    try:
-        os.chmod(path, 0o666)
-    except OSError:  # pragma: no cover - non-POSIX or restricted FS
-        logger.warning("Could not chmod tenant DB file %s", path)
+    _prepare_sqlite_path(path)
 
 
 def _repair_missing_tables(tenant, missing_tables: set[str]) -> None:
@@ -482,6 +492,7 @@ def migrate_tenant_db(
     """
     register_tenant_db(tenant)
     alias = tenant.db_alias
+    _prepare_sqlite_path(get_tenant_db_path(tenant.db_name))
     try:
         call_command(
             "migrate",
@@ -722,17 +733,21 @@ def provision_tenant_db(tenant, admin_username=None, admin_password=None):
     connections[alias].close()
     connections['default'].close()
 
-    # 2. Fresh start: wipe the file
+    # 2. Fresh start: close, make the file removable, then wipe it.
     if db_path.exists():
+        try:
+            os.chmod(db_path, 0o664)
+        except OSError:
+            pass
         db_path.unlink()
 
     # 3. Permissions
-    db_dir.mkdir(parents=True, exist_ok=True)
-    os.chmod(db_dir, 0o777)
-    db_path.touch()
-    os.chmod(db_path, 0o666)
+    _prepare_sqlite_path(db_path)
     if main_db.exists():
-        os.chmod(main_db, 0o666)
+        try:
+            os.chmod(main_db, 0o664)
+        except OSError:
+            logger.debug("Could not chmod master database %s", main_db)
 
     # 4. Apply every migration to the fresh database. This runs
     #    ``call_command("migrate", database=<alias>)`` so ALL tables are fully

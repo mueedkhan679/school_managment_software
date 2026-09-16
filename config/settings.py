@@ -98,6 +98,22 @@ MIDDLEWARE.extend([
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ])
 
+# Flutter Web sends a CORS preflight because the API uses JSON, JWT, and
+# tenant-routing headers. Keep production origins explicit while allowing
+# local Flutter development servers on any localhost port.
+from corsheaders.defaults import default_headers
+
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+]
+CORS_ALLOW_HEADERS = (*default_headers, "x-tenant-key", "x-tenant-slug")
+CORS_ALLOW_CREDENTIALS = False
+
 ROOT_URLCONF = 'config.urls'
 
 ROOT_URLCONF = 'config.urls'
@@ -108,6 +124,7 @@ TEMPLATES = [
         'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
+            'builtins': ['apps.tenants.templatetags.tenant_tags'],
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
