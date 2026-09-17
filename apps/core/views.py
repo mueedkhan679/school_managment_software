@@ -560,15 +560,25 @@ def csrf_token_view(request):
 def inbox_view(request):
     """Web dashboard view showing all active student messages."""
     from apps.core.models import StudentMessage
+    from django.utils import timezone
     
     # Active messages (last 24 hours)
     messages = StudentMessage.objects.select_related('student__school_class').order_by('-created_at')
     
-    # Optional: Delete a message if a POST request comes in
-    if request.method == "POST" and "delete_message_id" in request.POST:
-        msg_id = request.POST.get("delete_message_id")
-        # Use all_objects in case it just expired
-        StudentMessage.all_objects.filter(id=msg_id).delete()
-        return redirect(with_tenant_prefix(reverse("core:inbox"), request))
+    if request.method == "POST":
+        if "delete_message_id" in request.POST:
+            msg_id = request.POST.get("delete_message_id")
+            StudentMessage.all_objects.filter(id=msg_id).delete()
+            return redirect(with_tenant_prefix(reverse("core:inbox"), request))
+        elif "reply_message_id" in request.POST:
+            msg_id = request.POST.get("reply_message_id")
+            reply_text = request.POST.get("reply_text", "").strip()
+            if reply_text:
+                msg = StudentMessage.all_objects.filter(id=msg_id).first()
+                if msg:
+                    msg.reply = reply_text
+                    msg.replied_at = timezone.now()
+                    msg.save(update_fields=['reply', 'replied_at'])
+            return redirect(with_tenant_prefix(reverse("core:inbox"), request))
         
     return render(request, "core/inbox.html", {"inbox_messages": messages})

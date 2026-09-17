@@ -4,63 +4,232 @@
 {% block title %}Student Inbox — {{ school_name }}{% endblock %}
 
 {% block content %}
-<div class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-    <div>
-        <h2 style="margin: 0; font-size: 24px; color: #1e293b;">Student Inbox</h2>
-        <p style="margin: 4px 0 0; color: #64748b; font-size: 14px;">Messages automatically expire and delete after 24 hours.</p>
-    </div>
-</div>
+<style>
+    /* Modern SaaS styling for inbox */
+    .inbox-page { font-family: 'Inter', system-ui, sans-serif; padding-bottom: 40px; }
+    .inbox-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; }
+    .inbox-title { margin: 0; font-size: 1.75rem; font-weight: 700; color: #0f172a; letter-spacing: -0.025em; }
+    .inbox-subtitle { margin: 0.25rem 0 0; color: #64748b; font-size: 0.95rem; font-weight: 400; }
+    
+    .msg-list { display: flex; flex-direction: column; gap: 1.25rem; }
+    .msg-card { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); transition: all 0.2s ease; overflow: hidden; }
+    .msg-card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05); transform: translateY(-2px); border-color: #cbd5e1; }
+    
+    .msg-header { display: flex; padding: 1.25rem 1.5rem; background: #f8fafc; border-bottom: 1px solid #f1f5f9; align-items: center; justify-content: space-between; }
+    
+    .student-profile-trigger { display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 0.5rem; margin: -0.5rem; border-radius: 12px; transition: background 0.2s ease; }
+    .student-profile-trigger:hover { background: #f1f5f9; }
+    
+    .student-photo { width: 48px; height: 48px; border-radius: 9999px; object-fit: cover; border: 2px solid #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .student-info h4 { margin: 0; font-size: 1.05rem; font-weight: 600; color: #1e293b; line-height: 1.2; }
+    .student-info p { margin: 0.2rem 0 0; font-size: 0.85rem; color: #64748b; font-weight: 500; }
+    
+    .msg-meta { text-align: right; }
+    .msg-time { font-size: 0.85rem; font-weight: 500; color: #94a3b8; }
+    .msg-expires { font-size: 0.75rem; color: #cbd5e1; margin-top: 0.25rem; }
+    
+    .msg-body { padding: 1.5rem; color: #334155; font-size: 1rem; line-height: 1.6; white-space: pre-wrap; }
+    
+    .msg-footer { padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+    
+    .reply-form { display: flex; gap: 0.75rem; flex: 1; margin-right: 1.5rem; }
+    .reply-input { flex: 1; padding: 0.6rem 1rem; border: 1px solid #cbd5e1; border-radius: 9999px; font-size: 0.95rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    .reply-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+    .btn-reply { background: #3b82f6; color: white; border: none; padding: 0.6rem 1.25rem; border-radius: 9999px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
+    .btn-reply:hover { background: #2563eb; }
+    
+    .btn-delete { background: none; border: none; color: #ef4444; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 0.5rem 0.75rem; border-radius: 8px; transition: background 0.2s; }
+    .btn-delete:hover { background: #fee2e2; }
+    
+    .reply-bubble { background: #eff6ff; border: 1px solid #bfdbfe; padding: 1rem 1.25rem; border-radius: 12px; margin: 0 1.5rem 1.5rem; position: relative; }
+    .reply-bubble::before { content: 'School Reply'; position: absolute; top: -10px; left: 1rem; background: #3b82f6; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .reply-text { font-size: 0.95rem; color: #1e3a8a; margin: 0; line-height: 1.5; white-space: pre-wrap; }
+    .reply-time { font-size: 0.75rem; color: #93c5fd; margin-top: 0.5rem; text-align: right; }
+    
+    /* Modal Styling */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 50; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
+    .modal-overlay.show { display: flex; opacity: 1; }
+    .modal-card { background: white; border-radius: 20px; width: 90%; max-width: 440px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); overflow: hidden; }
+    .modal-overlay.show .modal-card { transform: scale(1); }
+    
+    .modal-header { position: relative; height: 120px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; font-size: 18px; }
+    .modal-close:hover { background: rgba(255,255,255,0.3); }
+    
+    .modal-profile { margin-top: -50px; text-align: center; padding: 0 1.5rem 1.5rem; }
+    .modal-profile img, .modal-profile .emoji-avatar { width: 100px; height: 100px; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 0 auto 1rem; background: #e2e8f0; object-fit: cover; }
+    .modal-profile .emoji-avatar { display: flex; align-items: center; justify-content: center; font-size: 40px; }
+    .modal-name { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin: 0 0 0.25rem; }
+    .modal-class { display: inline-block; background: #f1f5f9; color: #475569; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; }
+    
+    .modal-details { padding: 0 1.5rem 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .detail-item { background: #f8fafc; padding: 0.75rem; border-radius: 12px; border: 1px solid #f1f5f9; }
+    .detail-label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700; margin-bottom: 0.25rem; }
+    .detail-value { font-size: 0.95rem; font-weight: 600; color: #334155; }
+    
+    .status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+    .status-regular { background: #dcfce7; color: #166534; }
+    
+    .empty-state { padding: 4rem 2rem; text-align: center; background: white; border-radius: 16px; border: 1px dashed #cbd5e1; }
+    .empty-state span { font-size: 3rem; margin-bottom: 1rem; display: block; }
+    .empty-state h3 { margin: 0 0 0.5rem; color: #1e293b; font-size: 1.25rem; font-weight: 600; }
+    .empty-state p { margin: 0; color: #64748b; }
+</style>
 
-<div class="inbox-container" style="display: flex; flex-direction: column; gap: 16px;">
-    {% if inbox_messages %}
-        {% for msg in inbox_messages %}
-            <div class="message-card" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; display: flex; gap: 20px;">
-                <div class="student-photo" style="flex: none; width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: #f1f5f9; display: flex; justify-content: center; align-items: center;">
-                    {% if msg.student.photo %}
-                        <img src="{{ msg.student.photo.url }}" alt="{{ msg.student.name }}" style="width: 100%; height: 100%; object-fit: cover;">
-                    {% else %}
-                        <span style="font-size: 24px; color: #94a3b8;">🎓</span>
-                    {% endif %}
-                </div>
-                
-                <div class="message-content" style="flex: 1; min-width: 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                        <div>
-                            <h4 style="margin: 0; font-size: 16px; color: #0f172a;">{{ msg.student.name }}</h4>
-                            <div style="font-size: 13px; color: #64748b; margin-top: 2px;">
-                                {{ msg.student.school_class.name }} • Roll No: {{ msg.student.roll_number|default:"N/A" }}
+<div class="inbox-page">
+    <div class="inbox-header">
+        <div>
+            <h2 class="inbox-title">Student Inbox</h2>
+            <p class="inbox-subtitle">Direct messages from students. Messages expire automatically after 24 hours.</p>
+        </div>
+    </div>
+
+    <div class="msg-list">
+        {% if inbox_messages %}
+            {% for msg in inbox_messages %}
+                <div class="msg-card">
+                    <div class="msg-header">
+                        <div class="student-profile-trigger" 
+                             onclick="openModal(this)"
+                             data-name="{{ msg.student.name }}"
+                             data-photo="{% if msg.student.photo %}{{ msg.student.photo.url }}{% endif %}"
+                             data-father="{{ msg.student.father_name }}"
+                             data-class="{{ msg.student.school_class.name }}"
+                             data-roll="{{ msg.student.roll_number|default:'N/A' }}"
+                             data-sid="{{ msg.student.student_id }}"
+                             data-phone="{{ msg.student.phone|default:'N/A' }}"
+                             data-address="{{ msg.student.address|default:'N/A' }}"
+                             data-status="{{ msg.student.get_status_display }}">
+                            
+                            {% if msg.student.photo %}
+                                <img src="{{ msg.student.photo.url }}" alt="Photo" class="student-photo">
+                            {% else %}
+                                <div class="student-photo">🎓</div>
+                            {% endif %}
+                            
+                            <div class="student-info">
+                                <h4>{{ msg.student.name }}</h4>
+                                <p>{{ msg.student.school_class.name }} • Roll: {{ msg.student.roll_number|default:"N/A" }}</p>
                             </div>
                         </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 12px; color: #94a3b8; font-weight: 500;">
-                                {{ msg.created_at|timesince }} ago
-                            </div>
-                            <div style="font-size: 11px; color: #cbd5e1; margin-top: 2px;">
-                                Expires: {{ msg.expires_at|time:"h:i A" }}
-                            </div>
+                        
+                        <div class="msg-meta">
+                            <div class="msg-time">{{ msg.created_at|timesince }} ago</div>
+                            <div class="msg-expires">Expires {{ msg.expires_at|time:"h:i A" }}</div>
                         </div>
                     </div>
                     
-                    <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #f1f5f9; color: #334155; font-size: 14px; line-height: 1.5; white-space: pre-wrap;">{{ msg.message }}</div>
+                    <div class="msg-body">{{ msg.message }}</div>
                     
-                    <div style="margin-top: 12px; text-align: right;">
+                    {% if msg.reply %}
+                        <div class="reply-bubble">
+                            <p class="reply-text">{{ msg.reply }}</p>
+                            <div class="reply-time">Sent {{ msg.replied_at|timesince }} ago</div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="msg-footer">
+                        {% if not msg.reply %}
+                            <form method="post" action="{% tenant_url 'core:inbox' %}" class="reply-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="reply_message_id" value="{{ msg.id }}">
+                                <input type="text" name="reply_text" class="reply-input" placeholder="Type a reply to send to their app..." required>
+                                <button type="submit" class="btn-reply">Send Reply</button>
+                            </form>
+                        {% else %}
+                            <div style="flex: 1; color: #10b981; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                                <span>✓</span> Reply delivered to student's app
+                            </div>
+                        {% endif %}
+                        
                         <form method="post" action="{% tenant_url 'core:inbox' %}" style="margin: 0;">
                             {% csrf_token %}
                             <input type="hidden" name="delete_message_id" value="{{ msg.id }}">
-                            <button type="submit" style="background: none; border: none; color: #ef4444; font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: 4px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">
-                                Delete Message
-                            </button>
+                            <button type="submit" class="btn-delete" title="Delete Message">Delete</button>
                         </form>
                     </div>
                 </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <span>📭</span>
+                <h3>Inbox is Empty</h3>
+                <p>No active messages from students in the last 24 hours.</p>
             </div>
-        {% endfor %}
-    {% else %}
-        <div style="background: white; border-radius: 12px; padding: 40px; text-align: center; border: 1px dashed #cbd5e1;">
-            <span style="font-size: 40px; color: #cbd5e1; display: block; margin-bottom: 12px;">📭</span>
-            <h3 style="margin: 0 0 8px; color: #475569; font-size: 18px;">Inbox is Empty</h3>
-            <p style="margin: 0; color: #94a3b8; font-size: 14px;">No active messages from students in the last 24 hours.</p>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 </div>
+
+<!-- Student Profile Modal -->
+<div class="modal-overlay" id="studentModal" onclick="closeModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <button class="modal-close" onclick="closeModal(event)">&times;</button>
+        </div>
+        <div class="modal-profile">
+            <img id="mPhoto" src="" alt="Photo" style="display: none;">
+            <div id="mEmoji" class="emoji-avatar" style="display: none;">🎓</div>
+            
+            <h3 id="mName" class="modal-name">Student Name</h3>
+            <div id="mClass" class="modal-class">Class Name</div>
+            <div>
+                <span id="mStatus" class="status-badge status-regular">Status</span>
+            </div>
+        </div>
+        <div class="modal-details">
+            <div class="detail-item">
+                <span class="detail-label">Roll Number</span>
+                <span id="mRoll" class="detail-value">-</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Student ID</span>
+                <span id="mSid" class="detail-value">-</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Father's Name</span>
+                <span id="mFather" class="detail-value">-</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Phone</span>
+                <span id="mPhone" class="detail-value">-</span>
+            </div>
+            <div class="detail-item" style="grid-column: span 2;">
+                <span class="detail-label">Address</span>
+                <span id="mAddress" class="detail-value">-</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openModal(el) {
+    const photo = el.getAttribute('data-photo');
+    if(photo && photo.trim() !== '') {
+        document.getElementById('mPhoto').src = photo;
+        document.getElementById('mPhoto').style.display = 'block';
+        document.getElementById('mEmoji').style.display = 'none';
+    } else {
+        document.getElementById('mPhoto').style.display = 'none';
+        document.getElementById('mEmoji').style.display = 'flex';
+    }
+    
+    document.getElementById('mName').textContent = el.getAttribute('data-name') || 'N/A';
+    document.getElementById('mClass').textContent = el.getAttribute('data-class') || 'N/A';
+    document.getElementById('mFather').textContent = el.getAttribute('data-father') || 'N/A';
+    document.getElementById('mRoll').textContent = el.getAttribute('data-roll') || 'N/A';
+    document.getElementById('mSid').textContent = el.getAttribute('data-sid') || 'N/A';
+    document.getElementById('mPhone').textContent = el.getAttribute('data-phone') || 'N/A';
+    document.getElementById('mAddress').textContent = el.getAttribute('data-address') || 'N/A';
+    document.getElementById('mStatus').textContent = el.getAttribute('data-status') || 'Regular';
+    
+    const overlay = document.getElementById('studentModal');
+    overlay.classList.add('show');
+}
+
+function closeModal(e) {
+    if(e) e.preventDefault();
+    const overlay = document.getElementById('studentModal');
+    overlay.classList.remove('show');
+}
+</script>
 {% endblock %}

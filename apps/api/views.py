@@ -1434,6 +1434,8 @@ class StudentMessageView(APIView):
                 "message": m.message,
                 "created_at": m.created_at.isoformat(),
                 "expires_at": m.expires_at.isoformat(),
+                "reply": m.reply,
+                "replied_at": m.replied_at.isoformat() if m.replied_at else None,
             }
             for m in messages
         ]

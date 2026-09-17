@@ -132,6 +132,8 @@ class StudentMessage(models.Model):
     message = models.TextField(max_length=1000)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(editable=False)
+    reply = models.TextField(blank=True, null=True, help_text="Reply from the school administration.")
+    replied_at = models.DateTimeField(blank=True, null=True)
 
     objects = ActiveMessageManager()
     all_objects = models.Manager()
