@@ -180,6 +180,29 @@ class _MainScaffoldViewState extends State<MainScaffoldView> {
 
                 const SizedBox(height: 8),
 
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.message_outlined, color: Colors.blue, size: 20),
+                  ),
+                  title: const Text('Contact School', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Send a message to school administration', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ContactSchoolView()),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 8),
+
                 _bottomSheetItem(
                   context: context,
                   icon: Icons.logout_rounded,

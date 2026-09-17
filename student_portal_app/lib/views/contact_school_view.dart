@@ -118,6 +118,45 @@ class _ContactSchoolViewState extends State<ContactSchoolView> {
                                       ),
                                     ),
                                   ),
+                                  if (msg['reply'] != null && msg['reply'].toString().isNotEmpty) ...[
+                                    const Divider(height: 24),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: colors.primaryContainer.withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: colors.primary.withOpacity(0.2)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(Icons.school, size: 16, color: colors.primary),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'School Reply',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: colors.primary,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            msg['reply'],
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              color: colors.onSurface,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
